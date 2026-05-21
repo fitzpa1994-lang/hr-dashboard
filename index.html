@@ -412,6 +412,63 @@ body{background:#f1f5f9;min-height:100vh;font-size:13px}
 
 <script>
 // ============================================================
+// PASSWORD GATE
+// ============================================================
+(function(){
+  const PASS = 'sp@1234';
+  const KEY = 'hr_auth';
+  if(sessionStorage.getItem(KEY) === '1') return;
+
+  // Hide main content
+  document.body.style.display = 'none';
+
+  // Build login overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'login-overlay';
+  overlay.style.cssText = [
+    'position:fixed;inset:0;background:linear-gradient(135deg,#1e40af,#3b82f6)',
+    'display:flex;align-items:center;justify-content:center;z-index:99999'
+  ].join(';');
+
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:40px 36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">🏢</div>
+      <div style="font-size:18px;font-weight:700;color:#1e40af;margin-bottom:4px">Sporton HR</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:28px">招募戰略面板</div>
+      <input id="pw-input" type="password" placeholder="請輸入密碼"
+        style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box"
+        autocomplete="current-password"/>
+      <div id="pw-err" style="color:#f43f5e;font-size:12px;min-height:18px;margin-bottom:8px"></div>
+      <button id="pw-btn"
+        style="width:100%;padding:11px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+        登入
+      </button>
+    </div>`;
+
+  document.body.insertAdjacentElement('afterbegin', overlay);
+  document.body.style.display = '';
+
+  function tryLogin(){
+    const val = document.getElementById('pw-input').value;
+    if(val === PASS){
+      sessionStorage.setItem(KEY, '1');
+      overlay.remove();
+      // Re-show body content (header etc.)
+    } else {
+      document.getElementById('pw-err').textContent = '密碼錯誤，請再試一次';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  }
+
+  document.getElementById('pw-btn').addEventListener('click', tryLogin);
+  document.getElementById('pw-input').addEventListener('keydown', e => {
+    if(e.key === 'Enter') tryLogin();
+  });
+  setTimeout(()=>{ document.getElementById('pw-input').focus(); }, 100);
+})();
+
+// ============================================================
 // GLOBALS (must be first)
 // ============================================================
 let TODAY = new Date().toISOString().split('T')[0];
