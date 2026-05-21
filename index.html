@@ -412,6 +412,11 @@ body{background:#f1f5f9;min-height:100vh;font-size:13px}
 
 <script>
 // ============================================================
+// GLOBALS (must be first)
+// ============================================================
+let TODAY = new Date().toISOString().split('T')[0];
+
+// ============================================================
 // HELPERS
 // ============================================================
 function dateDiff(a,b){return Math.round((new Date(b)-new Date(a))/86400000)}
@@ -504,7 +509,6 @@ let candidatesData = [];
 let jobsData = [];
 let monthlyTrend = [];
 let stats = {};
-let TODAY = new Date().toISOString().split('T')[0];
 
 // ============================================================
 // DATA LOADING
