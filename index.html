@@ -270,6 +270,16 @@ body{background:#f1f5f9;min-height:100vh;font-size:13px}
         <div class="section-title">🎉 到職追蹤 <span style="font-weight:400;color:var(--gray);font-size:11px">— 即將到職 / 已到職</span></div>
         <div id="onboard-list"></div>
       </div>
+      <!-- Today Onboard -->
+      <div class="section" id="section-today-onboard">
+        <div class="section-title">📋 今日預計報到</div>
+        <div id="today-onboard-list"></div>
+      </div>
+      <!-- Future Onboard -->
+      <div class="section" id="section-future-onboard">
+        <div class="section-title">📅 未來預計報到</div>
+        <div id="future-onboard-list"></div>
+      </div>
       <!-- Resignation -->
       <div class="section">
         <div class="section-title">👋 離職追蹤 <span style="font-weight:400;color:var(--gray);font-size:11px">— 離職中 / 已完成</span></div>
@@ -616,6 +626,26 @@ function renderAll() {
   renderHRStats();
   renderCandidates();
   renderJobs();
+  renderTodayOnboard();
+  renderFutureOnboard();
+}
+
+function renderTodayOnboard() {
+  const list = document.getElementById('today-onboard-list');
+  const items = onboardData.filter(o => o.date === TODAY && o.status !== 'cancelled');
+  list.innerHTML = items.length
+    ? items.map(o => `<div class="hc-card"><div class="hc-icon green">📋</div><div class="hc-body"><div class="hc-name">${o.name}</div><div class="hc-sub">${o.pos||'—'} · ${o.dept||'—'}${o.hr?' · HR: '+o.hr:''}</div></div></div>`).join('')
+    : '<div class="empty">今日無報到</div>';
+}
+
+function renderFutureOnboard() {
+  const list = document.getElementById('future-onboard-list');
+  const items = onboardData
+    .filter(o => o.date > TODAY && o.status === 'pending')
+    .sort((a, b) => a.date.localeCompare(b.date));
+  list.innerHTML = items.length
+    ? items.map(o => `<div class="hc-card"><div class="hc-icon green">📅</div><div class="hc-body"><div class="hc-name">${o.name}</div><div class="hc-sub">${o.date} · ${o.pos||'—'} · ${o.dept||'—'}${o.hr?' · HR: '+o.hr:''}</div></div></div>`).join('')
+    : '<div class="empty">暫無未來報到資料</div>';
 }
 
 // ============================================================
@@ -762,7 +792,7 @@ function renderOnboard(){
   if(!onboardData.length){list.innerHTML='<div class="empty">目前無到職記錄（Workflow 3 匯入後顯示）</div>';return;}
   list.innerHTML=onboardData.map(o=>{
     const dl=dateDiff(TODAY,o.date);
-    const done=o.status==='onboarded';
+    const done=o.status==='onboarded'||(o.date&&o.date<=TODAY);
     return`<div class="hc-card">
       <div class="hc-icon green">${done?'✅':'🎉'}</div>
       <div class="hc-body">
@@ -779,7 +809,7 @@ function renderResign(){
   if(!resignData.length){list.innerHTML='<div class="empty">目前無離職記錄（Workflow 3 匯入後顯示）</div>';return;}
   list.innerHTML=resignData.map(r=>{
     const dl=dateDiff(TODAY,r.lastDay);
-    const done=r.status==='done';
+    const done=r.status==='done'||(r.lastDay&&r.lastDay<=TODAY);
     return`<div class="hc-card">
       <div class="hc-icon pink">${done?'👋':'⏳'}</div>
       <div class="hc-body">
