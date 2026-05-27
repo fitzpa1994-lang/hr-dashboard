@@ -422,60 +422,98 @@ body{background:#f1f5f9;min-height:100vh;font-size:13px}
 
 <script>
 // ============================================================
-// PASSWORD GATE
+// SERVER AUTH GATE
 // ============================================================
 (function(){
-  const PASS = 'sp@1234';
   const KEY = 'hr_auth';
-  if(sessionStorage.getItem(KEY) === '1') return;
 
-  // Hide main content
-  document.body.style.display = 'none';
-
-  // Build login overlay
-  const overlay = document.createElement('div');
-  overlay.id = 'login-overlay';
-  overlay.style.cssText = [
-    'position:fixed;inset:0;background:linear-gradient(135deg,#1e40af,#3b82f6)',
-    'display:flex;align-items:center;justify-content:center;z-index:99999'
-  ].join(';');
-
-  overlay.innerHTML = `
-    <div style="background:white;border-radius:16px;padding:40px 36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center">
-      <div style="font-size:32px;margin-bottom:12px">🏢</div>
-      <div style="font-size:18px;font-weight:700;color:#1e40af;margin-bottom:4px">Sporton HR</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:28px">招募戰略面板</div>
-      <input id="pw-input" type="password" placeholder="請輸入密碼"
-        style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box"
-        autocomplete="current-password"/>
-      <div id="pw-err" style="color:#f43f5e;font-size:12px;min-height:18px;margin-bottom:8px"></div>
-      <button id="pw-btn"
-        style="width:100%;padding:11px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
-        登入
-      </button>
-    </div>`;
-
-  document.body.insertAdjacentElement('afterbegin', overlay);
-  document.body.style.display = '';
-
-  function tryLogin(){
-    const val = document.getElementById('pw-input').value;
-    if(val === PASS){
-      sessionStorage.setItem(KEY, '1');
-      overlay.remove();
-      // Re-show body content (header etc.)
-    } else {
-      document.getElementById('pw-err').textContent = '密碼錯誤，請再試一次';
-      document.getElementById('pw-input').value = '';
-      document.getElementById('pw-input').focus();
-    }
+  async function requestJson(url, options = {}) {
+    const res = await fetch(url, {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    return { ok: res.ok, status: res.status, data };
   }
 
-  document.getElementById('pw-btn').addEventListener('click', tryLogin);
-  document.getElementById('pw-input').addEventListener('keydown', e => {
-    if(e.key === 'Enter') tryLogin();
-  });
-  setTimeout(()=>{ document.getElementById('pw-input').focus(); }, 100);
+  async function checkSession() {
+    const result = await requestJson('/api/session');
+    if (result.ok && result.data.authenticated) {
+      sessionStorage.setItem(KEY, '1');
+      return true;
+    }
+    sessionStorage.removeItem(KEY);
+    return false;
+  }
+
+  function showLogin() {
+    return new Promise(resolve => {
+    document.body.style.display = 'none';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'login-overlay';
+    overlay.style.cssText = [
+      'position:fixed;inset:0;background:linear-gradient(135deg,#1e40af,#3b82f6)',
+      'display:flex;align-items:center;justify-content:center;z-index:99999'
+    ].join(';');
+
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:16px;padding:40px 36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">🏢</div>
+        <div style="font-size:18px;font-weight:700;color:#1e40af;margin-bottom:4px">Sporton HR</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:28px">招募戰略面板</div>
+        <input id="pw-input" type="password" placeholder="請輸入密碼"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box"
+          autocomplete="current-password"/>
+        <div id="pw-err" style="color:#f43f5e;font-size:12px;min-height:18px;margin-bottom:8px"></div>
+        <button id="pw-btn"
+          style="width:100%;padding:11px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+          登入
+        </button>
+      </div>`;
+
+    document.body.insertAdjacentElement('afterbegin', overlay);
+    document.body.style.display = '';
+
+    async function tryLogin(){
+      const input = document.getElementById('pw-input');
+      const button = document.getElementById('pw-btn');
+      const error = document.getElementById('pw-err');
+      button.disabled = true;
+      button.textContent = '驗證中...';
+      error.textContent = '';
+
+      const result = await requestJson('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ password: input.value })
+      });
+
+      if(result.ok && result.data.authenticated){
+        sessionStorage.setItem(KEY, '1');
+        overlay.remove();
+        resolve(true);
+      } else {
+        sessionStorage.removeItem(KEY);
+        error.textContent = result.data.error || '密碼錯誤，請重新輸入';
+        input.value = '';
+        input.focus();
+      }
+
+      button.disabled = false;
+      button.textContent = '登入';
+    }
+
+    document.getElementById('pw-btn').addEventListener('click', tryLogin);
+    document.getElementById('pw-input').addEventListener('keydown', e => {
+      if(e.key === 'Enter') tryLogin();
+    });
+    setTimeout(()=>{ document.getElementById('pw-input').focus(); }, 100);
+    });
+  }
+
+  window.hrAuthReady = checkSession().then(isAuthed => isAuthed ? true : showLogin());
 })();
 
 // ============================================================
@@ -564,7 +602,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
 // ============================================================
 // CONFIG — n8n Webhook URL
 // ============================================================
-const API_URL = 'https://evanhh.zeabur.app/webhook/hr-dashboard?token=sportonHR2026';
+const API_URL = '/api/hr-dashboard';
 
 // ============================================================
 // GLOBAL DATA (filled by API)
@@ -585,7 +623,8 @@ async function loadData() {
     `載入中...<br><span style="font-size:10px;opacity:.7">請稍候</span>`;
 
   try {
-    const res = await fetch(API_URL);
+    await window.hrAuthReady;
+    const res = await fetch(API_URL, { credentials: 'same-origin' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
 
@@ -1028,3 +1067,5 @@ loadData();
 </script>
 </body>
 </html>
+
+
