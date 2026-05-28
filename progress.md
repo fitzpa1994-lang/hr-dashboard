@@ -26,6 +26,8 @@
   - 已執行 `git init`
   - `.gitignore` 已加入 `.claude/` 與 `tmp_*`
   - `doc/prompt.md` 內舊 n8n API Key 已替換為 `<ROTATED_N8N_API_KEY>`
+- 部署操作文件：
+  - `doc/zeabur-deployment.md` 記錄 Zeabur 正確 root、start command、必要 env、health check、完整部署驗證與 n8n Dashboard API 驗證流程
 - 登入與 session：
   - `/api/health`
   - `/api/login`
@@ -148,7 +150,7 @@ npm run verify:deployment
 ## 下一步建議
 
 1. 在 Zeabur 確認服務是從此專案 root 部署，並使用 root `npm start` 啟動，而不是 Caddy 靜態站或舊版 `dashboard/index.html`。
-2. 在 Zeabur 設定並重新部署四個必要環境變數。
+2. 依照 `doc/zeabur-deployment.md` 在 Zeabur 設定並重新部署四個必要環境變數。
 3. 用有效的 `N8N_HR_TOKEN` 跑：
 
 ```powershell
