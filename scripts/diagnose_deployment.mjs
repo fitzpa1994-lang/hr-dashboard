@@ -63,7 +63,9 @@ async function diagnose() {
     printCheck('GET /', 'FAIL', home.error);
   } else {
     const hasOldDemo = home.text.includes('示意版') || home.text.includes('no_response');
-    const hasCurrentShell = home.text.includes('login-overlay') && home.text.includes('last-updated');
+    const hasCurrentShell =
+      (home.text.includes('login-overlay') && home.text.includes('last-updated')) ||
+      (home.text.includes('SPORTON HRIS') && home.text.includes('refresh-btn') && home.text.includes('candidate-search'));
     if (hasOldDemo) {
       printCheck('GET / UI version', 'FAIL', 'old static dashboard detected');
     } else if (hasCurrentShell) {
