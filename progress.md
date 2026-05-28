@@ -28,6 +28,7 @@
   - `doc/prompt.md` 內舊 n8n API Key 已替換為 `<ROTATED_N8N_API_KEY>`
 - 部署操作文件：
   - `doc/zeabur-deployment.md` 記錄 Zeabur 正確 root、start command、必要 env、health check、完整部署驗證與 n8n Dashboard API 驗證流程
+  - `npm run diagnose:deployment` 可判斷線上目前是舊靜態站、env 缺漏、登入失敗，或 n8n proxy / API contract 失敗
   - `npm run package:deployment` 可產生 `dist/hr-dashboard-zeabur.zip`，用於 GitHub remote 尚未設定時的乾淨部署包
   - `npm run verify:package` 可解壓部署包並驗證 root 檔案位置、排除 secrets/local files、執行 server/verifier 語法檢查；runtime HTTP 行為由 root `npm test` 覆蓋
 - 登入與 session：
@@ -153,13 +154,14 @@ npm run verify:deployment
 
 1. 在 Zeabur 確認服務是從此專案 root 部署，並使用 root `npm start` 啟動，而不是 Caddy 靜態站或舊版 `dashboard/index.html`。
 2. 依照 `doc/zeabur-deployment.md` 在 Zeabur 設定並重新部署四個必要環境變數。
-3. 用有效的 `N8N_HR_TOKEN` 跑：
+3. 重新部署後先跑 `npm run diagnose:deployment` 判斷目前卡在哪一層。
+4. 用有效的 `N8N_HR_TOKEN` 跑：
 
 ```powershell
 $env:N8N_HR_TOKEN="..."
 python scripts\validate_dashboard_api.py
 ```
 
-4. 用一封測試 Outlook 面試信驗證資料流入 PostgreSQL 後，前端手動重新整理可看到新資料。
-5. 提供 GitHub repo URL 後設定 remote，push 目前通過驗證的版本，讓 Zeabur 重新從正確 repo 部署。
-6. 若暫時不走 GitHub，可先執行 `npm run package:deployment` 與 `npm run verify:package`，再用 Zeabur 可接受的手動匯入方式部署 zip。
+5. 用一封測試 Outlook 面試信驗證資料流入 PostgreSQL 後，前端手動重新整理可看到新資料。
+6. 提供 GitHub repo URL 後設定 remote，push 目前通過驗證的版本，讓 Zeabur 重新從正確 repo 部署。
+7. 若暫時不走 GitHub，可先執行 `npm run package:deployment` 與 `npm run verify:package`，再用 Zeabur 可接受的手動匯入方式部署 zip。

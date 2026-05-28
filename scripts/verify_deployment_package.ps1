@@ -73,6 +73,11 @@ try {
       throw "runtime verifier syntax check failed inside extracted package"
     }
 
+    node --check scripts/diagnose_deployment.mjs
+    if ($LASTEXITCODE -ne 0) {
+      throw "deployment diagnosis syntax check failed inside extracted package"
+    }
+
     node --check scripts/verify_deployment.mjs
     if ($LASTEXITCODE -ne 0) {
       throw "deployment verifier syntax check failed inside extracted package"

@@ -55,6 +55,7 @@ const envExample = fs.existsSync(path.join(root, '.env.example'))
 if (rootPkg) {
   expectEqual(rootPkg.scripts?.start, 'node dashboard/server.js', 'root start script');
   expectEqual(rootPkg.scripts?.['verify:deployment'], 'node scripts/verify_deployment.mjs', 'deployment verification script');
+  expectEqual(rootPkg.scripts?.['diagnose:deployment'], 'node scripts/diagnose_deployment.mjs', 'deployment diagnosis script');
   expectIncludes(rootPkg.scripts?.['package:deployment'], 'scripts/create_deployment_package.ps1', 'deployment package script');
   expectIncludes(rootPkg.scripts?.['verify:package'], 'scripts/verify_deployment_package.ps1', 'deployment package verification script');
   expectIncludes(rootPkg.engines?.node, '>=20', 'root node engine');
@@ -96,6 +97,7 @@ run('Dashboard Jest tests', 'node', [
   '--runInBand'
 ]);
 run('Runtime HTTP verification', 'node', ['scripts/verify_runtime.mjs']);
+run('Deployment diagnosis syntax check', 'node', ['--check', 'scripts/diagnose_deployment.mjs']);
 run('Deployment verifier syntax check', 'node', ['--check', 'scripts/verify_deployment.mjs']);
 run('Visual fixture syntax check', 'node', ['--check', 'scripts/serve_visual_fixture.mjs']);
 run('Visual UI fixture syntax check', 'node', ['--check', 'scripts/serve_visual_ui_fixture.mjs']);

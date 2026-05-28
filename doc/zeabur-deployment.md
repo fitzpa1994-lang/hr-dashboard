@@ -128,6 +128,21 @@ dist/hr-dashboard-zeabur.zip
 
 ## 部署後驗證
 
+先跑診斷，它會判斷目前是舊靜態站、env 缺漏、登入失敗，或 n8n proxy 失敗：
+
+```powershell
+$env:HR_DASHBOARD_URL="https://sp-hr.zeabur.app"
+npm run diagnose:deployment
+```
+
+若要同時檢查登入和 Dashboard proxy：
+
+```powershell
+$env:HR_DASHBOARD_URL="https://sp-hr.zeabur.app"
+$env:HR_DASHBOARD_PASSWORD="<dashboard-login-password>"
+npm run diagnose:deployment
+```
+
 先驗證 health endpoint：
 
 ```powershell
