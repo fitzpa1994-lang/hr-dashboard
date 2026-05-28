@@ -56,6 +56,7 @@ if (rootPkg) {
   expectEqual(rootPkg.scripts?.start, 'node dashboard/server.js', 'root start script');
   expectEqual(rootPkg.scripts?.['verify:deployment'], 'node scripts/verify_deployment.mjs', 'deployment verification script');
   expectEqual(rootPkg.scripts?.['diagnose:deployment'], 'node scripts/diagnose_deployment.mjs', 'deployment diagnosis script');
+  expectEqual(rootPkg.scripts?.['prepare:zeabur-env'], 'node scripts/prepare_zeabur_env.mjs', 'Zeabur env preparation script');
   expectIncludes(rootPkg.scripts?.['package:deployment'], 'scripts/create_deployment_package.ps1', 'deployment package script');
   expectIncludes(rootPkg.scripts?.['verify:package'], 'scripts/verify_deployment_package.ps1', 'deployment package verification script');
   expectIncludes(rootPkg.engines?.node, '>=20', 'root node engine');
@@ -99,6 +100,7 @@ run('Dashboard Jest tests', 'node', [
 run('Runtime HTTP verification', 'node', ['scripts/verify_runtime.mjs']);
 run('Deployment diagnosis syntax check', 'node', ['--check', 'scripts/diagnose_deployment.mjs']);
 run('Deployment verifier syntax check', 'node', ['--check', 'scripts/verify_deployment.mjs']);
+run('Zeabur env preparation syntax check', 'node', ['--check', 'scripts/prepare_zeabur_env.mjs']);
 run('Visual fixture syntax check', 'node', ['--check', 'scripts/serve_visual_fixture.mjs']);
 run('Visual UI fixture syntax check', 'node', ['--check', 'scripts/serve_visual_ui_fixture.mjs']);
 run('n8n export validation', 'python', ['scripts/validate_n8n_exports.py']);

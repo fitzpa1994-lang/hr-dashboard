@@ -29,6 +29,7 @@
 - 部署操作文件：
   - `doc/zeabur-deployment.md` 記錄 Zeabur 正確 root、start command、必要 env、health check、完整部署驗證與 n8n Dashboard API 驗證流程
   - `npm run diagnose:deployment` 可判斷線上目前是舊靜態站、env 缺漏、登入失敗，或 n8n proxy / API contract 失敗
+  - `npm run prepare:zeabur-env` 可產生 Zeabur env 清單與新的 `SESSION_SECRET`
   - `npm run package:deployment` 可產生 `dist/hr-dashboard-zeabur.zip`，用於 GitHub remote 尚未設定時的乾淨部署包
   - `npm run verify:package` 可解壓部署包並驗證 root 檔案位置、排除 secrets/local files、執行 server/verifier 語法檢查；runtime HTTP 行為由 root `npm test` 覆蓋
 - 登入與 session：
@@ -153,7 +154,7 @@ npm run verify:deployment
 ## 下一步建議
 
 1. 在 Zeabur 確認服務是從此專案 root 部署，並使用 root `npm start` 啟動，而不是 Caddy 靜態站或舊版 `dashboard/index.html`。
-2. 依照 `doc/zeabur-deployment.md` 在 Zeabur 設定並重新部署四個必要環境變數。
+2. 執行 `npm run prepare:zeabur-env`，依照輸出在 Zeabur 設定並重新部署必要環境變數。
 3. 重新部署後先跑 `npm run diagnose:deployment` 判斷目前卡在哪一層。
 4. 用有效的 `N8N_HR_TOKEN` 跑：
 

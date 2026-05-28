@@ -53,6 +53,12 @@ root `zbpack.json` 必須是：
 
 ## Zeabur 必要環境變數
 
+可先用下列指令產生 Zeabur env 設定清單，會自動生成新的 `SESSION_SECRET`：
+
+```powershell
+npm run prepare:zeabur-env
+```
+
 在 Zeabur dashboard 的服務環境變數設定：
 
 ```text
