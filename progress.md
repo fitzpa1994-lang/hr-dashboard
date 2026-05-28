@@ -17,6 +17,11 @@
 
 ## 已完成
 
+- 前端版型切換：
+  - 已將使用者新做的 `hr (5).html` 接上現有 Node auth/session/API 流程
+  - `dashboard/index.html` 現在以 `hr (5).html` 為 UI 基底，仍使用 `/api/session`、`/api/login`、`/api/logout`、`/api/hr-dashboard`
+  - 已移除 `no_response` 假資料殘留，候選人篩選改對齊目前 schema
+  - 已補回重新整理、登出、最後更新、全域搜尋、候選人搜尋/計數、職缺急迫度欄
 - Zeabur root 啟動設定：
   - `package.json`：`npm start` 執行 `node dashboard/server.js`
   - `zbpack.json`：`start_command` 為 `npm start`
