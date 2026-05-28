@@ -1,0 +1,1476 @@
+{
+    "updatedAt": "2026-05-22T08:58:20.814Z",
+    "createdAt": "2026-05-20T07:04:02.300Z",
+    "id": "zEIwksk6hz9Ri8NA",
+    "name": "HR Workflow：到職離職信件自動匯入 (純Regex + 分流防呆版)",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyMinute"
+                        }
+                    ]
+                },
+                "filters": {
+                    "foldersToInclude": [
+                        "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMBAAA="
+                    ]
+                },
+                "options": {
+                    "downloadAttachments": false
+                }
+            },
+            "id": "878281e4-42fa-4bad-9703-570c6e31c614",
+            "name": "Outlook 收信觸發：到職 (收件匣)",
+            "type": "n8n-nodes-base.microsoftOutlookTrigger",
+            "typeVersion": 1,
+            "position": [
+                2176,
+                -128
+            ],
+            "credentials": {
+                "microsoftOutlookOAuth2Api": {
+                    "id": "gRnSdH5u4gDyDZzB",
+                    "name": "Microsoft Outlook account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyMinute"
+                        }
+                    ]
+                },
+                "filters": {
+                    "foldersToInclude": [
+                        "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyLAAA="
+                    ]
+                },
+                "options": {
+                    "downloadAttachments": false
+                }
+            },
+            "id": "c9a85315-dd08-4bf5-9e3e-b30a3efc89b5",
+            "name": "Outlook 收信觸發：離職 (離職資料夾)",
+            "type": "n8n-nodes-base.microsoftOutlookTrigger",
+            "typeVersion": 1,
+            "position": [
+                2176,
+                176
+            ],
+            "credentials": {
+                "microsoftOutlookOAuth2Api": {
+                    "id": "gRnSdH5u4gDyDZzB",
+                    "name": "Microsoft Outlook account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    },
+                    "conditions": [
+                        {
+                            "id": "onboard-filter",
+                            "leftValue": "={{ $json.subject }}",
+                            "rightValue": "新進人員通知",
+                            "operator": {
+                                "type": "string",
+                                "operation": "contains"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "171db4fe-05c0-4f30-b480-eed017148f65",
+            "name": "IF：過濾新進人員通知",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                2448,
+                -128
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const item = $input.item.json;\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst deptMatch  = body.match(/單\\s*位\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst nameMatch  = body.match(/姓\\s*名\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst titleMatch = body.match(/職\\s*稱\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst dayMatch   = body.match(/離\\s*職\\s*生\\s*效\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\n\nconst rawDate = dayMatch?.[1]?.trim() || '';\nconst parts = rawDate.split('/');\nconst last_day = (parts.length === 3)\n  ? parts[0] + '-' + parts[1].padStart(2,'0') + '-' + parts[2].padStart(2,'0')\n  : rawDate || null;\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject || '',\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  source_type: 'resignation',\n  name: nameMatch?.[1]?.trim() || '未知姓名',\n  department: deptMatch?.[1]?.trim() || '未分類',\n  position: titleMatch?.[1]?.trim() || '未知職位',\n  last_day: last_day,\n};"
+            },
+            "id": "71f201ca-926d-4ce8-bfcd-9b2e7dc709c1",
+            "name": "Code：萃取離職資訊",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2640,
+                176
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO onboardings (name, department, position, expected_date, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n  COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n  COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE),\n  'pending',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                "options": {}
+            },
+            "id": "177e2c15-35cf-4cd3-8976-f1911ddf98c1",
+            "name": "PG：寫入 onboardings",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3760,
+                -128
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO resignations (name, department, position, resign_date, last_day, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.position || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  'active',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                "options": {}
+            },
+            "id": "64110571-f499-4045-ac05-25982d1ab97e",
+            "name": "PG：寫入 resignations",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3520,
+                176
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated', processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                "options": {}
+            },
+            "id": "8a85255a-4e76-4306-9f6a-4af77c64c66f",
+            "name": "PG：到職 email_logs",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3984,
+                -128
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated', processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                "options": {}
+            },
+            "id": "a736fdb8-2f8f-40b9-a288-5a15e575504a",
+            "name": "PG：離職 email_logs",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3744,
+                176
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const item = $input.item.json;\nconst subject = item.subject || '';\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst parts = subject.split('-');\nconst candidate = parts[parts.length - 1].trim();\nconst keywords = ['錄取','通知','耕興','全球','股份','有限','RE:','re:'];\nconst name_from_subject = (\n  candidate.length >= 2 && candidate.length <= 5 &&\n  !keywords.some(k => candidate.includes(k))\n) ? candidate : null;\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  source_type: 'onboarding',\n  name_from_subject: name_from_subject,\n  body_text: body.substring(0, 2000),\n};"
+            },
+            "id": "code-name-from-subject-001",
+            "name": "Code：萃取 name_from_subject",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2640,
+                -128
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const item = $input.item.json;\nreturn {\n  model: \"claude-haiku-4-5-20251001\",\n  max_tokens: 400,\n  system: \"你是 HR 信件解析助手，讀取錄取通知信件，輸出純 JSON。\\nHR 人員：李沛晴（Peggy）、陳清彥（Yen）、黃友為（Evan）\\n\\n判斷欄位：\\n- intent: new_onboard | update_date | cancel | skip\\n- name: 優先主旨最後「-」後取，主旨無法確定才從內文找\\n- scheduled_onboard_date: 報到日期 YYYY-MM-DD（找「報到日期：」或「預定報到日期：」後的日期）\\n- department: 部門（找不到填 null）\\n- position: 職稱（找不到填 null）\\n- hr_owner: 負責 HR 姓名（找不到填 null）\\n\\n規則：\\n1. 主旨以「RE:」開頭 → intent = skip\\n2. body 有「調整」「延後」「更改報到」→ intent = update_date\\n3. 即使主旨與第一封相同，仍需讀 body 判斷意圖\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"主旨：\" + item.email_subject + \"\\n\\n\" + item.body_text\n    }\n  ]\n};"
+            },
+            "id": "code-assemble-onboard-ai-001",
+            "name": "Code：組裝 Onboarding AI Body",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2864,
+                -128
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.anthropic.com/v1/messages",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "anthropicApi",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "anthropic-version",
+                            "value": "2023-06-01"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ $json }}",
+                "options": {
+                    "batching": {
+                        "batch": {
+                            "batchSize": 1,
+                            "batchInterval": 1500
+                        }
+                    }
+                }
+            },
+            "id": "http-onboard-claude-001",
+            "name": "Claude：解析 Onboarding 意圖",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                3088,
+                -128
+            ],
+            "credentials": {
+                "anthropicApi": {
+                    "id": "y6zxdCqqBzmwq5bi",
+                    "name": "Anthropic account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const base = $('Code：萃取 name_from_subject').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\n// Parse scheduled_onboard_date from body as fallback\nlet regexDate = null;\nconst bodyText = base.body_text || '';\nconst datePatterns = [\n  { re: /報到日期[：:]\\s*(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },\n  { re: /預定報到日期[：:]\\s*(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },\n];\nfor (const {re, fn} of datePatterns) {\n  const m = bodyText.match(re);\n  if (m) { regexDate = fn(m); break; }\n}\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: base.email_web_link,\n  sender: base.sender,\n  received_at: base.received_at,\n  source_type: 'onboarding',\n  name: base.name_from_subject || aiResult.name || '未知姓名',\n  scheduled_onboard_date: regexDate || aiResult.scheduled_onboard_date || null,\n  department: aiResult.department || null,\n  position: aiResult.position || null,\n  hr_owner: aiResult.hr_owner || null,\n  intent: aiResult.intent || 'new_onboard',\n};"
+            },
+            "id": "code-integrate-onboard-001",
+            "name": "Code：整合 Onboarding 輸出",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3312,
+                -128
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    },
+                    "conditions": [
+                        {
+                            "id": "intent-check",
+                            "leftValue": "={{ $json.intent }}",
+                            "rightValue": "new_onboard",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "if-intent-new-onboard-001",
+            "name": "IF：intent=new_onboard?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                3536,
+                -128
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    },
+                    "conditions": [
+                        {
+                            "id": "intent-check",
+                            "leftValue": "={{ $json.intent }}",
+                            "rightValue": "update_date",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "if-intent-update-date-001",
+            "name": "IF：intent=update_date?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                3536,
+                -32
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    },
+                    "conditions": [
+                        {
+                            "id": "intent-check",
+                            "leftValue": "={{ $json.intent }}",
+                            "rightValue": "cancel",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "if-intent-cancel-001",
+            "name": "IF：intent=cancel?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                3536,
+                64
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "UPDATE onboardings\nSET expected_date = COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, expected_date),\n    updated_at = NOW()\nWHERE name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n  AND status = 'pending';\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'updated' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                "options": {}
+            },
+            "id": "pg-update-onboard-date-001",
+            "name": "PG：UPDATE onboarding date",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3760,
+                -32
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "UPDATE onboardings\nSET status = 'cancelled', updated_at = NOW()\nWHERE name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n  AND status = 'pending';\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'updated' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                "options": {}
+            },
+            "id": "pg-cancel-onboard-001",
+            "name": "PG：UPDATE onboarding cancel",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3760,
+                64
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'skipped',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'skipped', processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                "options": {}
+            },
+            "id": "pg-onboard-logs-skip-001",
+            "name": "PG：到職 email_logs skip",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3760,
+                160
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  '{{ $json.action || 'inserted' }}',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = EXCLUDED.action, processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                "options": {}
+            },
+            "id": "pg-onboard-logs-update-001",
+            "name": "PG：到職 email_logs_update",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3984,
+                -32
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  '{{ $json.action || 'inserted' }}',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = EXCLUDED.action, processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                "options": {}
+            },
+            "id": "pg-onboard-logs-cancel-001",
+            "name": "PG：到職 email_logs_cancel",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                3984,
+                64
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Outlook 收信觸發：到職 (收件匣)": {
+            "main": [
+                [
+                    {
+                        "node": "IF：過濾新進人員通知",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF：過濾新進人員通知": {
+            "main": [
+                [
+                    {
+                        "node": "Code：萃取 name_from_subject",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Code：萃取 name_from_subject": {
+            "main": [
+                [
+                    {
+                        "node": "Code：組裝 Onboarding AI Body",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：組裝 Onboarding AI Body": {
+            "main": [
+                [
+                    {
+                        "node": "Claude：解析 Onboarding 意圖",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Claude：解析 Onboarding 意圖": {
+            "main": [
+                [
+                    {
+                        "node": "Code：整合 Onboarding 輸出",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：整合 Onboarding 輸出": {
+            "main": [
+                [
+                    {
+                        "node": "IF：intent=new_onboard?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF：intent=new_onboard?": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 onboardings",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "IF：intent=update_date?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：寫入 onboardings": {
+            "main": [
+                [
+                    {
+                        "node": "PG：到職 email_logs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：到職 email_logs": {
+            "main": [
+                []
+            ]
+        },
+        "IF：intent=update_date?": {
+            "main": [
+                [
+                    {
+                        "node": "PG：UPDATE onboarding date",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "IF：intent=cancel?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：UPDATE onboarding date": {
+            "main": [
+                [
+                    {
+                        "node": "PG：到職 email_logs_update",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：到職 email_logs_update": {
+            "main": [
+                []
+            ]
+        },
+        "IF：intent=cancel?": {
+            "main": [
+                [
+                    {
+                        "node": "PG：UPDATE onboarding cancel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "PG：到職 email_logs skip",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：UPDATE onboarding cancel": {
+            "main": [
+                [
+                    {
+                        "node": "PG：到職 email_logs_cancel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：到職 email_logs_cancel": {
+            "main": [
+                []
+            ]
+        },
+        "PG：到職 email_logs skip": {
+            "main": [
+                []
+            ]
+        },
+        "Outlook 收信觸發：離職 (離職資料夾)": {
+            "main": [
+                [
+                    {
+                        "node": "Code：萃取離職資訊",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：萃取離職資訊": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 resignations",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：寫入 resignations": {
+            "main": [
+                [
+                    {
+                        "node": "PG：離職 email_logs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：離職 email_logs": {
+            "main": [
+                []
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate"
+    },
+    "staticData": {
+        "node:Outlook 收信觸發：到職 (收件匣)": {
+            "lastTimeChecked": "2026-05-25T11:29:16.001+08:00"
+        },
+        "node:Outlook 收信觸發：離職 (離職資料夾)": {
+            "lastTimeChecked": "2026-05-25T11:28:33.002+08:00"
+        }
+    },
+    "meta": null,
+    "pinData": {},
+    "versionId": "98396bf2-4bfb-4c07-8058-75cdd81a6e92",
+    "activeVersionId": "98396bf2-4bfb-4c07-8058-75cdd81a6e92",
+    "versionCounter": 65,
+    "triggerCount": 2,
+    "shared": [
+        {
+            "updatedAt": "2026-05-20T07:04:02.300Z",
+            "createdAt": "2026-05-20T07:04:02.300Z",
+            "role": "workflow:owner",
+            "workflowId": "zEIwksk6hz9Ri8NA",
+            "projectId": "NvjFEev0823h2STF",
+            "project": {
+                "updatedAt": "2026-05-15T07:57:49.399Z",
+                "createdAt": "2026-05-15T07:52:05.149Z",
+                "id": "NvjFEev0823h2STF",
+                "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+                "type": "personal",
+                "icon": null,
+                "description": null,
+                "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+            }
+        }
+    ],
+    "tags": [
+        {
+            "updatedAt": "2026-05-15T10:18:59.545Z",
+            "createdAt": "2026-05-15T10:18:59.545Z",
+            "id": "yP9PPTGVL9VqZ3jM",
+            "name": "HR"
+        }
+    ],
+    "activeVersion": {
+        "updatedAt": "2026-05-22T08:58:29.059Z",
+        "createdAt": "2026-05-22T08:58:20.815Z",
+        "versionId": "98396bf2-4bfb-4c07-8058-75cdd81a6e92",
+        "workflowId": "zEIwksk6hz9Ri8NA",
+        "nodes": [
+            {
+                "parameters": {
+                    "pollTimes": {
+                        "item": [
+                            {
+                                "mode": "everyMinute"
+                            }
+                        ]
+                    },
+                    "filters": {
+                        "foldersToInclude": [
+                            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMBAAA="
+                        ]
+                    },
+                    "options": {
+                        "downloadAttachments": false
+                    }
+                },
+                "id": "878281e4-42fa-4bad-9703-570c6e31c614",
+                "name": "Outlook 收信觸發：到職 (收件匣)",
+                "type": "n8n-nodes-base.microsoftOutlookTrigger",
+                "typeVersion": 1,
+                "position": [
+                    2176,
+                    -128
+                ],
+                "credentials": {
+                    "microsoftOutlookOAuth2Api": {
+                        "id": "gRnSdH5u4gDyDZzB",
+                        "name": "Microsoft Outlook account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "pollTimes": {
+                        "item": [
+                            {
+                                "mode": "everyMinute"
+                            }
+                        ]
+                    },
+                    "filters": {
+                        "foldersToInclude": [
+                            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyLAAA="
+                        ]
+                    },
+                    "options": {
+                        "downloadAttachments": false
+                    }
+                },
+                "id": "c9a85315-dd08-4bf5-9e3e-b30a3efc89b5",
+                "name": "Outlook 收信觸發：離職 (離職資料夾)",
+                "type": "n8n-nodes-base.microsoftOutlookTrigger",
+                "typeVersion": 1,
+                "position": [
+                    2176,
+                    176
+                ],
+                "credentials": {
+                    "microsoftOutlookOAuth2Api": {
+                        "id": "gRnSdH5u4gDyDZzB",
+                        "name": "Microsoft Outlook account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "conditions": {
+                        "options": {
+                            "caseSensitive": true,
+                            "leftValue": "",
+                            "typeValidation": "strict",
+                            "version": 1
+                        },
+                        "conditions": [
+                            {
+                                "id": "onboard-filter",
+                                "leftValue": "={{ $json.subject }}",
+                                "rightValue": "新進人員通知",
+                                "operator": {
+                                    "type": "string",
+                                    "operation": "contains"
+                                }
+                            }
+                        ],
+                        "combinator": "and"
+                    },
+                    "options": {}
+                },
+                "id": "171db4fe-05c0-4f30-b480-eed017148f65",
+                "name": "IF：過濾新進人員通知",
+                "type": "n8n-nodes-base.if",
+                "typeVersion": 2,
+                "position": [
+                    2448,
+                    -128
+                ]
+            },
+            {
+                "parameters": {
+                    "mode": "runOnceForEachItem",
+                    "jsCode": "const item = $input.item.json;\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst deptMatch  = body.match(/單\\s*位\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst nameMatch  = body.match(/姓\\s*名\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst titleMatch = body.match(/職\\s*稱\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst dayMatch   = body.match(/離\\s*職\\s*生\\s*效\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\n\nconst rawDate = dayMatch?.[1]?.trim() || '';\nconst parts = rawDate.split('/');\nconst last_day = (parts.length === 3)\n  ? parts[0] + '-' + parts[1].padStart(2,'0') + '-' + parts[2].padStart(2,'0')\n  : rawDate || null;\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject || '',\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  source_type: 'resignation',\n  name: nameMatch?.[1]?.trim() || '未知姓名',\n  department: deptMatch?.[1]?.trim() || '未分類',\n  position: titleMatch?.[1]?.trim() || '未知職位',\n  last_day: last_day,\n};"
+                },
+                "id": "71f201ca-926d-4ce8-bfcd-9b2e7dc709c1",
+                "name": "Code：萃取離職資訊",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    2640,
+                    176
+                ]
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "INSERT INTO onboardings (name, department, position, expected_date, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n  COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n  COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE),\n  'pending',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                    "options": {}
+                },
+                "id": "177e2c15-35cf-4cd3-8976-f1911ddf98c1",
+                "name": "PG：寫入 onboardings",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3760,
+                    -128
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "INSERT INTO resignations (name, department, position, resign_date, last_day, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.position || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  'active',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                    "options": {}
+                },
+                "id": "64110571-f499-4045-ac05-25982d1ab97e",
+                "name": "PG：寫入 resignations",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3520,
+                    176
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated', processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                    "options": {}
+                },
+                "id": "8a85255a-4e76-4306-9f6a-4af77c64c66f",
+                "name": "PG：到職 email_logs",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3984,
+                    -128
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated', processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                    "options": {}
+                },
+                "id": "a736fdb8-2f8f-40b9-a288-5a15e575504a",
+                "name": "PG：離職 email_logs",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3744,
+                    176
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "mode": "runOnceForEachItem",
+                    "jsCode": "const item = $input.item.json;\nconst subject = item.subject || '';\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst parts = subject.split('-');\nconst candidate = parts[parts.length - 1].trim();\nconst keywords = ['錄取','通知','耕興','全球','股份','有限','RE:','re:'];\nconst name_from_subject = (\n  candidate.length >= 2 && candidate.length <= 5 &&\n  !keywords.some(k => candidate.includes(k))\n) ? candidate : null;\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  source_type: 'onboarding',\n  name_from_subject: name_from_subject,\n  body_text: body.substring(0, 2000),\n};"
+                },
+                "id": "code-name-from-subject-001",
+                "name": "Code：萃取 name_from_subject",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    2640,
+                    -128
+                ]
+            },
+            {
+                "parameters": {
+                    "mode": "runOnceForEachItem",
+                    "jsCode": "const item = $input.item.json;\nreturn {\n  model: \"claude-haiku-4-5-20251001\",\n  max_tokens: 400,\n  system: \"你是 HR 信件解析助手，讀取錄取通知信件，輸出純 JSON。\\nHR 人員：李沛晴（Peggy）、陳清彥（Yen）、黃友為（Evan）\\n\\n判斷欄位：\\n- intent: new_onboard | update_date | cancel | skip\\n- name: 優先主旨最後「-」後取，主旨無法確定才從內文找\\n- scheduled_onboard_date: 報到日期 YYYY-MM-DD（找「報到日期：」或「預定報到日期：」後的日期）\\n- department: 部門（找不到填 null）\\n- position: 職稱（找不到填 null）\\n- hr_owner: 負責 HR 姓名（找不到填 null）\\n\\n規則：\\n1. 主旨以「RE:」開頭 → intent = skip\\n2. body 有「調整」「延後」「更改報到」→ intent = update_date\\n3. 即使主旨與第一封相同，仍需讀 body 判斷意圖\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"主旨：\" + item.email_subject + \"\\n\\n\" + item.body_text\n    }\n  ]\n};"
+                },
+                "id": "code-assemble-onboard-ai-001",
+                "name": "Code：組裝 Onboarding AI Body",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    2864,
+                    -128
+                ]
+            },
+            {
+                "parameters": {
+                    "method": "POST",
+                    "url": "https://api.anthropic.com/v1/messages",
+                    "authentication": "predefinedCredentialType",
+                    "nodeCredentialType": "anthropicApi",
+                    "sendHeaders": true,
+                    "headerParameters": {
+                        "parameters": [
+                            {
+                                "name": "anthropic-version",
+                                "value": "2023-06-01"
+                            }
+                        ]
+                    },
+                    "sendBody": true,
+                    "specifyBody": "json",
+                    "jsonBody": "={{ $json }}",
+                    "options": {
+                        "batching": {
+                            "batch": {
+                                "batchSize": 1,
+                                "batchInterval": 1500
+                            }
+                        }
+                    }
+                },
+                "id": "http-onboard-claude-001",
+                "name": "Claude：解析 Onboarding 意圖",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [
+                    3088,
+                    -128
+                ],
+                "credentials": {
+                    "anthropicApi": {
+                        "id": "y6zxdCqqBzmwq5bi",
+                        "name": "Anthropic account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "mode": "runOnceForEachItem",
+                    "jsCode": "const base = $('Code：萃取 name_from_subject').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\n// Parse scheduled_onboard_date from body as fallback\nlet regexDate = null;\nconst bodyText = base.body_text || '';\nconst datePatterns = [\n  { re: /報到日期[：:]\\s*(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },\n  { re: /預定報到日期[：:]\\s*(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },\n];\nfor (const {re, fn} of datePatterns) {\n  const m = bodyText.match(re);\n  if (m) { regexDate = fn(m); break; }\n}\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: base.email_web_link,\n  sender: base.sender,\n  received_at: base.received_at,\n  source_type: 'onboarding',\n  name: base.name_from_subject || aiResult.name || '未知姓名',\n  scheduled_onboard_date: regexDate || aiResult.scheduled_onboard_date || null,\n  department: aiResult.department || null,\n  position: aiResult.position || null,\n  hr_owner: aiResult.hr_owner || null,\n  intent: aiResult.intent || 'new_onboard',\n};"
+                },
+                "id": "code-integrate-onboard-001",
+                "name": "Code：整合 Onboarding 輸出",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    3312,
+                    -128
+                ]
+            },
+            {
+                "parameters": {
+                    "conditions": {
+                        "options": {
+                            "caseSensitive": true,
+                            "leftValue": "",
+                            "typeValidation": "strict",
+                            "version": 1
+                        },
+                        "conditions": [
+                            {
+                                "id": "intent-check",
+                                "leftValue": "={{ $json.intent }}",
+                                "rightValue": "new_onboard",
+                                "operator": {
+                                    "type": "string",
+                                    "operation": "equals"
+                                }
+                            }
+                        ],
+                        "combinator": "and"
+                    },
+                    "options": {}
+                },
+                "id": "if-intent-new-onboard-001",
+                "name": "IF：intent=new_onboard?",
+                "type": "n8n-nodes-base.if",
+                "typeVersion": 2,
+                "position": [
+                    3536,
+                    -128
+                ]
+            },
+            {
+                "parameters": {
+                    "conditions": {
+                        "options": {
+                            "caseSensitive": true,
+                            "leftValue": "",
+                            "typeValidation": "strict",
+                            "version": 1
+                        },
+                        "conditions": [
+                            {
+                                "id": "intent-check",
+                                "leftValue": "={{ $json.intent }}",
+                                "rightValue": "update_date",
+                                "operator": {
+                                    "type": "string",
+                                    "operation": "equals"
+                                }
+                            }
+                        ],
+                        "combinator": "and"
+                    },
+                    "options": {}
+                },
+                "id": "if-intent-update-date-001",
+                "name": "IF：intent=update_date?",
+                "type": "n8n-nodes-base.if",
+                "typeVersion": 2,
+                "position": [
+                    3536,
+                    -32
+                ]
+            },
+            {
+                "parameters": {
+                    "conditions": {
+                        "options": {
+                            "caseSensitive": true,
+                            "leftValue": "",
+                            "typeValidation": "strict",
+                            "version": 1
+                        },
+                        "conditions": [
+                            {
+                                "id": "intent-check",
+                                "leftValue": "={{ $json.intent }}",
+                                "rightValue": "cancel",
+                                "operator": {
+                                    "type": "string",
+                                    "operation": "equals"
+                                }
+                            }
+                        ],
+                        "combinator": "and"
+                    },
+                    "options": {}
+                },
+                "id": "if-intent-cancel-001",
+                "name": "IF：intent=cancel?",
+                "type": "n8n-nodes-base.if",
+                "typeVersion": 2,
+                "position": [
+                    3536,
+                    64
+                ]
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "UPDATE onboardings\nSET expected_date = COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, expected_date),\n    updated_at = NOW()\nWHERE name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n  AND status = 'pending';\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'updated' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                    "options": {}
+                },
+                "id": "pg-update-onboard-date-001",
+                "name": "PG：UPDATE onboarding date",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3760,
+                    -32
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "UPDATE onboardings\nSET status = 'cancelled', updated_at = NOW()\nWHERE name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n  AND status = 'pending';\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'updated' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+                    "options": {}
+                },
+                "id": "pg-cancel-onboard-001",
+                "name": "PG：UPDATE onboarding cancel",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3760,
+                    64
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'skipped',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'skipped', processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                    "options": {}
+                },
+                "id": "pg-onboard-logs-skip-001",
+                "name": "PG：到職 email_logs skip",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3760,
+                    160
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  '{{ $json.action || 'inserted' }}',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = EXCLUDED.action, processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                    "options": {}
+                },
+                "id": "pg-onboard-logs-update-001",
+                "name": "PG：到職 email_logs_update",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3984,
+                    -32
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            },
+            {
+                "parameters": {
+                    "operation": "executeQuery",
+                    "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  '{{ $json.action || 'inserted' }}',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = EXCLUDED.action, processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+                    "options": {}
+                },
+                "id": "pg-onboard-logs-cancel-001",
+                "name": "PG：到職 email_logs_cancel",
+                "type": "n8n-nodes-base.postgres",
+                "typeVersion": 2.5,
+                "position": [
+                    3984,
+                    64
+                ],
+                "credentials": {
+                    "postgres": {
+                        "id": "NGdDfE2F1YFXGcmn",
+                        "name": "Postgres account"
+                    }
+                }
+            }
+        ],
+        "connections": {
+            "Outlook 收信觸發：到職 (收件匣)": {
+                "main": [
+                    [
+                        {
+                            "node": "IF：過濾新進人員通知",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "IF：過濾新進人員通知": {
+                "main": [
+                    [
+                        {
+                            "node": "Code：萃取 name_from_subject",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ],
+                    []
+                ]
+            },
+            "Code：萃取 name_from_subject": {
+                "main": [
+                    [
+                        {
+                            "node": "Code：組裝 Onboarding AI Body",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Code：組裝 Onboarding AI Body": {
+                "main": [
+                    [
+                        {
+                            "node": "Claude：解析 Onboarding 意圖",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Claude：解析 Onboarding 意圖": {
+                "main": [
+                    [
+                        {
+                            "node": "Code：整合 Onboarding 輸出",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Code：整合 Onboarding 輸出": {
+                "main": [
+                    [
+                        {
+                            "node": "IF：intent=new_onboard?",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "IF：intent=new_onboard?": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：寫入 onboardings",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ],
+                    [
+                        {
+                            "node": "IF：intent=update_date?",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：寫入 onboardings": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：到職 email_logs",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：到職 email_logs": {
+                "main": [
+                    []
+                ]
+            },
+            "IF：intent=update_date?": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：UPDATE onboarding date",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ],
+                    [
+                        {
+                            "node": "IF：intent=cancel?",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：UPDATE onboarding date": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：到職 email_logs_update",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：到職 email_logs_update": {
+                "main": [
+                    []
+                ]
+            },
+            "IF：intent=cancel?": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：UPDATE onboarding cancel",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ],
+                    [
+                        {
+                            "node": "PG：到職 email_logs skip",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：UPDATE onboarding cancel": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：到職 email_logs_cancel",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：到職 email_logs_cancel": {
+                "main": [
+                    []
+                ]
+            },
+            "PG：到職 email_logs skip": {
+                "main": [
+                    []
+                ]
+            },
+            "Outlook 收信觸發：離職 (離職資料夾)": {
+                "main": [
+                    [
+                        {
+                            "node": "Code：萃取離職資訊",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Code：萃取離職資訊": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：寫入 resignations",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：寫入 resignations": {
+                "main": [
+                    [
+                        {
+                            "node": "PG：離職 email_logs",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "PG：離職 email_logs": {
+                "main": [
+                    []
+                ]
+            }
+        },
+        "authors": "Huang yu-Wei",
+        "name": "Version 98396bf2",
+        "description": "",
+        "autosaved": true,
+        "workflowPublishHistory": [
+            {
+                "createdAt": "2026-05-22T08:58:29.057Z",
+                "id": 13,
+                "workflowId": "zEIwksk6hz9Ri8NA",
+                "versionId": "98396bf2-4bfb-4c07-8058-75cdd81a6e92",
+                "event": "activated",
+                "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+            }
+        ]
+    }
+}

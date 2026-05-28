@@ -1,0 +1,1281 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR 招募戰略面板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+:root{--blue:#3b82f6;--green:#10b981;--pink:#f43f5e;--orange:#f97316;--gray:#64748b;--light:#f8fafc;--border:#e2e8f0}
+body{background:#f1f5f9;min-height:100vh;font-size:13px}
+
+/* Header */
+.header{background:linear-gradient(135deg,#1e40af,#3b82f6);color:white;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.header-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header-sub{font-size:11px;opacity:.8;margin-top:2px}
+.header-date{font-size:12px;opacity:.9;text-align:right}
+.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tool-btn{height:30px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:white;border-radius:8px;padding:0 10px;font-size:12px;font-weight:700;cursor:pointer}
+.tool-btn:hover{background:rgba(255,255,255,.2)}
+.tool-btn:disabled{opacity:.55;cursor:not-allowed}
+.last-updated{font-size:10px;opacity:.75;text-align:right;min-width:120px}
+.global-search{position:relative;min-width:260px}
+.global-search-input{height:30px;width:100%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.16);color:white;border-radius:8px;padding:0 10px;font-size:12px;outline:none}
+.global-search-input::placeholder{color:rgba(255,255,255,.72)}
+.global-results{display:none;position:absolute;right:0;top:36px;width:360px;max-width:88vw;background:white;color:#0f172a;border:1px solid var(--border);border-radius:8px;box-shadow:0 18px 40px rgba(15,23,42,.22);z-index:120;padding:6px}
+.global-results.open{display:block}
+.global-result{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-radius:6px;padding:9px 10px;cursor:pointer}
+.global-result:hover{background:#eff6ff}
+.global-result-title{font-size:12px;font-weight:800;color:#1e293b}
+.global-result-sub{font-size:10px;color:var(--gray);margin-top:2px}
+.global-result-type{font-size:10px;font-weight:800;color:#1d4ed8;background:#dbeafe;border-radius:99px;padding:2px 7px;white-space:nowrap}
+
+/* KPI Bar */
+.kpi-bar{display:flex;gap:10px;padding:12px 16px;background:white;border-bottom:1px solid var(--border);overflow-x:auto}
+.kpi{background:var(--light);border-radius:10px;padding:10px 16px;min-width:110px;text-align:center;border:1px solid var(--border)}
+.kpi-val{font-size:22px;font-weight:800;line-height:1}
+.kpi-lbl{font-size:10px;color:var(--gray);margin-top:3px}
+.kpi.blue .kpi-val{color:var(--blue)}
+.kpi.green .kpi-val{color:var(--green)}
+.kpi.pink .kpi-val{color:var(--pink)}
+.kpi.orange .kpi-val{color:var(--orange)}
+
+/* Today bar */
+.today-bar{background:white;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:16px;align-items:flex-start;overflow-x:auto}
+.today-section{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.today-label{font-size:10px;font-weight:700;color:var(--gray);white-space:nowrap;padding:2px 8px;border-radius:99px;border:1px solid var(--border)}
+.today-label.blue{color:var(--blue);border-color:var(--blue);background:#eff6ff}
+.today-label.green{color:var(--green);border-color:var(--green);background:#f0fdf4}
+.today-label.pink{color:var(--pink);border-color:var(--pink);background:#fff1f2}
+.chip{font-size:11px;padding:3px 10px;border-radius:99px;white-space:nowrap;font-weight:600}
+.chip.blue{background:#dbeafe;color:#1d4ed8}
+.chip.green{background:#d1fae5;color:#065f46}
+.chip.pink{background:#ffe4e6;color:#9f1239}
+.chip.empty{color:#94a3b8;font-weight:400;font-size:11px}
+
+/* Tabs */
+.tabs{background:white;border-bottom:2px solid var(--border);display:flex;padding:0 16px;overflow-x:auto}
+.tab{padding:11px 14px;font-size:12px;font-weight:600;color:var(--gray);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;white-space:nowrap;transition:color .2s}
+.tab:hover{color:#334155}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* Page */
+.page{display:none;padding:14px 16px}
+.page.active{display:block}
+
+/* 2-col layout */
+.two-col{display:grid;grid-template-columns:1fr 300px;gap:14px}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+
+/* Section */
+.section{background:white;border-radius:12px;padding:14px;border:1px solid var(--border);margin-bottom:14px}
+.section-title{font-size:12px;font-weight:700;color:#334155;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* Schedule Cards */
+.card{border-radius:10px;padding:11px 13px;border-left:4px solid var(--blue);background:var(--light);margin-bottom:8px;cursor:default;transition:box-shadow .15s}
+.card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.card.interview{border-left-color:var(--blue);background:#f0f7ff}
+.card.onboard{border-left-color:var(--green);background:#f0fdf6}
+.card.resign{border-left-color:var(--pink);background:#fff5f6}
+.card.interview-changed{border-left-color:var(--orange);background:#fff8f0}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card-name{font-size:13px;font-weight:700;color:#1e293b}
+.card-meta{font-size:10px;color:var(--gray);margin-top:3px}
+.card-dept{font-size:10px;padding:2px 8px;border-radius:99px;background:white;border:1px solid var(--border);white-space:nowrap}
+.card-time{font-size:12px;font-weight:700;color:var(--blue)}
+.card.onboard .card-time{color:var(--green)}
+.card.resign .card-time{color:var(--pink)}
+.card.interview-changed .card-time{color:var(--orange)}
+.badge{font-size:9px;padding:2px 7px;border-radius:99px;font-weight:700}
+.badge.blue{background:#dbeafe;color:#1d4ed8}
+.badge.green{background:#d1fae5;color:#065f46}
+.badge.pink{background:#ffe4e6;color:#9f1239}
+.badge.orange{background:#ffedd5;color:#c2410c}
+.badge.gray{background:#f1f5f9;color:#475569}
+
+/* Mini Calendar */
+.mini-cal{background:white;border-radius:12px;border:1px solid var(--border);padding:14px}
+.cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cal-month{font-size:13px;font-weight:700;color:#1e293b}
+.cal-nav{background:none;border:1px solid var(--border);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;color:var(--gray)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal-dow{font-size:9px;font-weight:700;color:var(--gray);padding:3px 0}
+.cal-day{font-size:11px;padding:4px 0;border-radius:6px;cursor:pointer;position:relative;min-height:32px}
+.cal-day:hover{background:#f1f5f9}
+.cal-day.today{background:var(--blue);color:white;font-weight:700}
+.cal-day.other{color:#cbd5e1}
+.cal-day.selected{box-shadow:0 0 0 2px var(--blue)}
+.dots{display:flex;justify-content:center;gap:2px;margin-top:1px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-i{background:var(--blue)}
+.dot-o{background:var(--green)}
+.dot-r{background:var(--pink)}
+.cal-legend{display:flex;gap:10px;margin-top:10px;justify-content:center;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--gray)}
+
+/* Filter buttons */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fbtn{padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:white;font-size:11px;font-weight:600;color:var(--gray);cursor:pointer}
+.fbtn.active{background:var(--blue);border-color:var(--blue);color:white}
+.toolbar-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.search-input{min-width:220px;flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;outline:none}
+.search-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.link-btn{border:none;background:none;color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;padding:4px 0}
+.link-btn:hover{text-decoration:underline}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;border-bottom:2px solid var(--border)}
+.tbl th.sortable{cursor:pointer;user-select:none}
+.tbl th.sortable:hover{color:#1e40af}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f8fafc}
+
+/* Status badges */
+.st{font-size:10px;padding:3px 9px;border-radius:99px;font-weight:700;display:inline-block}
+.st-interviewing{background:#dbeafe;color:#1d4ed8}
+.st-offer{background:#fef9c3;color:#854d0e}
+.st-onboarded{background:#d1fae5;color:#065f46}
+.st-withdrawn{background:#fce7f3;color:#9d174d}
+.st-pending_review{background:#ede9fe;color:#5b21b6}
+.st-open{background:#dbeafe;color:#1d4ed8}
+.st-filled{background:#d1fae5;color:#065f46}
+.st-on_hold{background:#fef9c3;color:#854d0e}
+.kpi.purple .kpi-val{color:#7c3aed}
+.chip.purple{background:#ede9fe;color:#5b21b6}
+.today-label.purple{color:#7c3aed;border-color:#7c3aed;background:#f5f3ff}
+
+/* Chart containers */
+.chart-wrap{position:relative;height:220px}
+
+/* 人事動態 cards */
+.hc-card{border-radius:10px;padding:12px 14px;border:1px solid var(--border);background:var(--light);margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.hc-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hc-icon.green{background:#d1fae5}
+.hc-icon.pink{background:#ffe4e6}
+.hc-body{flex:1;min-width:0}
+.hc-name{font-size:13px;font-weight:700;color:#1e293b}
+.hc-sub{font-size:10px;color:var(--gray);margin-top:2px}
+.hc-days{font-size:22px;font-weight:800;min-width:44px;text-align:right}
+.hc-days.green{color:var(--green)}
+.hc-days.pink{color:var(--pink)}
+.hc-days-lbl{font-size:9px;text-align:right;color:var(--gray)}
+.subsection-title{font-size:11px;font-weight:800;color:#334155;margin:12px 0 8px;display:flex;align-items:center;gap:6px}
+.subsection-title:first-child{margin-top:0}
+.subsection-title .sub-count{font-size:10px;color:var(--gray);font-weight:600}
+
+/* Empty state */
+.empty{text-align:center;padding:30px;color:#94a3b8;font-size:12px}
+.chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;text-align:center;background:rgba(255,255,255,.78);border-radius:8px;pointer-events:none}
+.note-cell{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inline-notice{border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:8px;padding:8px 10px;font-size:11px;font-weight:700;margin-bottom:8px}
+
+/* Clickable rows/cards */
+.clickable{cursor:pointer}
+.clickable:hover{opacity:.88}
+.tbl tr.clickable:hover td{background:#eff6ff}
+
+/* Drawer overlay */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:200;backdrop-filter:blur(2px)}
+.overlay.open{display:block}
+
+/* Drawer panel */
+.drawer{position:fixed;top:0;right:0;height:100%;width:420px;max-width:95vw;background:white;box-shadow:-4px 0 30px rgba(0,0,0,.15);z-index:201;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-head{padding:18px 18px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:white;z-index:1}
+.drawer-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--border);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;color:var(--gray);display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{background:#f1f5f9}
+.drawer-name{font-size:17px;font-weight:800;color:#0f172a;margin-bottom:4px}
+.drawer-pos{font-size:12px;color:var(--gray)}
+.drawer-body{padding:16px 18px;flex:1}
+.drawer-section{margin-bottom:18px}
+.drawer-section-title{font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+
+/* Action buttons */
+.action-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--light);cursor:pointer;font-size:12px;font-weight:600;color:#334155;text-decoration:none;transition:all .15s;width:100%;margin-bottom:8px}
+.action-btn:hover{border-color:var(--blue);color:var(--blue);background:#eff6ff}
+.action-btn .ab-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
+.action-btn .ab-text{flex:1;text-align:left}
+.action-btn .ab-sub{font-size:10px;color:var(--gray);font-weight:400;margin-top:1px}
+.action-btn.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+.action-btn.disabled .ab-sub{color:#9ca3af}
+
+/* Timeline */
+.timeline{position:relative;padding-left:20px}
+.timeline::before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:12px}
+.tl-dot{position:absolute;left:-17px;top:3px;width:10px;height:10px;border-radius:50%;border:2px solid white;box-shadow:0 0 0 2px var(--border)}
+.tl-dot.blue{background:var(--blue);box-shadow:0 0 0 2px var(--blue)}
+.tl-dot.green{background:var(--green);box-shadow:0 0 0 2px var(--green)}
+.tl-dot.pink{background:var(--pink);box-shadow:0 0 0 2px var(--pink)}
+.tl-dot.orange{background:var(--orange);box-shadow:0 0 0 2px var(--orange)}
+.tl-dot.gray{background:#94a3b8;box-shadow:0 0 0 2px #94a3b8}
+.tl-date{font-size:10px;color:var(--gray);margin-bottom:2px}
+.tl-title{font-size:12px;font-weight:600;color:#1e293b}
+.tl-note{font-size:11px;color:var(--gray);margin-top:2px}
+
+/* Info rows */
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--gray);flex-shrink:0}
+.info-val{font-weight:600;color:#1e293b;text-align:right}
+@media(max-width:720px){
+  .header{align-items:flex-start;flex-direction:column}
+  .header-actions{width:100%;justify-content:space-between}
+  .global-search{order:3;width:100%}
+  .global-results{left:0;right:auto;width:100%}
+  .today-bar,.kpi-bar{display:grid;grid-template-columns:1fr;overflow:visible}
+  .tabs{padding:0 8px}
+  .page{padding:10px}
+  .tbl{font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🏢 Sporton HR 招募戰略面板</div>
+    <div class="header-sub">自動化招募追蹤系統</div>
+  </div>
+  <div class="header-actions">
+    <div>
+      <div class="header-date" id="hdr-date"></div>
+      <div class="last-updated" id="last-updated">尚未更新</div>
+    </div>
+    <div class="global-search">
+      <input class="global-search-input" id="global-search" type="search" placeholder="全域搜尋人選 / 職位 / HR" oninput="renderGlobalSearch(this.value)" onfocus="renderGlobalSearch(this.value)">
+      <div class="global-results" id="global-results"></div>
+    </div>
+    <button class="tool-btn" id="refresh-btn" onclick="refreshDashboard()">重新整理</button>
+    <button class="tool-btn" onclick="logoutDashboard()">登出</button>
+  </div>
+</div>
+
+<!-- Today Bar -->
+<div class="today-bar">
+  <div class="today-section">
+    <span class="today-label blue">📅 今日面試</span>
+    <span id="today-interviews"></span>
+  </div>
+  <div style="width:1px;background:var(--border);align-self:stretch"></div>
+  <div class="today-section">
+    <span class="today-label green">🎉 今日到職</span>
+    <span id="today-onboards"></span>
+  </div>
+  <div style="width:1px;background:var(--border);align-self:stretch"></div>
+  <div class="today-section">
+    <span class="today-label pink">👋 本週離職（至週日）</span>
+    <span id="today-resigns"></span>
+  </div>
+  <div style="width:1px;background:var(--border);align-self:stretch"></div>
+  <div class="today-section">
+    <span class="today-label purple">📨 待回應履歷</span>
+    <span id="today-pending"></span>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('schedule',this)">📅 面試排程</div>
+  <div class="tab" onclick="showTab('hr-events',this)">🏢 人事動態</div>
+  <div class="tab" onclick="showTab('jobs',this)">📋 職缺狀況</div>
+  <div class="tab" onclick="showTab('candidates',this)">👤 人選狀況</div>
+  <div class="tab" onclick="showTab('analytics',this)">📈 趨勢分析</div>
+</div>
+
+<!-- ===== TAB: 面試排程 ===== -->
+<div class="page active" id="tab-schedule">
+  <div class="two-col">
+    <div>
+      <div class="section">
+        <div class="section-title">🗓 近期排程 <button class="link-btn" id="clear-date-btn" style="display:none" onclick="clearCalendarDate()">清除日期篩選</button></div>
+        <div class="filter-row">
+          <button class="fbtn active" onclick="setSchedF('all',this)">全部</button>
+          <button class="fbtn" onclick="setSchedF('interview',this)">面試</button>
+          <button class="fbtn" onclick="setSchedF('onboard',this)">到職</button>
+          <button class="fbtn" onclick="setSchedF('resign',this)">離職</button>
+        </div>
+        <div id="sched-list"></div>
+      </div>
+    </div>
+    <div>
+      <div class="mini-cal" id="mini-cal">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="calPrev()">‹</button>
+          <div class="cal-month" id="cal-month-label"></div>
+          <button class="cal-nav" onclick="calNext()">›</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-legend">
+          <div class="legend-item"><div class="dot dot-i"></div>面試</div>
+          <div class="legend-item"><div class="dot dot-o"></div>到職</div>
+          <div class="legend-item"><div class="dot dot-r"></div>離職</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: 人事動態 ===== -->
+<div class="page" id="tab-hr-events">
+  <div class="two-col">
+    <div>
+      <div class="section">
+        <div class="section-title">🎉 到職追蹤</div>
+        <div id="onboard-list"></div>
+      </div>
+      <!-- Resignation -->
+      <div class="section">
+        <div class="section-title">👋 離職追蹤 <span style="font-weight:400;color:var(--gray);font-size:11px">— 離職中 / 已完成</span></div>
+        <div id="resign-list"></div>
+      </div>
+    </div>
+    <div>
+      <!-- HR-events stats -->
+      <div class="section">
+        <div class="section-title">📊 本月人力異動</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div class="kpi green" style="min-width:0"><div class="kpi-val" id="hr-onboard-cnt">-</div><div class="kpi-lbl">本月到職</div></div>
+          <div class="kpi pink" style="min-width:0"><div class="kpi-val" id="hr-resign-cnt">-</div><div class="kpi-lbl">本月離職</div></div>
+          <div class="kpi green" style="min-width:0"><div class="kpi-val" id="hr-pending-onboard">-</div><div class="kpi-lbl">待到職30天內</div></div>
+          <div class="kpi pink" style="min-width:0"><div class="kpi-val" id="hr-pending-resign">-</div><div class="kpi-lbl">離職中30天內</div></div>
+        </div>
+        <div class="kpi" style="grid-column:span 2;width:100%;margin-top:4px">
+          <div class="kpi-val" id="hr-net" style="color:#334155">-</div>
+          <div class="kpi-lbl">淨人力變化（本月）</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">📋 HR 工作量</div>
+        <div class="chart-wrap"><canvas id="hrWorkChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: 職缺狀況 ===== -->
+<div class="page" id="tab-jobs">
+  <div class="section">
+    <div class="section-title">📋 開缺職位追蹤</div>
+    <div class="filter-row">
+      <button class="fbtn active" onclick="setJobF('all',this)">全部</button>
+      <button class="fbtn" onclick="setJobF('open',this)">招募中</button>
+      <button class="fbtn" onclick="setJobF('filled',this)">已補齊</button>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>職位</th><th>部門</th><th>急迫度</th><th>開缺日</th><th>招募天數</th><th>人選數</th><th>錄取率</th><th>狀態</th></tr></thead>
+      <tbody id="job-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== TAB: 人選狀況 ===== -->
+<div class="page" id="tab-candidates">
+  <div class="section">
+    <div class="section-title">👤 所有人選追蹤</div>
+    <div class="filter-row">
+      <button class="fbtn active" onclick="setCandF('all',this)">全部</button>
+      <button class="fbtn" onclick="setCandF('interviewing',this)">面試中</button>
+      <button class="fbtn" onclick="setCandF('offer',this)">錄取中</button>
+      <button class="fbtn" onclick="setCandF('onboarded',this)">已到職</button>
+      <button class="fbtn" onclick="setCandF('pending_review',this)">待回應</button>
+    </div>
+    <div class="toolbar-row">
+      <input class="search-input" id="cand-search" type="search" placeholder="搜尋姓名、職位、部門、HR 或備註" oninput="setCandidateSearch(this.value)">
+      <span style="font-size:11px;color:var(--gray)" id="cand-count"></span>
+    </div>
+    <table class="tbl">
+      <thead><tr><th class="sortable" onclick="setCandidateSort('name')">姓名</th><th class="sortable" onclick="setCandidateSort('pos')">職位</th><th class="sortable" onclick="setCandidateSort('dept')">部門</th><th class="sortable" onclick="setCandidateSort('date')">面試日</th><th>HR負責</th><th>狀態</th><th>備註</th></tr></thead>
+      <tbody id="cand-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== TAB: 趨勢分析 ===== -->
+<div class="page" id="tab-analytics">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="section">
+      <div class="section-title">📈 月度招募 / 到職 / 離職趨勢</div>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title">🥧 來源渠道分布</div>
+      <div class="chart-wrap"><canvas id="srcChart"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title">🏢 部門招募進度</div>
+      <div class="chart-wrap"><canvas id="deptChart"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title">⏱ 平均天至錄取（依部門）</div>
+      <div class="chart-wrap"><canvas id="daysChart"></canvas></div>
+    </div>
+  </div>
+  <!-- KPI Summary -->
+  <div class="section">
+    <div class="section-title">📊 KPI 明細（與頂部同步）</div>
+    <div class="kpi-bar" style="padding:0;border:none;background:transparent;flex-wrap:wrap;gap:10px">
+      <div class="kpi blue"><div class="kpi-val" id="k-active">-</div><div class="kpi-lbl">進行中人選</div></div>
+      <div class="kpi purple"><div class="kpi-val" id="k-pending">-</div><div class="kpi-lbl">待回應履歷</div></div>
+      <div class="kpi orange"><div class="kpi-val" id="k-offer">-</div><div class="kpi-lbl">待錄取通知</div></div>
+      <div class="kpi green"><div class="kpi-val" id="k-onboard">-</div><div class="kpi-lbl">待到職30天內</div></div>
+      <div class="kpi pink"><div class="kpi-val" id="k-resign">-</div><div class="kpi-lbl">離職中人員</div></div>
+      <div class="kpi blue"><div class="kpi-val" id="k-rate">-</div><div class="kpi-lbl">本月錄取率</div></div>
+      <div class="kpi green"><div class="kpi-val" id="k-days">-</div><div class="kpi-lbl">平均天至錄取</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Drawer overlay -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+
+<!-- Side Drawer -->
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div class="drawer-name" id="dr-name">—</div>
+    <div class="drawer-pos" id="dr-pos">—</div>
+  </div>
+  <div class="drawer-body">
+    <!-- Quick links -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">🔗 快速連結</div>
+      <a class="action-btn" id="dr-email-btn" href="#" target="_blank">
+        <span class="ab-icon">📧</span>
+        <span class="ab-text">開啟 Outlook 信件<div class="ab-sub" id="dr-email-sub">面試通知原始信件</div></span>
+        <span style="color:var(--gray);font-size:12px">→</span>
+      </a>
+      <a class="action-btn" id="dr-resume-btn" href="#" target="_blank">
+        <span class="ab-icon">📄</span>
+        <span class="ab-text">查看履歷<div class="ab-sub" id="dr-resume-sub">SharePoint / OneDrive</div></span>
+        <span style="color:var(--gray);font-size:12px">→</span>
+      </a>
+    </div>
+    <!-- Basic info -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">👤 基本資料</div>
+      <div id="dr-info"></div>
+    </div>
+    <!-- Timeline -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">📋 面試 / 人事歷程</div>
+      <div class="timeline" id="dr-timeline"></div>
+    </div>
+    <!-- Notes -->
+    <div class="drawer-section" id="dr-notes-section">
+      <div class="drawer-section-title">📝 HR 備註</div>
+      <div id="dr-notes" style="font-size:12px;color:#475569;background:#f8fafc;border-radius:8px;padding:10px;line-height:1.6"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SERVER AUTH GATE
+// ============================================================
+(function(){
+  const KEY = 'hr_auth';
+
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function requestJson(url, options = {}) {
+    try {
+      const res = await fetchWithTimeout(url, {
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options
+      }, options.timeoutMs || 10000);
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      return { ok: res.ok, status: res.status, data };
+    } catch (error) {
+      return { ok: false, status: 0, data: { error: error.name === 'AbortError' ? '連線逾時，請稍後重試' : '網路異常，請確認連線後再試' } };
+    }
+  }
+
+  async function checkSession() {
+    const result = await requestJson('/api/session');
+    if (result.ok && result.data.authenticated) {
+      sessionStorage.setItem(KEY, '1');
+      return true;
+    }
+    sessionStorage.removeItem(KEY);
+    return false;
+  }
+
+  function showLogin() {
+    return new Promise(resolve => {
+    document.body.style.display = 'none';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'login-overlay';
+    overlay.style.cssText = [
+      'position:fixed;inset:0;background:linear-gradient(135deg,#1e40af,#3b82f6)',
+      'display:flex;align-items:center;justify-content:center;z-index:99999'
+    ].join(';');
+
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:16px;padding:40px 36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">🏢</div>
+        <div style="font-size:18px;font-weight:700;color:#1e40af;margin-bottom:4px">Sporton HR</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:28px">招募戰略面板</div>
+        <input id="pw-input" type="password" placeholder="請輸入密碼"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box"
+          autocomplete="current-password"/>
+        <div id="pw-err" style="color:#f43f5e;font-size:12px;min-height:18px;margin-bottom:8px"></div>
+        <button id="pw-btn"
+          style="width:100%;padding:11px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+          登入
+        </button>
+      </div>`;
+
+    document.body.insertAdjacentElement('afterbegin', overlay);
+    document.body.style.display = '';
+
+    async function tryLogin(){
+      const input = document.getElementById('pw-input');
+      const button = document.getElementById('pw-btn');
+      const error = document.getElementById('pw-err');
+      if (!input.value.trim()) {
+        error.textContent = '請輸入密碼';
+        input.focus();
+        return;
+      }
+      button.disabled = true;
+      button.textContent = '驗證中...';
+      error.textContent = '';
+
+      try {
+        const result = await requestJson('/api/login', {
+          method: 'POST',
+          body: JSON.stringify({ password: input.value }),
+          timeoutMs: 10000
+        });
+
+        if(result.ok && result.data.authenticated){
+          sessionStorage.setItem(KEY, '1');
+          overlay.remove();
+          resolve(true);
+        } else {
+          sessionStorage.removeItem(KEY);
+          error.textContent = result.data.error || '密碼錯誤，請重新輸入';
+          input.value = '';
+          input.focus();
+        }
+      } finally {
+        button.disabled = false;
+        button.textContent = '登入';
+      }
+    }
+
+    document.getElementById('pw-btn').addEventListener('click', tryLogin);
+    document.getElementById('pw-input').addEventListener('keydown', e => {
+      if(e.key === 'Enter') tryLogin();
+    });
+    setTimeout(()=>{ document.getElementById('pw-input').focus(); }, 100);
+    });
+  }
+
+  window.hrAuthReady = checkSession().then(isAuthed => isAuthed ? true : showLogin());
+  window.hrShowLogin = showLogin;
+  window.logoutDashboard = async function(){
+    await requestJson('/api/logout', { method: 'POST', timeoutMs: 5000 });
+    sessionStorage.removeItem(KEY);
+    location.reload();
+  };
+})();
+
+// ============================================================
+// GLOBALS (must be first)
+// ============================================================
+let TODAY = new Date().toISOString().split('T')[0];
+
+// ============================================================
+// HEADER DATE
+// ============================================================
+(function(){
+  const d=new Date(TODAY+'T00:00:00');
+  const days=['日','一','二','三','四','五','六'];
+  document.getElementById('hdr-date').innerHTML=
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（週${days[d.getDay()]}）`;
+})();
+
+// ============================================================
+// CONFIG — n8n Webhook URL
+// ============================================================
+const API_URL = '/api/hr-dashboard';
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ============================================================
+// GLOBAL DATA (filled by API)
+// ============================================================
+let schedEvents = [];
+let onboardData = [];
+let resignData  = [];
+let candidatesData = [];
+let jobsData = [];
+let monthlyTrend = [];
+let departmentStats = [];
+let stats = {};
+let selectedScheduleDate = null;
+let candidateSearch = '';
+let candidateSort = { key: 'date', dir: 'desc' };
+let lastGeneratedAt = null;
+
+// ============================================================
+// DATA LOADING
+// ============================================================
+async function loadData() {
+  const refreshBtn = document.getElementById('refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '更新中...';
+  }
+  document.getElementById('hdr-date').innerHTML =
+    `載入中...<br><span style="font-size:10px;opacity:.7">請稍候</span>`;
+
+  try {
+    await window.hrAuthReady;
+    const res = await fetchWithTimeout(API_URL, { credentials: 'same-origin' }, 12000);
+    if (res.status === 401) {
+      sessionStorage.removeItem('hr_auth');
+      document.querySelector('.header-sub').style.color = '#fca5a5';
+      document.querySelector('.header-sub').textContent = '登入狀態已過期 — 請重新登入';
+      await window.hrShowLogin();
+      return loadData();
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+
+    TODAY         = d.today || TODAY;
+    schedEvents   = d.schedEvents   || [];
+    onboardData   = d.onboardData   || [];
+    resignData    = d.resignData    || [];
+    candidatesData= d.candidatesData|| [];
+    jobsData      = d.jobsData      || [];
+    monthlyTrend  = d.monthlyTrend  || [];
+    departmentStats = d.departmentStats || [];
+    stats         = d.stats         || {};
+    lastGeneratedAt = d.generatedAt || null;
+
+    const dt = new Date(TODAY+'T00:00:00');
+    const DOW = ['日','一','二','三','四','五','六'];
+    document.getElementById('hdr-date').innerHTML =
+      `${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日（週${DOW[dt.getDay()]}）`;
+    document.getElementById('last-updated').textContent =
+      `最後更新 ${new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}${lastGeneratedAt?' · API '+String(lastGeneratedAt).replace('T',' '):''}`;
+    document.querySelector('.header-sub').style.color = '';
+    document.querySelector('.header-sub').textContent = '自動化招募追蹤系統';
+
+  } catch(err) {
+    console.error('API 載入失敗:', err);
+    document.getElementById('hdr-date').innerHTML =
+      `資料載入失敗<br><span style="font-size:10px;opacity:.7">${err.name === 'AbortError' ? '連線逾時，請重試' : '請確認 n8n webhook 狀態'}</span>`;
+    document.getElementById('last-updated').textContent = '更新失敗';
+    document.querySelector('.header-sub').style.color = '#fca5a5';
+    document.querySelector('.header-sub').textContent = '連線失敗 — 請確認 n8n 已啟動 webhook';
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '重新整理';
+    }
+  }
+
+  renderAll();
+}
+
+function refreshDashboard(){
+  loadData();
+}
+
+function renderAll() {
+  initTodayBar();
+  initKPIs();
+  renderSchedule();
+  renderCalendar();
+  renderOnboard();
+  renderResign();
+  renderHRStats();
+  renderCandidates();
+  renderJobs();
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function dateDiff(a,b){return Math.round((new Date(b)-new Date(a))/86400000)}
+function daysOpen(d){return dateDiff(d,TODAY)}
+function fmtDate(d){if(!d||d==='null')return'—';const p=d.split('-');return`${+p[1]}/${+p[2]}`}
+function fmtDateWeek(d){
+  if(!d||d==='null')return'—';
+  const dt=new Date(d+'T00:00:00');
+  const DOW=['日','一','二','三','四','五','六'];
+  return`${+d.split('-')[1]}/${+d.split('-')[2]}（${DOW[dt.getDay()]}）`;
+}
+function escHtml(v){
+  return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function jsArg(v){
+  return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' ');
+}
+function toLocalISODate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const stLabelMap={interviewing:'面試中',offer:'錄取中',onboarded:'已到職',withdrawn:'已撤回',pending_review:'待回應'};
+const stColorMap={interviewing:'var(--blue)',offer:'#d97706',onboarded:'var(--green)',withdrawn:'var(--pink)',pending_review:'#7c3aed'};
+
+function renderOnboardCard(o){
+  const dl=dateDiff(TODAY,o.date);
+  const done=o.status==='onboarded'||(o.date&&o.date<=TODAY);
+  return`<div class="hc-card">
+    <div class="hc-icon green">${done?'✅':'🎉'}</div>
+    <div class="hc-body">
+      <div class="hc-name">${escHtml(o.name)}</div>
+      <div class="hc-sub">${escHtml(o.pos||'—')} · ${escHtml(o.dept||'—')}${o.hr?' · HR: '+escHtml(o.hr):''}</div>
+      <div class="hc-sub" style="margin-top:3px">${done?'已到職':'預計到職：'+fmtDateWeek(o.date)}</div>
+    </div>
+    <div><div class="hc-days green">${done?'✓':dl+'天'}</div><div class="hc-days-lbl">${done?'已到職':'後到職'}</div></div>
+  </div>`;
+}
+
+// ============================================================
+// GLOBAL SEARCH
+// ============================================================
+function renderGlobalSearch(value){
+  const box=document.getElementById('global-results');
+  const q=String(value||'').trim().toLowerCase();
+  if(q.length<2){box.classList.remove('open');box.innerHTML='';return;}
+
+  const rows=[];
+  for(const c of candidatesData){
+    const hay=[c.name,c.pos,c.dept,c.hr,c.note,c.source].join(' ').toLowerCase();
+    if(hay.includes(q)) rows.push({type:'人選',title:c.name,sub:`${c.pos||'—'} · ${c.dept||'—'} · ${stLabelMap[c.status]||c.status||'—'}`,action:`openDrawer('${String(c.name).replace(/'/g,"\\'")}')`});
+  }
+  for(const e of schedEvents){
+    const hay=[e.name,e.pos,e.dept,e.hr,e.note,e.date,e.type].join(' ').toLowerCase();
+    if(hay.includes(q)) rows.push({type:'排程',title:e.name,sub:`${fmtDateWeek(e.date)} · ${e.pos||'—'} · ${e.dept||'—'}`,action:`showTab('schedule');selectedScheduleDate='${e.date}';renderCalendar();renderSchedule()`});
+  }
+  for(const o of onboardData){
+    const hay=[o.name,o.pos,o.dept,o.hr,o.date].join(' ').toLowerCase();
+    if(hay.includes(q)) rows.push({type:'到職',title:o.name,sub:`${o.date||'—'} · ${o.pos||'—'} · ${o.dept||'—'}`,action:`showTab('hr-events')`});
+  }
+  for(const r of resignData){
+    const hay=[r.name,r.pos,r.dept,r.hr,r.lastDay,r.reason].join(' ').toLowerCase();
+    if(hay.includes(q)) rows.push({type:'離職',title:r.name,sub:`${r.lastDay||'—'} · ${r.pos||'—'} · ${r.dept||'—'}`,action:`showTab('hr-events')`});
+  }
+
+  const unique=[];
+  const seen=new Set();
+  for(const row of rows){
+    const key=row.type+'|'+row.title+'|'+row.sub;
+    if(!seen.has(key)){seen.add(key);unique.push(row);}
+    if(unique.length>=8)break;
+  }
+
+  box.innerHTML=unique.length?unique.map(row=>`
+    <div class="global-result" onclick="${row.action};closeGlobalSearch()">
+      <div><div class="global-result-title">${escHtml(row.title)}</div><div class="global-result-sub">${escHtml(row.sub)}</div></div>
+      <span class="global-result-type">${escHtml(row.type)}</span>
+    </div>`).join(''):'<div class="empty" style="padding:18px">找不到符合資料</div>';
+  box.classList.add('open');
+}
+
+function closeGlobalSearch(){
+  const input=document.getElementById('global-search');
+  const box=document.getElementById('global-results');
+  if(input)input.value='';
+  if(box){box.classList.remove('open');box.innerHTML='';}
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest?.('.global-search')) closeGlobalSearch();
+});
+
+// ============================================================
+// TODAY BAR
+// ============================================================
+function initTodayBar(){
+  const todayIntv=schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
+  const todayOnb=schedEvents.filter(e=>e.date===TODAY&&e.type==='onboard');
+  const d=new Date(TODAY+'T00:00:00');
+  const weekEnd=new Date(d);weekEnd.setDate(d.getDate()+((7-d.getDay())%7));
+  const weekEndStr=toLocalISODate(weekEnd);
+  const weekResign=schedEvents.filter(e=>e.type==='resign'&&e.date>=TODAY&&e.date<=weekEndStr);
+
+  const ti=document.getElementById('today-interviews');
+  ti.innerHTML=todayIntv.length
+    ?todayIntv.map(e=>`<span class="chip blue">${e.name}${e.time?' '+e.time:''}</span>`).join('')
+    :'<span class="chip empty">今日無面試</span>';
+
+  const to=document.getElementById('today-onboards');
+  to.innerHTML=todayOnb.length
+    ?todayOnb.map(e=>`<span class="chip green">${e.name}</span>`).join('')
+    :'<span class="chip empty">今日無到職</span>';
+
+  const tr=document.getElementById('today-resigns');
+  tr.innerHTML=weekResign.length
+    ?weekResign.map(e=>`<span class="chip pink">${e.name} ${fmtDate(e.date)}</span>`).join('')
+    :'<span class="chip empty">本週無離職</span>';
+
+  const pendingCands=candidatesData.filter(c=>c.status==='pending_review');
+  const tp=document.getElementById('today-pending');
+  if(pendingCands.length>0){
+    const chips=pendingCands.slice(0,3).map(c=>
+      `<span class="chip purple clickable" title="${escHtml(c.pos||'')}" onclick="openDrawer('${jsArg(c.name)}')">${escHtml(c.name)} · ${escHtml(c.pos||'—')}</span>`
+    ).join('');
+    const more=pendingCands.length>3
+      ?`<span class="chip purple clickable" onclick="showTab('candidates');setCandF('pending_review')">另 ${pendingCands.length-3} 位</span>`
+      :`<span class="chip purple clickable" onclick="showTab('candidates');setCandF('pending_review')">查看全部</span>`;
+    tp.innerHTML=chips+more;
+  }else{
+    tp.innerHTML='<span class="chip empty">無待回應</span>';
+  }
+}
+
+// ============================================================
+// KPI BAR
+// ============================================================
+function initKPIs(){
+  const active   = stats.activeCount        ?? candidatesData.filter(c=>c.status==='interviewing').length;
+  const pending  = stats.pendingReviewCount ?? candidatesData.filter(c=>c.status==='pending_review').length;
+  const offer    = stats.offerCount         ?? candidatesData.filter(c=>c.status==='offer').length;
+  const pendOnb  = stats.pendingOnboard     ?? onboardData.filter(o=>o.status==='pending').length;
+  const pendRes  = stats.pendingResign      ?? resignData.filter(r=>r.status==='active').length;
+
+  document.getElementById('k-active').textContent  = active;
+  document.getElementById('k-pending').textContent = pending;
+  document.getElementById('k-offer').textContent   = offer;
+  document.getElementById('k-onboard').textContent = pendOnb;
+  document.getElementById('k-resign').textContent  = pendRes;
+  document.getElementById('k-rate').textContent    = (stats.hireRate??0)+'%';
+  document.getElementById('k-days').textContent    = stats.avgDaysToOffer||'—';
+
+  document.getElementById('hr-onboard-cnt').textContent    = stats.monthOnboard??0;
+  document.getElementById('hr-resign-cnt').textContent     = stats.monthResign??0;
+  document.getElementById('hr-pending-onboard').textContent= pendOnb;
+  document.getElementById('hr-pending-resign').textContent = pendRes;
+  const net=(stats.monthOnboard??0)-(stats.monthResign??0);
+  document.getElementById('hr-net').textContent = (net>=0?'+':'')+net;
+}
+
+// ============================================================
+// SCHEDULE TAB
+// ============================================================
+let schedFilter='all';
+function setSchedF(f,btn){
+  schedFilter=f;
+  document.querySelectorAll('#tab-schedule .fbtn').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderSchedule();
+}
+function renderSchedule(){
+  const list=document.getElementById('sched-list');
+  let items=schedFilter==='all'?schedEvents:schedEvents.filter(e=>e.type===schedFilter);
+  if (selectedScheduleDate) items = items.filter(e=>e.date===selectedScheduleDate);
+  items=[...items].sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById('clear-date-btn').style.display = selectedScheduleDate ? 'inline-block' : 'none';
+  if(!items.length){list.innerHTML=`<div class="empty">${selectedScheduleDate?fmtDateWeek(selectedScheduleDate)+' 無排程事項':'無排程事項'}</div>`;return;}
+
+  let html='',lastDate=null;
+  for(const e of items){
+    if(e.date!==lastDate){
+      html+=`<div style="font-size:11px;font-weight:700;color:var(--gray);margin:12px 0 6px 2px">${fmtDateWeek(e.date)}</div>`;
+      lastDate=e.date;
+    }
+    const typeLabel={interview:'面試',onboard:'到職',resign:'離職','interview-changed':'面試改期'}[e.type]||e.type;
+    const badgeColor={interview:'blue',onboard:'green',resign:'pink','interview-changed':'orange'}[e.type]||'gray';
+    html+=`<div class="card ${e.type} clickable" title="開啟人選資料或原始信件" onclick="openScheduleItem('${jsArg(e.name)}','${jsArg(e.date)}','${jsArg(e.emailLink)}')">
+      <div class="card-top">
+        <div>
+          <div class="card-name">${escHtml(e.name)} <span class="badge ${badgeColor}">${typeLabel}</span></div>
+          <div class="card-meta">${escHtml(e.pos||'')} · ${escHtml(e.dept||'')}${e.round?` · 第${e.round}輪`:''}</div>
+        </div>
+        <div class="card-time">${escHtml(e.time||'—')}</div>
+      </div>
+      ${e.hr||e.note?`<div class="card-meta" style="margin-top:4px">${e.hr?'👤 '+escHtml(e.hr):''}${e.note?' | '+escHtml(e.note):''}</div>`:''}
+    </div>`;
+  }
+  list.innerHTML=html;
+}
+
+function openScheduleItem(name,date,emailLink){
+  const c=candidatesData.find(x=>x.name===name);
+  if(c){openDrawer(name);return;}
+  if(emailLink&&emailLink!=='null'){
+    window.open(emailLink,'_blank','noopener');
+    return;
+  }
+  selectedScheduleDate=date||selectedScheduleDate;
+  renderCalendar();
+  renderSchedule();
+  const list=document.getElementById('sched-list');
+  const notice=document.createElement('div');
+  notice.className='inline-notice';
+  notice.textContent='此排程尚未對應到人選檔，也沒有原始信件連結；已先篩選同日排程。';
+  list.prepend(notice);
+}
+
+function selectCalendarDate(date){
+  selectedScheduleDate = selectedScheduleDate === date ? null : date;
+  renderCalendar();
+  renderSchedule();
+}
+
+function clearCalendarDate(){
+  selectedScheduleDate = null;
+  renderCalendar();
+  renderSchedule();
+}
+
+// ============================================================
+// MINI CALENDAR
+// ============================================================
+let calDate=new Date(TODAY+'T00:00:00');
+function renderCalendar(){
+  const yr=calDate.getFullYear(),mo=calDate.getMonth();
+  document.getElementById('cal-month-label').textContent=`${yr}年${mo+1}月`;
+  const DOW=['日','一','二','三','四','五','六'];
+  let html=DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDow=new Date(yr,mo,1).getDay();
+  const daysInMo=new Date(yr,mo+1,0).getDate();
+
+  const evMap={};
+  for(const e of schedEvents){
+    if(!evMap[e.date])evMap[e.date]={i:false,o:false,r:false};
+    if(e.type==='interview'||e.type==='interview-changed')evMap[e.date].i=true;
+    if(e.type==='onboard')evMap[e.date].o=true;
+    if(e.type==='resign')evMap[e.date].r=true;
+  }
+
+  for(let i=0;i<firstDow;i++)html+='<div class="cal-day other"></div>';
+  for(let d=1;d<=daysInMo;d++){
+    const ds=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=ds===TODAY;
+    const ev=evMap[ds];
+    html+=`<div class="cal-day${isToday?' today':''}${selectedScheduleDate===ds?' selected':''}" onclick="selectCalendarDate('${ds}')">${d}${ev?`<div class="dots">${ev.i?'<div class="dot dot-i"></div>':''}${ev.o?'<div class="dot dot-o"></div>':''}${ev.r?'<div class="dot dot-r"></div>':''}</div>`:''}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+}
+function calPrev(){calDate.setMonth(calDate.getMonth()-1);renderCalendar();}
+function calNext(){calDate.setMonth(calDate.getMonth()+1);renderCalendar();}
+
+// ============================================================
+// HR EVENTS TAB
+// ============================================================
+function renderOnboard(){
+  const list=document.getElementById('onboard-list');
+  if(!onboardData.length){list.innerHTML='<div class="empty">目前無到職記錄（Workflow 3 匯入後顯示）</div>';return;}
+  const pending=onboardData
+    .filter(o=>o.status!=='cancelled' && !(o.status==='onboarded'||(o.date&&o.date<=TODAY)))
+    .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  const done=onboardData
+    .filter(o=>o.status==='onboarded'||(o.date&&o.date<=TODAY))
+    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  list.innerHTML=`
+    <div class="subsection-title">待到職 <span class="sub-count">${pending.length} 人</span></div>
+    ${pending.length?pending.map(renderOnboardCard).join(''):'<div class="empty">暫無待到職資料</div>'}
+    <div class="subsection-title">已到職 <span class="sub-count">${done.length} 人</span></div>
+    ${done.length?done.map(renderOnboardCard).join(''):'<div class="empty">暫無已到職資料</div>'}
+  `;
+}
+function renderResign(){
+  const list=document.getElementById('resign-list');
+  if(!resignData.length){list.innerHTML='<div class="empty">目前無離職記錄（Workflow 3 匯入後顯示）</div>';return;}
+  list.innerHTML=resignData.map(r=>{
+    const dl=dateDiff(TODAY,r.lastDay);
+    const done=r.status==='done'||(r.lastDay&&r.lastDay<=TODAY);
+    return`<div class="hc-card">
+      <div class="hc-icon pink">${done?'👋':'⏳'}</div>
+      <div class="hc-body">
+        <div class="hc-name">${r.name}</div>
+        <div class="hc-sub">${r.pos} · ${r.dept}${r.hr&&r.hr!=='—'?' · '+r.hr:''}</div>
+        ${r.reason?`<div class="hc-sub" style="margin-top:3px">${r.reason}</div>`:''}
+      </div>
+      <div><div class="hc-days pink">${done?'✓':dl+'天'}</div><div class="hc-days-lbl">${done?'已離職':'後離職'}</div></div>
+    </div>`;
+  }).join('');
+}
+function renderHRStats(){
+  renderCharts();
+}
+
+// ============================================================
+// CANDIDATES TAB
+// ============================================================
+let candFilter='all';
+function setCandF(f,btn){
+  candFilter=f;
+  document.querySelectorAll('#tab-candidates .fbtn').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    const target = Array.from(document.querySelectorAll('#tab-candidates .fbtn')).find(b=>b.getAttribute('onclick')?.includes(`'${f}'`));
+    if (target) target.classList.add('active');
+  }
+  renderCandidates();
+}
+function setCandidateSearch(value){
+  candidateSearch = value.trim().toLowerCase();
+  renderCandidates();
+}
+function setCandidateSort(key){
+  if (candidateSort.key === key) candidateSort.dir = candidateSort.dir === 'asc' ? 'desc' : 'asc';
+  else candidateSort = { key, dir: key === 'date' ? 'desc' : 'asc' };
+  renderCandidates();
+}
+function renderCandidates(){
+  const tbody=document.getElementById('cand-tbody');
+  let items=candFilter==='all'?candidatesData:candidatesData.filter(c=>c.status===candFilter);
+  if(candidateSearch){
+    items=items.filter(c=>[c.name,c.pos,c.dept,c.hr,c.note,c.source].some(v=>String(v||'').toLowerCase().includes(candidateSearch)));
+  }
+  items=[...items].sort((a,b)=>{
+    const av=String(a[candidateSort.key]||'');
+    const bv=String(b[candidateSort.key]||'');
+    const result=av.localeCompare(bv,'zh-Hant');
+    return candidateSort.dir==='asc'?result:-result;
+  });
+  document.getElementById('cand-count').textContent=`${items.length} / ${candidatesData.length} 人`;
+  if(!items.length){tbody.innerHTML='<tr><td colspan="7" class="empty">沒有符合條件的人選</td></tr>';return;}
+  tbody.innerHTML=items.map(c=>{
+    const safe=c.name.replace(/'/g,"\\'");
+    const note=c.note||'';
+    return`<tr class="clickable" onclick="openDrawer('${safe}')">
+      <td><strong>${c.name}</strong></td>
+      <td>${c.pos||'—'}</td>
+      <td>${c.dept||'—'}</td>
+      <td>${fmtDate(c.date)}</td>
+      <td>${c.hr||'—'}</td>
+      <td><span class="st st-${c.status}">${stLabelMap[c.status]||c.status}</span></td>
+      <td class="note-cell" title="${note.replace(/"/g,'&quot;')}" style="color:var(--gray);font-size:11px">${note}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// JOBS TAB
+// ============================================================
+let jobFilter='all';
+function setJobF(f,btn){
+  jobFilter=f;
+  document.querySelectorAll('#tab-jobs .fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderJobs();
+}
+function renderJobs(){
+  const tbody=document.getElementById('job-tbody');
+  const items=jobFilter==='all'?jobsData:jobsData.filter(j=>j.status===jobFilter);
+  if(!items.length){tbody.innerHTML='<tr><td colspan="8" class="empty">無職缺資料</td></tr>';return;}
+  tbody.innerHTML=items.map(j=>{
+    const days=j.open?daysOpen(j.open):0;
+    const rate=j.cands>0?Math.round(100*j.hired/j.cands):0;
+    const urgency=j.urgency ?? j.priority ?? '—';
+    return`<tr>
+      <td><strong>${j.pos}</strong></td>
+      <td>${j.dept}</td>
+      <td>${urgency==='—'?'—':`<span class="badge ${urgency>=4?'pink':urgency>=3?'orange':'gray'}">${urgency}</span>`}</td>
+      <td>${j.open||'—'}</td>
+      <td>${days}天</td>
+      <td>${j.cands}</td>
+      <td>${rate}%</td>
+      <td><span class="st st-${j.status}">${{open:'招募中',filled:'已補齊',on_hold:'暫停',cancelled:'取消'}[j.status]||j.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// ANALYTICS CHARTS
+// ============================================================
+let charts={};
+function renderCharts(){
+  // 月度趨勢
+  const trend6=monthlyTrend.slice(-6);
+  const setChartEmpty=(id,show,message='目前沒有可顯示的資料')=>{
+    const wrap=document.getElementById(id)?.parentElement;
+    if(!wrap)return;
+    let empty=wrap.querySelector('.chart-empty');
+    if(show){
+      if(!empty){
+        empty=document.createElement('div');
+        empty.className='chart-empty';
+        wrap.appendChild(empty);
+      }
+      empty.textContent=message;
+    }else if(empty){
+      empty.remove();
+    }
+  };
+  const renderOrUpdate=(id,config,hasData)=>{
+    if(charts[id])charts[id].destroy();
+    const ctx=document.getElementById(id);
+    if(ctx)charts[id]=new Chart(ctx,config);
+    setChartEmpty(id,!hasData);
+  };
+
+  renderOrUpdate('trendChart',{
+    type:'line',
+    data:{
+      labels:trend6.map(m=>m.month),
+      datasets:[
+        {label:'面試',data:trend6.map(m=>m.interviews),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',tension:.4,fill:true},
+        {label:'錄取',data:trend6.map(m=>m.offers),borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.1)',tension:.4,fill:true},
+        {label:'到職',data:trend6.map(m=>m.onboarded),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',tension:.4,fill:true},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}
+  },trend6.length>0);
+
+  // 來源渠道
+  const srcMap={};
+  for(const c of candidatesData)srcMap[c.source||'其他']=(srcMap[c.source||'其他']||0)+1;
+  renderOrUpdate('srcChart',{
+    type:'doughnut',
+    data:{labels:Object.keys(srcMap),datasets:[{data:Object.values(srcMap),backgroundColor:['#3b82f6','#10b981','#f97316','#f43f5e','#8b5cf6','#64748b']}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}
+  },Object.keys(srcMap).length>0);
+
+  // 部門招募
+  const deptMap={};
+  for(const c of candidatesData){
+    if(!deptMap[c.dept])deptMap[c.dept]={t:0,h:0};
+    deptMap[c.dept].t++;
+    if(c.status==='onboarded'||c.status==='offer')deptMap[c.dept].h++;
+  }
+  renderOrUpdate('deptChart',{
+    type:'bar',
+    data:{
+      labels:Object.keys(deptMap),
+      datasets:[
+        {label:'總人選',data:Object.values(deptMap).map(v=>v.t),backgroundColor:'#dbeafe'},
+        {label:'錄取/到職',data:Object.values(deptMap).map(v=>v.h),backgroundColor:'#3b82f6'},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}
+  },Object.keys(deptMap).length>0);
+
+  // 平均天至錄取（依部門）
+  const offerDaysRows=departmentStats.filter(d=>d.avgDaysToOffer!==null&&d.avgDaysToOffer!==undefined);
+  renderOrUpdate('daysChart',{
+    type:'bar',
+    data:{
+      labels:offerDaysRows.map(d=>d.dept||'未分類'),
+      datasets:[{label:'平均天至錄取',data:offerDaysRows.map(d=>Number(d.avgDaysToOffer)||0),backgroundColor:'#10b981'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:v=>v+'天'}}}}
+  },offerDaysRows.length>0);
+
+  // HR 工作量
+  const hrMap={};
+  for(const e of schedEvents.filter(e=>e.type==='interview'&&e.hr)){
+    hrMap[e.hr]=(hrMap[e.hr]||0)+1;
+  }
+  renderOrUpdate('hrWorkChart',{
+    type:'bar',
+    data:{
+      labels:Object.keys(hrMap),
+      datasets:[{label:'面試場次',data:Object.values(hrMap),backgroundColor:['#3b82f6','#10b981','#f97316']}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}}}
+  },Object.keys(hrMap).length>0);
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  else {
+    const tab = Array.from(document.querySelectorAll('.tab')).find(t=>t.getAttribute('onclick')?.includes(`'${name}'`));
+    if(tab) tab.classList.add('active');
+  }
+  if (location.hash !== '#'+name) history.replaceState(null,'','#'+name);
+  if(name==='analytics')renderCharts();
+}
+
+function applyInitialHash(){
+  const name=(location.hash||'#schedule').replace('#','');
+  if(document.getElementById('tab-'+name)) showTab(name);
+}
+
+// ============================================================
+// DRAWER
+// ============================================================
+function openDrawer(name){
+  const c=candidatesData.find(x=>x.name===name);
+  if(!c)return;
+
+  document.getElementById('dr-name').textContent=c.name;
+  document.getElementById('dr-pos').innerHTML=`${c.pos||''} &nbsp;·&nbsp; ${c.dept||''} &nbsp;·&nbsp; <span style="color:${stColorMap[c.status]||'#64748b'};font-weight:700">${stLabelMap[c.status]||c.status}</span>`;
+
+  const emailBtn=document.getElementById('dr-email-btn');
+  document.getElementById('dr-email-sub').textContent=c.emailLink?'點擊在 Outlook 中開啟原始信件':'這筆資料未帶入 Outlook webLink，請回原始信件或 n8n log 查找';
+  if(c.emailLink&&c.emailLink!=='null'){emailBtn.href=c.emailLink;emailBtn.classList.remove('disabled');emailBtn.removeAttribute('title');}
+  else{emailBtn.href='#';emailBtn.classList.add('disabled');emailBtn.title='email_web_link 為空，因此無法直接開啟 Outlook';}
+
+  const resumeBtn=document.getElementById('dr-resume-btn');
+  document.getElementById('dr-resume-sub').textContent=c.resumeLink?'SharePoint / OneDrive 履歷檔案':'尚未匯入履歷連結，請從 Outlook 附件或 SharePoint 搜尋';
+  if(c.resumeLink){resumeBtn.href=c.resumeLink;resumeBtn.classList.remove('disabled');resumeBtn.removeAttribute('title');}
+  else{resumeBtn.href='#';resumeBtn.classList.add('disabled');resumeBtn.title='resumeLink 為空，因此無法直接開啟履歷';}
+
+  document.getElementById('dr-info').innerHTML=`
+    <div class="info-row"><span class="info-label">部門</span><span class="info-val">${c.dept||'—'}</span></div>
+    <div class="info-row"><span class="info-label">應徵職位</span><span class="info-val">${c.pos||'—'}</span></div>
+    <div class="info-row"><span class="info-label">來源渠道</span><span class="info-val">${c.source||'—'}</span></div>
+    <div class="info-row"><span class="info-label">負責 HR</span><span class="info-val">${c.hr||'—'}</span></div>
+    <div class="info-row"><span class="info-label">最近面試</span><span class="info-val">${fmtDate(c.date)}</span></div>
+    ${c.onboard?`<div class="info-row"><span class="info-label">預計到職</span><span class="info-val" style="color:var(--green)">${c.onboard}</span></div>`:''}
+  `;
+
+  const tlDiv=document.getElementById('dr-timeline');
+  const hist=Array.isArray(c.history)?c.history:[];
+  tlDiv.innerHTML=hist.length
+    ?hist.map(h=>`<div class="tl-item">
+        <div class="tl-dot ${h.color||'blue'}"></div>
+        <div class="tl-date">${h.date||''}</div>
+        <div class="tl-title">${h.title||''}</div>
+        ${h.note?`<div class="tl-note">${h.note}</div>`:''}
+      </div>`).join('')
+    :'<div style="font-size:12px;color:#94a3b8">暫無歷程記錄</div>';
+
+  document.getElementById('dr-notes').textContent=c.note||'無備註';
+  document.getElementById('dr-notes-section').style.display=c.note?'block':'none';
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+
+// ============================================================
+// INIT
+// ============================================================
+loadData();
+applyInitialHash();
+</script>
+</body>
+</html>

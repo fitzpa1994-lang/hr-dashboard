@@ -1,0 +1,492 @@
+{
+    "updatedAt": "2026-05-20T00:46:15.107Z",
+    "createdAt": "2026-05-18T03:16:04.983Z",
+    "id": "12cB8YSxlVUTlJhh",
+    "name": "HR Workflow 2：歷史信件匯入（近30天）",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "manual-trigger",
+            "name": "手動觸發：歷史匯入",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                240,
+                304
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "limit": 500,
+                "options": {}
+            },
+            "id": "outlook-getall",
+            "name": "Microsoft Outlook：取得歷史信件",
+            "type": "n8n-nodes-base.microsoftOutlook",
+            "typeVersion": 2,
+            "position": [
+                512,
+                304
+            ],
+            "webhookId": "d4c8473a-038f-4589-bec8-9f5c91343fe3",
+            "credentials": {
+                "microsoftOutlookOAuth2Api": {
+                    "id": "gRnSdH5u4gDyDZzB",
+                    "name": "Microsoft Outlook account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    },
+                    "conditions": [
+                        {
+                            "id": "kw-interview",
+                            "leftValue": "={{ $json.subject }}",
+                            "rightValue": "面試|Interview|面談|初試|複試|面談通知|面試通知|interview",
+                            "operator": {
+                                "type": "string",
+                                "operation": "regex"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "if-interview-kw",
+            "name": "IF：面試關鍵字",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                768,
+                304
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const item = $input.item.json;\nconst subject = item.subject || '';\n\n// Strip HTML tags from body\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst fullText = subject + '\\n' + body;\n\n// 1. 候選人姓名（8 個 pattern）\nlet candidateName = null;\nconst SKIP_WORDS = new Set(['通知','安排','確認','面試','邀請','時間','地點','安排']);\nconst namePatterns = [\n  /(?:候選人|應徵者|姓名|求職者)[：:\\s]*([^\\s，,、。\\n<]{2,5})/,\n  /Dear\\s+(?:Mr\\.|Ms\\.|Mrs\\.)?\\s*([A-Z][a-z]{1,10}(?:\\s[A-Z][a-z]{1,10})*)/i,\n  /親愛的\\s*([\\u4e00-\\u9fa5]{2,5})\\s*(?:先生|女士|您好)/,\n  /([\\u4e00-\\u9fa5]{2,4})\\s*(?:先生|女士|小姐)\\s*您好/,\n  /[－\\-—]\\s*([\\u4e00-\\u9fa5]{2,4})\\s*[－\\-—]/,\n  /面試[通知排程安排確認]*[：:\\s]*([\\u4e00-\\u9fa5]{2,4})/,\n  /^([\\u4e00-\\u9fa5]{2,4})\\s*[-－—\\s]*(?:面試|Interview)/im,\n  /([A-Z][a-z]{1,15}(?:\\s[A-Z][a-z]{1,15})+)\\s*(?:面試|Interview)/,\n];\nfor (const p of namePatterns) {\n  const m = fullText.match(p);\n  if (m) {\n    const candidate = m[1].trim();\n    if (!SKIP_WORDS.has(candidate) && candidate.length >= 2) {\n      candidateName = candidate;\n      break;\n    }\n  }\n}\n\n// 2. 面試日期（加入 年月日 格式）\nlet interviewDate = null;\nconst datePatterns = [\n  { re: /(\\d{4})年(\\d{1,2})月(\\d{1,2})日/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{1,2})月(\\d{1,2})日/, fn: m => `${new Date().getFullYear()}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` },\n];\nfor (const { re, fn } of datePatterns) {\n  const m = fullText.match(re);\n  if (m) { interviewDate = fn(m); break; }\n}\n\n// 3. 面試時間\nlet interviewTime = null;\nconst timeMatch = fullText.match(/(?:時間[：:\\s]*)?(\\d{1,2})[:：](\\d{2})/);\nif (timeMatch) {\n  let h = parseInt(timeMatch[1]);\n  const context = fullText.substring(Math.max(0, fullText.indexOf(timeMatch[0])-10), fullText.indexOf(timeMatch[0])+20);\n  if (/下午|PM|pm/.test(context) && h < 12) h += 12;\n  interviewTime = `${String(h).padStart(2,'0')}:${timeMatch[2]}`;\n}\n\n// 4. 輪次\nlet round = 1;\nif (/複試|二試|second\\s*round|第二輪/i.test(fullText)) round = 2;\nif (/三試|third\\s*round|第三輪/i.test(fullText)) round = 3;\nif (/終試|final\\s*round|最終面試/i.test(fullText)) round = 4;\n\n// 5. 應徵職位\nlet appliedPosition = '未知職位';\nconst posMatch = fullText.match(/(?:應徵[職\\s]*位[置]?|職位|Position|職缺)[：:\\s]*([^\\n，,。<]{2,20})/i);\nif (posMatch) appliedPosition = posMatch[1].trim();\n\n// 6. 部門\nlet department = '未分類';\nconst deptMap = [\n  [/軟體|software/i, '軟體部'],\n  [/RF|射頻/i, '耕興'],\n  [/SAR|比吸率/i, '耕興'],\n  [/財務|finance|會計/i, '財務部'],\n  [/行政|admin/i, '行政部'],\n  [/安規|regulatory/i, '安規部'],\n  [/業務|sales/i, '業務部'],\n  [/人資|人事/i, '人資部'],\n];\nfor (const [re, dept] of deptMap) {\n  if (re.test(fullText)) { department = dept; break; }\n}\n\n// 7. 負責 HR\nconst hrNames = ['李沛晴', '陳清彥', '黃友為', 'Peggy', 'Yen', 'Evan'];\nlet hrOwner = null;\nfor (const name of hrNames) {\n  if (fullText.includes(name)) { hrOwner = name; break; }\n}\nif (!hrOwner && item.from?.emailAddress?.name) {\n  hrOwner = item.from.emailAddress.name;\n}\n\n// 8. 地點\nlet location = null;\nconst locMatch = fullText.match(/(?:地點|Location|地址|會議室|面試地點|請至)[：:　 ]*([^\\n，,<]{2,30})/);\nif (locMatch) location = locMatch[1].trim();\n\n// 9. 只有姓名找不到才需要 AI（日期缺失不算）\nconst needsAI = !candidateName;\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink,\n  sender: item.from?.emailAddress?.address,\n  received_at: item.receivedDateTime,\n  candidate_name: candidateName,\n  applied_position: appliedPosition,\n  department: department,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  round: round,\n  location: location,\n  hr_owner: hrOwner,\n  needs_ai: needsAI,\n  body_text: body.substring(0, 3000),\n};"
+            },
+            "id": "code-parse-interview",
+            "name": "Code：Regex 解析面試資料",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1024,
+                192
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// 非面試關鍵字 → 略過\nconst item = $input.item.json;\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject,\n  sender: item.from?.emailAddress?.address,\n  received_at: item.receivedDateTime,\n  action: 'skipped',\n  error_msg: '非面試類信件，歷史匯入略過',\n};"
+            },
+            "id": "code-skip",
+            "name": "Code：非面試信件略過",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1024,
+                432
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "conditions": [
+                        {
+                            "id": "check-needs-ai",
+                            "leftValue": "={{ $json.needs_ai }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and",
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    }
+                },
+                "options": {}
+            },
+            "id": "if-needs-ai",
+            "name": "IF：需要 AI 補強？",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1280,
+                192
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.anthropic.com/v1/messages",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "anthropicApi",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "anthropic-version",
+                            "value": "2023-06-01"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ ({model:'claude-haiku-4-5-20251001',max_tokens:300,messages:[{role:'user',content:'你是HR信件解析助手。請從以下信件萃取結構化資料，用JSON回覆，不要加其他文字。\\n需要欄位：candidate_name,applied_position,department,interview_date(YYYY-MM-DD),interview_time(HH:MM),round,location,hr_owner（找不到填null）\\n\\n主旨：' + $('Code：Regex 解析面試資料').item.json.email_subject + '\\n內容：' + ($('Code：Regex 解析面試資料').item.json.body_text || '').substring(0,1500)}]}) }}",
+                "options": {
+                    "batching": {
+                        "batch": {
+                            "batchSize": 2
+                        }
+                    }
+                }
+            },
+            "id": "anthropic-parse",
+            "name": "Claude：AI 補強解析",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1552,
+                112
+            ],
+            "alwaysOutputData": false,
+            "credentials": {
+                "anthropicApi": {
+                    "id": "y6zxdCqqBzmwq5bi",
+                    "name": "Anthropic account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// 合併 Regex + AI 結果（HTTP Request 版）\nconst base = $('Code：Regex 解析面試資料').item.json;\nlet aiResult = {};\ntry {\n  const inputJson = $input.item.json;\n  // HTTP Request response: content is array [{type:'text',text:'...'}]\n  let raw = '';\n  if (Array.isArray(inputJson.content)) {\n    raw = inputJson.content[0]?.text || '';\n  } else {\n    raw = inputJson.content || inputJson.text || '';\n  }\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: base.email_web_link,\n  sender: base.sender,\n  received_at: base.received_at,\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: base.applied_position !== '未知職位' ? base.applied_position : (aiResult.applied_position || '未知職位'),\n  department: base.department !== '未分類' ? base.department : (aiResult.department || '未分類'),\n  interview_date: base.interview_date || aiResult.interview_date,\n  interview_time: base.interview_time || aiResult.interview_time,\n  round: base.round || aiResult.round || 1,\n  location: base.location || aiResult.location,\n  hr_owner: base.hr_owner || aiResult.hr_owner,\n  parse_method: 'regex+ai',\n};"
+            },
+            "id": "code-merge-ai",
+            "name": "Code：合併 AI 結果",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1808,
+                112
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const d = $input.item.json;\nreturn { ...d, parse_method: 'regex' };"
+            },
+            "id": "code-regex-ok",
+            "name": "Code：Regex 結果直通",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1552,
+                272
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "return { json: $input.item.json, pairedItem: { item: 0 } };"
+            },
+            "id": "code-merge-branch",
+            "name": "Code：合併分支",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2064,
+                192
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO candidates (name, applied_position, department, source, status)\nSELECT\n  '{{ $json.candidate_name }}',\n  '{{ $json.applied_position }}',\n  '{{ $json.department }}',\n  'Outlook歷史匯入',\n  'in_progress'\nWHERE NOT EXISTS (\n  SELECT 1 FROM candidates WHERE name = '{{ $json.candidate_name }}'\n);\nSELECT 1 AS ok;",
+                "options": {}
+            },
+            "id": "pg-upsert-candidate",
+            "name": "PG：寫入 candidates",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                2320,
+                192
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "WITH cand AS (\n  SELECT id FROM candidates\n  WHERE name = '{{ $('Code：合併分支').first().json.candidate_name }}'\n  ORDER BY created_at DESC LIMIT 1\n)\nINSERT INTO interviews (\n  candidate_id, interview_date, interview_time, round,\n  location, hr_owner, status, email_subject, email_msg_id, email_web_link\n)\nSELECT\n  cand.id,\n  NULLIF(NULLIF('{{ $('Code：合併分支').first().json.interview_date }}','null'),'undefined')::DATE,\n  NULLIF(NULLIF('{{ $('Code：合併分支').first().json.interview_time }}','null'),'undefined'),\n  COALESCE(NULLIF(NULLIF('{{ $('Code：合併分支').first().json.round }}','null'),'undefined')::INT, 1),\n  NULLIF(NULLIF('{{ $('Code：合併分支').first().json.location }}','null'),'undefined'),\n  NULLIF(NULLIF('{{ $('Code：合併分支').first().json.hr_owner }}','null'),'undefined'),\n  'scheduled',\n  '{{ $('Code：合併分支').first().json.email_subject }}',\n  '{{ $('Code：合併分支').first().json.email_msg_id }}',\n  NULLIF(NULLIF('{{ $('Code：合併分支').first().json.email_web_link }}','null'),'undefined')\nFROM cand\nWHERE NULLIF(NULLIF('{{ $('Code?????').first().json.interview_date }}','null'),'undefined') IS NOT NULL\nON CONFLICT (email_msg_id) DO NOTHING;\nSELECT 1 AS ok;",
+                "options": {}
+            },
+            "id": "pg-upsert-interview",
+            "name": "PG：寫入 interviews",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                2560,
+                192
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs\n  (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $('Code：合併分支').first().json.email_msg_id }}',\n  '{{ $('Code：合併分支').first().json.email_subject }}',\n  NULLIF(NULLIF('{{ $('Code：合併分支').first().json.sender }}','null'),'undefined'),\n  COALESCE(NULLIF(NULLIF('{{ $('Code：合併分支').first().json.received_at }}','null'),'undefined')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  (SELECT id FROM candidates WHERE name = '{{ $('Code：合併分支').first().json.candidate_name }}' ORDER BY created_at DESC LIMIT 1)\nON CONFLICT (email_msg_id) DO UPDATE\n  SET action = 'inserted', processed_at = NOW();",
+                "options": {}
+            },
+            "id": "pg-log",
+            "name": "PG：寫入 email_logs",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                2800,
+                192
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs\n  (email_msg_id, email_subject, sender, received_at, action, error_msg)\nVALUES\n  ('{{ $json.email_msg_id }}', '{{ $json.email_subject }}', '{{ $json.sender }}',\n   NOW(), 'skipped', '{{ $json.error_msg }}')\nON CONFLICT (email_msg_id) DO NOTHING;",
+                "options": {}
+            },
+            "id": "pg-log-skip",
+            "name": "PG：記錄略過信件",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                1280,
+                432
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "手動觸發：歷史匯入": {
+            "main": [
+                [
+                    {
+                        "node": "Microsoft Outlook：取得歷史信件",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Microsoft Outlook：取得歷史信件": {
+            "main": [
+                [
+                    {
+                        "node": "IF：面試關鍵字",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF：面試關鍵字": {
+            "main": [
+                [
+                    {
+                        "node": "Code：Regex 解析面試資料",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Code：非面試信件略過",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：Regex 解析面試資料": {
+            "main": [
+                [
+                    {
+                        "node": "IF：需要 AI 補強？",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：非面試信件略過": {
+            "main": [
+                [
+                    {
+                        "node": "PG：記錄略過信件",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF：需要 AI 補強？": {
+            "main": [
+                [
+                    {
+                        "node": "Claude：AI 補強解析",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Code：Regex 結果直通",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Claude：AI 補強解析": {
+            "main": [
+                [
+                    {
+                        "node": "Code：合併 AI 結果",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：合併 AI 結果": {
+            "main": [
+                [
+                    {
+                        "node": "Code：合併分支",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：Regex 結果直通": {
+            "main": [
+                [
+                    {
+                        "node": "Code：合併分支",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：合併分支": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 candidates",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：寫入 candidates": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 interviews",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：寫入 interviews": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 email_logs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "saveManualExecutions": true
+    },
+    "staticData": null,
+    "meta": {
+        "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "5723921f-4000-4e68-9938-7258dce3d1be",
+    "activeVersionId": null,
+    "versionCounter": 42,
+    "triggerCount": 0,
+    "shared": [
+        {
+            "updatedAt": "2026-05-18T03:16:04.983Z",
+            "createdAt": "2026-05-18T03:16:04.983Z",
+            "role": "workflow:owner",
+            "workflowId": "12cB8YSxlVUTlJhh",
+            "projectId": "NvjFEev0823h2STF",
+            "project": {
+                "updatedAt": "2026-05-15T07:57:49.399Z",
+                "createdAt": "2026-05-15T07:52:05.149Z",
+                "id": "NvjFEev0823h2STF",
+                "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+                "type": "personal",
+                "icon": null,
+                "description": null,
+                "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+            }
+        }
+    ],
+    "tags": [
+        {
+            "updatedAt": "2026-05-15T10:18:59.545Z",
+            "createdAt": "2026-05-15T10:18:59.545Z",
+            "id": "yP9PPTGVL9VqZ3jM",
+            "name": "HR"
+        }
+    ],
+    "activeVersion": null
+}

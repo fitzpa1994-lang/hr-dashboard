@@ -1,0 +1,101 @@
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+
+const root = process.cwd();
+const errors = [];
+
+function readJson(file) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+  } catch (error) {
+    errors.push(`${file}: invalid JSON: ${error.message}`);
+    return null;
+  }
+}
+
+function expectEqual(actual, expected, label) {
+  if (actual !== expected) errors.push(`${label}: expected ${expected}, got ${actual}`);
+}
+
+function expectIncludes(value, needle, label) {
+  if (!String(value || '').includes(needle)) errors.push(`${label}: missing ${needle}`);
+}
+
+function run(label, command, args, options = {}) {
+  console.log(`\n> ${label}`);
+  const executable = process.platform === 'win32' && command === 'npm'
+    ? 'npm.cmd'
+    : command;
+  const result = spawnSync(executable, args, {
+    cwd: options.cwd || root,
+    encoding: 'utf8',
+    stdio: 'inherit'
+  });
+  if (result.error) {
+    errors.push(`${label}: ${result.error.message}`);
+    return;
+  }
+  if (result.status !== 0) {
+    errors.push(`${label}: command failed with exit code ${result.status}`);
+  }
+}
+
+const rootPkg = readJson('package.json');
+const zeabur = readJson('zbpack.json');
+const dashboardPkg = readJson('dashboard/package.json');
+const gitignore = fs.existsSync(path.join(root, '.gitignore'))
+  ? fs.readFileSync(path.join(root, '.gitignore'), 'utf8')
+  : '';
+const envExample = fs.existsSync(path.join(root, '.env.example'))
+  ? fs.readFileSync(path.join(root, '.env.example'), 'utf8')
+  : '';
+
+if (rootPkg) {
+  expectEqual(rootPkg.scripts?.start, 'node dashboard/server.js', 'root start script');
+  expectEqual(rootPkg.scripts?.['verify:deployment'], 'node scripts/verify_deployment.mjs', 'deployment verification script');
+  expectIncludes(rootPkg.engines?.node, '>=20', 'root node engine');
+}
+
+if (zeabur) {
+  expectEqual(zeabur.start_command, 'npm start', 'Zeabur start command');
+  expectEqual(zeabur.build_command, '', 'Zeabur build command');
+}
+
+if (dashboardPkg) {
+  expectIncludes(dashboardPkg.scripts?.test, 'verify-dashboard-static.mjs', 'dashboard test script');
+  expectIncludes(dashboardPkg.scripts?.test, 'jest', 'dashboard test script');
+}
+
+expectIncludes(gitignore, 'node_modules/', '.gitignore');
+expectIncludes(gitignore, '.env', '.gitignore');
+expectIncludes(gitignore, '*.log', '.gitignore');
+expectIncludes(gitignore, '*.sqlite', '.gitignore');
+expectIncludes(envExample, 'HR_DASHBOARD_PASSWORD=', '.env.example');
+expectIncludes(envExample, 'HR_DASHBOARD_URL=', '.env.example');
+expectIncludes(envExample, 'SESSION_SECRET=', '.env.example');
+expectIncludes(envExample, 'N8N_HR_WEBHOOK_URL=', '.env.example');
+expectIncludes(envExample, 'N8N_HR_TOKEN=', '.env.example');
+expectIncludes(envExample, 'N8N_PROXY_TIMEOUT_MS=', '.env.example');
+
+run('Dashboard static verification', 'node', ['dashboard/scripts/verify-dashboard-static.mjs']);
+run('Dashboard Jest tests', 'node', [
+  '--experimental-vm-modules',
+  'dashboard/node_modules/jest/bin/jest.js',
+  '--runInBand'
+]);
+run('Runtime HTTP verification', 'node', ['scripts/verify_runtime.mjs']);
+run('Deployment verifier syntax check', 'node', ['--check', 'scripts/verify_deployment.mjs']);
+run('Visual fixture syntax check', 'node', ['--check', 'scripts/serve_visual_fixture.mjs']);
+run('Visual UI fixture syntax check', 'node', ['--check', 'scripts/serve_visual_ui_fixture.mjs']);
+run('n8n export validation', 'python', ['scripts/validate_n8n_exports.py']);
+run('Python verifier compile', 'python', ['-m', 'py_compile', 'scripts/validate_dashboard_api.py', 'scripts/validate_n8n_exports.py']);
+
+if (errors.length) {
+  console.error('\nProject verification failed:');
+  for (const error of errors) console.error(`  - ${error}`);
+  process.exit(1);
+}
+
+console.log('\nProject verification passed');

@@ -1,0 +1,15 @@
+{
+  "name": "hr-recruitment-system",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node dashboard/server.js",
+    "test": "node scripts/verify_project.mjs",
+    "verify": "node scripts/verify_project.mjs",
+    "verify:deployment": "node scripts/verify_deployment.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

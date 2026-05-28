@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+dashboard/node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime logs
+*.log
+visual-fixture.*.log
+visual-ui-fixture.*.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local database artifacts
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.claude/
+
+# Local temporary files
+tmp_*

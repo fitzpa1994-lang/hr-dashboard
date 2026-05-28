@@ -1,0 +1,424 @@
+{
+    "updatedAt": "2026-05-20T03:11:20.869Z",
+    "createdAt": "2026-05-20T02:17:31.751Z",
+    "id": "LjUT0x6qgRMXpQDM",
+    "name": "HR Workflow 2：歷史信件匯入",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "78d04c74-9111-432e-8de4-d1a8f4058734",
+            "name": "手動觸發：歷史匯入",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                -720,
+                -32
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT 'schema unchanged' AS result;",
+                "options": {}
+            },
+            "id": "3b53a3b2-63cf-4abf-8537-287914926f3c",
+            "name": "PG：初始化 Schema",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                -496,
+                -32
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "limit": 500,
+                "options": {}
+            },
+            "id": "003cbba1-0b12-4dc5-9611-fdf2cb84fe01",
+            "name": "Microsoft Outlook：取得歷史信件",
+            "type": "n8n-nodes-base.microsoftOutlook",
+            "typeVersion": 2,
+            "position": [
+                -288,
+                -32
+            ],
+            "webhookId": "48daa0cf-c60f-4625-8cce-ffb64522ab98",
+            "credentials": {
+                "microsoftOutlookOAuth2Api": {
+                    "id": "gRnSdH5u4gDyDZzB",
+                    "name": "Microsoft Outlook account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    },
+                    "conditions": [
+                        {
+                            "id": "kw-filter",
+                            "leftValue": "={{ $json.subject }}",
+                            "rightValue": "面試|Interview|面談|初試|複試|面試通知|面談通知|interview|履歷推薦",
+                            "operator": {
+                                "type": "string",
+                                "operation": "regex"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "3d807913-1a22-45e2-8ac1-0563e96d0159",
+            "name": "IF：主旨過濾",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                -64,
+                -32
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const item = $input.item.json;\nconst subject = item.subject || '';\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\n// 從主旨萃取候選人姓名\nlet candidateName = null;\nconst SKIP = new Set(['通知','安排','確認','面試','邀請','時間','地點','更改','更新','推薦','取消']);\nconst namePatterns = [\n  /】([\\u4e00-\\u9fa5]{2,4})(?:先生|女士|小姐)/,\n  /[-－—–]{1,2}\\s*([\\u4e00-\\u9fa5]{2,4})\\s*$/m,\n  /【[^】]*】\\s*[-－—–]\\s*([\\u4e00-\\u9fa5]{2,4})/,\n];\nfor (const p of namePatterns) {\n  const m = subject.match(p);\n  if (m && m[1] && !SKIP.has(m[1].trim()) && m[1].trim().length >= 2) {\n    candidateName = m[1].trim();\n    break;\n  }\n}\n\n// 萃取日期（主旨 + body 前段）\nlet interviewDate = null;\nconst searchText = subject + ' ' + body.substring(0, 800);\nconst datePatterns = [\n  { re: /(\\d{4})年(\\d{1,2})月(\\d{1,2})日/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{1,2})月(\\d{1,2})日/, fn: m => `${new Date().getFullYear()}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` },\n];\nfor (const { re, fn } of datePatterns) {\n  const m = searchText.match(re);\n  if (m) { interviewDate = fn(m); break; }\n}\n\n// 萃取時間\nlet interviewTime = null;\nconst timeMatch = searchText.match(/(\\d{1,2})[:：](\\d{2})/);\nif (timeMatch) {\n  interviewTime = `${timeMatch[1].padStart(2,'0')}:${timeMatch[2]}`;\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  candidate_name: candidateName,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  body_text: body.substring(0, 2000),\n};"
+            },
+            "id": "002204b0-1719-4a16-bc1f-965e28c071db",
+            "name": "Code：萃取基本資訊",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                160,
+                -144
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.anthropic.com/v1/messages",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "anthropicApi",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "anthropic-version",
+                            "value": "2023-06-01"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ ({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:'你是Sporton國際HR信件解析助手。只輸出JSON，不加任何說明文字。\\n\\nHR人員：李沛晴(Peggy)、陳清彥(Yen)、黃友為(Evan)\\n\\n請萃取以下欄位，輸出純JSON：\\ncandidate_name: 候選人姓名(找不到填null)\\napplied_position: 應徵職位(找不到填未知職位)\\ndepartment: 部門(找不到填未分類)\\ninterview_date: 面試日期YYYY-MM-DD(找不到填null)\\ninterview_time: 面試時間HH:MM(找不到填null)\\nround: 第幾輪面試(數字，預設1)\\nlocation: 面試地點(找不到填null)\\nhr_owner: 負責HR姓名(找不到填null)\\nstatus: 用繁中描述候選人當前狀態，例如：已推薦、面試已安排、複試已安排、取消面試、複試時間確認中、待主管回覆、已錄取\\nintent: 郵件意圖固定填以下其一：recommend(推薦尚未安排面試)|schedule(初試已安排)|update_time(更改面試時間)|cancel(取消面試)|second_schedule(複試已安排)|ask_schedule(詢問是否可安排面試複試)|other\\n\\n主旨：' + $json.email_subject + '\\n內容：' + ($json.body_text||'').substring(0,1500)}]}) }}",
+                "options": {
+                    "batching": {
+                        "batch": {
+                            "batchSize": 2,
+                            "batchInterval": 1300
+                        }
+                    }
+                }
+            },
+            "id": "a8100843-8bca-48ce-955f-5ce8f3f64976",
+            "name": "Claude：AI 解析意圖",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                384,
+                -144
+            ],
+            "credentials": {
+                "anthropicApi": {
+                    "id": "y6zxdCqqBzmwq5bi",
+                    "name": "Anthropic account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\n// null 轉成字串 'null' 讓後續 SQL NULLIF 能處理\nconst ns = v => {\n  if (v === null || v === undefined || String(v).trim() === '' || v === 'null' || v === 'undefined') return 'null';\n  return String(v).trim();\n};\n\nconst intent = aiResult.intent || 'recommend';\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (['recommend', 'ask_schedule', 'other'].includes(intent) ? 'pending_review' : 'in_progress');\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time' ? 'rescheduled' : 'scheduled');\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: base.received_at,\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: ns(aiResult.applied_position) !== 'null' ? aiResult.applied_position : '未知職位',\n  department: ns(aiResult.department) !== 'null' ? aiResult.department : '未分類',\n  interview_date: ns(base.interview_date || aiResult.interview_date),\n  interview_time: ns(base.interview_time || aiResult.interview_time),\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: ns(aiResult.hr_owner),\n  status: candidateStatus,\n  interview_status: interviewStatus,\n  raw_status: aiResult.status || '',\n  intent,\n};"
+            },
+            "id": "3cc39799-305e-4507-ace3-40b854a2cccc",
+            "name": "Code：整合輸出",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                608,
+                -144
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO candidates (name, applied_position, department, source, status)\nSELECT\n  '{{ $json.candidate_name }}',\n  '{{ $json.applied_position }}',\n  '{{ $json.department }}',\n  'Outlook歷史匯入',\n  '{{ $json.status }}'\nWHERE NOT EXISTS (\n  SELECT 1 FROM candidates WHERE name = '{{ $json.candidate_name }}'\n);\n\nUPDATE candidates\nSET status = '{{ $json.status }}'\nWHERE name = '{{ $json.candidate_name }}';\n\nSELECT\n  c.id AS candidate_id,\n  '{{ $json.candidate_name }}' AS candidate_name,\n  '{{ $json.interview_date }}' AS interview_date,\n  '{{ $json.interview_time }}' AS interview_time,\n  {{ $json.round }} AS round,\n  '{{ $json.location }}' AS location,\n  '{{ $json.hr_owner }}' AS hr_owner,\n  '{{ $json.interview_status }}' AS status,\n  '{{ $json.intent }}' AS intent,\n  '{{ $json.email_subject }}' AS email_subject,\n  '{{ $json.email_msg_id }}' AS email_msg_id,\n  '{{ $json.email_web_link }}' AS email_web_link,\n  '{{ $json.sender }}' AS sender,\n  '{{ $json.received_at }}' AS received_at\nFROM candidates c\nWHERE c.name = '{{ $json.candidate_name }}'\nORDER BY c.created_at DESC LIMIT 1;",
+                "options": {}
+            },
+            "id": "8a7c5e37-6ccd-4375-b564-0775f3e3ca0b",
+            "name": "PG：寫入 candidates",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                832,
+                -144
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO interviews (\n  candidate_id, interview_date, interview_time, round,\n  location, hr_owner, status, email_subject, email_msg_id, email_web_link\n)\nSELECT\n  {{ $json.candidate_id }},\n  NULLIF('{{ $json.interview_date }}', 'null')::DATE,\n  NULLIF('{{ $json.interview_time }}', 'null'),\n  {{ $json.round }},\n  NULLIF('{{ $json.location }}', 'null'),\n  NULLIF('{{ $json.hr_owner }}', 'null'),\n  '{{ $json.interview_status }}',\n  '{{ $json.email_subject }}',\n  '{{ $json.email_msg_id }}',\n  NULLIF('{{ $json.email_web_link }}', 'null')\nWHERE '{{ $json.intent }}' NOT IN ('update_time', 'cancel')\n  AND NULLIF('{{ $json.interview_date }}', 'null') IS NOT NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  status = EXCLUDED.status;\n\nUPDATE interviews SET\n  interview_date = NULLIF('{{ $json.interview_date }}', 'null')::DATE,\n  interview_time = NULLIF('{{ $json.interview_time }}', 'null')\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round }}\n  AND '{{ $json.intent }}' = 'update_time'\n  AND NULLIF('{{ $json.interview_date }}', 'null') IS NOT NULL;\n\nUPDATE interviews SET\n  status = 'cancelled'\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round }}\n  AND '{{ $json.intent }}' = 'cancel';\n\nSELECT\n  {{ $json.candidate_id }} AS candidate_id,\n  '{{ $json.candidate_name }}' AS candidate_name,\n  '{{ $json.email_msg_id }}' AS email_msg_id,\n  '{{ $json.interview_status }}' AS status;",
+                "options": {}
+            },
+            "id": "25c9f1c5-5df8-4b20-82e9-d785d78047af",
+            "name": "PG：寫入 interviews",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                1040,
+                -144
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs (\n  email_msg_id, email_subject, sender, received_at, action, candidate_id\n)\nVALUES (\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  {{ $json.candidate_id }}\n)\nON CONFLICT (email_msg_id) DO UPDATE SET \n  action = 'inserted', \n  processed_at = NOW();",
+                "options": {}
+            },
+            "id": "f11583da-8a03-45d1-8d6f-a1a13ade5789",
+            "name": "PG：寫入 email_logs",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                1264,
+                -144
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const item = $input.item.json;\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  action: 'skipped',\n  error_msg: '非面試類信件，歷史匯入略過',\n};"
+            },
+            "id": "3056f2de-6364-429a-b29f-08869b49ac20",
+            "name": "Code：非面試信件略過",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                160,
+                96
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, error_msg)\nVALUES (\n  '{{ $json.email_msg_id }}',\n  '{{ $json.email_subject }}',\n  NULLIF('{{ $json.sender }}', 'null'),\n  NOW(),\n  'skipped',\n  '非面試類信件'\n)\nON CONFLICT (email_msg_id) DO NOTHING;",
+                "options": {}
+            },
+            "id": "4e8d64c2-af21-4f3e-bb69-e5254a36ccde",
+            "name": "PG：記錄略過信件",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                384,
+                96
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "手動觸發：歷史匯入": {
+            "main": [
+                [
+                    {
+                        "node": "PG：初始化 Schema",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：初始化 Schema": {
+            "main": [
+                [
+                    {
+                        "node": "Microsoft Outlook：取得歷史信件",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Microsoft Outlook：取得歷史信件": {
+            "main": [
+                [
+                    {
+                        "node": "IF：主旨過濾",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF：主旨過濾": {
+            "main": [
+                [
+                    {
+                        "node": "Code：萃取基本資訊",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Code：非面試信件略過",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：萃取基本資訊": {
+            "main": [
+                [
+                    {
+                        "node": "Claude：AI 解析意圖",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Claude：AI 解析意圖": {
+            "main": [
+                [
+                    {
+                        "node": "Code：整合輸出",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：整合輸出": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 candidates",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：寫入 candidates": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 interviews",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PG：寫入 interviews": {
+            "main": [
+                [
+                    {
+                        "node": "PG：寫入 email_logs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code：非面試信件略過": {
+            "main": [
+                [
+                    {
+                        "node": "PG：記錄略過信件",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate"
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": {},
+    "versionId": "3c6bbc44-f5ef-4c12-a70a-1cc7a19a9a01",
+    "activeVersionId": null,
+    "versionCounter": 15,
+    "triggerCount": 0,
+    "shared": [
+        {
+            "updatedAt": "2026-05-20T02:17:31.751Z",
+            "createdAt": "2026-05-20T02:17:31.751Z",
+            "role": "workflow:owner",
+            "workflowId": "LjUT0x6qgRMXpQDM",
+            "projectId": "NvjFEev0823h2STF",
+            "project": {
+                "updatedAt": "2026-05-15T07:57:49.399Z",
+                "createdAt": "2026-05-15T07:52:05.149Z",
+                "id": "NvjFEev0823h2STF",
+                "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+                "type": "personal",
+                "icon": null,
+                "description": null,
+                "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+            }
+        }
+    ],
+    "tags": [
+        {
+            "updatedAt": "2026-05-15T10:18:59.545Z",
+            "createdAt": "2026-05-15T10:18:59.545Z",
+            "id": "yP9PPTGVL9VqZ3jM",
+            "name": "HR"
+        }
+    ],
+    "activeVersion": null
+}

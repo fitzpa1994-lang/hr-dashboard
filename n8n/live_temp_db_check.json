@@ -1,0 +1,85 @@
+{
+    "updatedAt": "2026-05-19T06:41:31.095Z",
+    "createdAt": "2026-05-19T06:41:31.095Z",
+    "id": "uyDXjECy9kPFaFUy",
+    "name": "_temp_db_check",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+        {
+            "id": "t1",
+            "name": "手動觸發",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                0,
+                0
+            ],
+            "parameters": {}
+        },
+        {
+            "id": "t2",
+            "name": "DB Check",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                200,
+                0
+            ],
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT (SELECT COUNT(*) FROM candidates) AS candidates, (SELECT COUNT(*) FROM interviews) AS interviews, (SELECT COUNT(*) FROM email_logs WHERE action='inserted') AS email_logs_inserted, (SELECT COUNT(*) FROM email_logs WHERE action='skipped') AS email_logs_skipped;",
+                "additionalFields": {}
+            },
+            "credentials": {
+                "postgres": {
+                    "id": "NGdDfE2F1YFXGcmn",
+                    "name": "Postgres account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "手動觸發": {
+            "main": [
+                [
+                    {
+                        "node": "DB Check",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {},
+    "staticData": null,
+    "meta": null,
+    "pinData": null,
+    "versionId": "652ecac0-095d-4e14-a4a2-f1198154e382",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "shared": [
+        {
+            "updatedAt": "2026-05-19T06:41:31.095Z",
+            "createdAt": "2026-05-19T06:41:31.095Z",
+            "role": "workflow:owner",
+            "workflowId": "uyDXjECy9kPFaFUy",
+            "projectId": "NvjFEev0823h2STF",
+            "project": {
+                "updatedAt": "2026-05-15T07:57:49.399Z",
+                "createdAt": "2026-05-15T07:52:05.149Z",
+                "id": "NvjFEev0823h2STF",
+                "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+                "type": "personal",
+                "icon": null,
+                "description": null,
+                "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+            }
+        }
+    ],
+    "tags": [],
+    "activeVersion": null
+}
