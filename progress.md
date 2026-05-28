@@ -80,6 +80,9 @@
 npm test
 Dashboard static verification passed
 Runtime HTTP verification passed
+Deployment diagnosis syntax check
+Deployment verifier syntax check
+Zeabur env preparation syntax check
 Visual fixture syntax check passed
 Visual UI fixture syntax check passed
 n8n export validation passed: 9 JSON files
@@ -88,21 +91,36 @@ Test Suites: 2 passed, 2 total
 Tests: 10 passed, 10 total
 ```
 
+```text
+npm run diagnose:deployment
+PASS GET / UI version - current SPA shell detected
+PASS /api/health service - status=200
+PASS Zeabur env - all required keys reported true
+SKIP Authenticated flow - set HR_DASHBOARD_PASSWORD to diagnose login and proxy
+```
+
+```text
+npm run verify:deployment
+Health check passed
+No HR_DASHBOARD_PASSWORD provided; skipping authenticated flow.
+```
+
 ## 尚未完成 / 尚未被充分證明
 
-- 2026-05-28 已實測 `https://sp-hr.zeabur.app/api/health`：目前回傳舊版 HTML，不是 Node `/api/health` JSON；線上入口仍未跑到 root `npm start` 的 Node dashboard server。
-- 已用本機獨立 Node 子行程驗證 root runtime HTTP 流程；尚未用 Zeabur 線上環境實測：
-  - `HR_DASHBOARD_PASSWORD`
-  - `SESSION_SECRET`
-  - `N8N_HR_WEBHOOK_URL`
-  - `N8N_HR_TOKEN`
+- 2026-05-28 已將 Zeabur `hr-dashboard` service source 從 GitHub `main` 切到 `node-dashboard-deploy` 分支，並重新部署。
+- 2026-05-28 已實測 `https://sp-hr.zeabur.app/api/health`：目前回傳 Node health JSON，`service=hr-dashboard`，四個必要 env key 都是 `true`。
+- 已用本機獨立 Node 子行程驗證 root runtime HTTP 流程；Zeabur 線上已通過 health/env 檢查，但尚未提供本機 `HR_DASHBOARD_PASSWORD` 執行 authenticated deployment flow：
+  - `/api/login`
+  - `/api/session`
+  - `/api/hr-dashboard`
+  - `/api/logout`
 - 尚未用有效 Zeabur n8n token 執行 `scripts/validate_dashboard_api.py` 驗證 live Dashboard webhook。
 - 尚未用真實 Outlook 新信件完整走完：
   - Outlook trigger
   - n8n parse
   - PostgreSQL 寫入
   - Dashboard refresh 顯示
-- 尚未設定 GitHub remote，因此目前只能保存本機 Git commit，尚不能 push 到 GitHub / 讓 Zeabur 從 GitHub 重新拉取。
+- 已設定 GitHub remote `https://github.com/fitzpa1994-lang/hr-dashboard.git`，並將本機修正版推到 `node-dashboard-deploy` 分支；Zeabur 目前指向此分支。
 
 ## Zeabur 必要環境變數
 
@@ -153,16 +171,21 @@ npm run verify:deployment
 
 ## 下一步建議
 
-1. 在 Zeabur 確認服務是從此專案 root 部署，並使用 root `npm start` 啟動，而不是 Caddy 靜態站或舊版 `dashboard/index.html`。
-2. 執行 `npm run prepare:zeabur-env`，依照輸出在 Zeabur 設定並重新部署必要環境變數。
-3. 重新部署後先跑 `npm run diagnose:deployment` 判斷目前卡在哪一層。
-4. 用有效的 `N8N_HR_TOKEN` 跑：
+1. 在本機設定 `HR_DASHBOARD_PASSWORD` 後跑完整 authenticated deployment flow：
+
+```powershell
+$env:HR_DASHBOARD_URL="https://sp-hr.zeabur.app"
+$env:HR_DASHBOARD_PASSWORD="<dashboard password>"
+npm run diagnose:deployment
+npm run verify:deployment
+```
+
+2. 用有效的 `N8N_HR_TOKEN` 跑：
 
 ```powershell
 $env:N8N_HR_TOKEN="..."
 python scripts\validate_dashboard_api.py
 ```
 
-5. 用一封測試 Outlook 面試信驗證資料流入 PostgreSQL 後，前端手動重新整理可看到新資料。
-6. 提供 GitHub repo URL 後設定 remote，push 目前通過驗證的版本，讓 Zeabur 重新從正確 repo 部署。
-7. 若暫時不走 GitHub，可先執行 `npm run package:deployment` 與 `npm run verify:package`，再用 Zeabur 可接受的手動匯入方式部署 zip。
+3. 用一封測試 Outlook 面試信驗證資料流入 PostgreSQL 後，前端手動重新整理可看到新資料。
+4. authenticated flow 與 n8n/Outlook E2E 都通過後，再決定是否將 `node-dashboard-deploy` 合併或同步到 GitHub `main`。
