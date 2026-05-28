@@ -56,6 +56,7 @@ if (rootPkg) {
   expectEqual(rootPkg.scripts?.start, 'node dashboard/server.js', 'root start script');
   expectEqual(rootPkg.scripts?.['verify:deployment'], 'node scripts/verify_deployment.mjs', 'deployment verification script');
   expectIncludes(rootPkg.scripts?.['package:deployment'], 'scripts/create_deployment_package.ps1', 'deployment package script');
+  expectIncludes(rootPkg.scripts?.['verify:package'], 'scripts/verify_deployment_package.ps1', 'deployment package verification script');
   expectIncludes(rootPkg.engines?.node, '>=20', 'root node engine');
 }
 
@@ -83,6 +84,9 @@ expectIncludes(envExample, 'N8N_PROXY_TIMEOUT_MS=', '.env.example');
 
 if (!fs.existsSync(path.join(root, 'scripts/create_deployment_package.ps1'))) {
   errors.push('scripts/create_deployment_package.ps1: missing deployment package script');
+}
+if (!fs.existsSync(path.join(root, 'scripts/verify_deployment_package.ps1'))) {
+  errors.push('scripts/verify_deployment_package.ps1: missing deployment package verification script');
 }
 
 run('Dashboard static verification', 'node', ['dashboard/scripts/verify-dashboard-static.mjs']);

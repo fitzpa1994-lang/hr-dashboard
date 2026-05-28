@@ -97,6 +97,7 @@ Zeabur 端確認：
 
 ```powershell
 npm run package:deployment
+npm run verify:package
 ```
 
 輸出位置：
@@ -115,6 +116,13 @@ dist/hr-dashboard-zeabur.zip
 - `dist/`
 
 產生 zip 前工作樹必須是乾淨狀態。若有未提交變更，腳本會停止，避免把尚未驗證的版本拿去部署。
+
+`npm run verify:package` 會把 zip 解到暫存資料夾，確認：
+
+- root `package.json`、`zbpack.json`、`dashboard/server.js` 都在正確位置。
+- `.env`、`node_modules`、log/tmp、本機工具設定沒有進包。
+- zip 內沒有 JWT 型態的 token。
+- 解壓後可通過 `scripts/verify_runtime.mjs`。
 
 ## 部署後驗證
 
