@@ -29,7 +29,7 @@
 - 部署操作文件：
   - `doc/zeabur-deployment.md` 記錄 Zeabur 正確 root、start command、必要 env、health check、完整部署驗證與 n8n Dashboard API 驗證流程
   - `npm run package:deployment` 可產生 `dist/hr-dashboard-zeabur.zip`，用於 GitHub remote 尚未設定時的乾淨部署包
-  - `npm run verify:package` 可解壓部署包並驗證 root 檔案位置、排除 secrets/local files、執行 runtime HTTP verification
+  - `npm run verify:package` 可解壓部署包並驗證 root 檔案位置、排除 secrets/local files、執行 server/verifier 語法檢查；runtime HTTP 行為由 root `npm test` 覆蓋
 - 登入與 session：
   - `/api/health`
   - `/api/login`

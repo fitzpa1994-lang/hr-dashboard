@@ -122,7 +122,9 @@ dist/hr-dashboard-zeabur.zip
 - root `package.json`、`zbpack.json`、`dashboard/server.js` 都在正確位置。
 - `.env`、`node_modules`、log/tmp、本機工具設定沒有進包。
 - zip 內沒有 JWT 型態的 token。
-- 解壓後可通過 `scripts/verify_runtime.mjs`。
+- 解壓後可通過 server 與 verifier 語法檢查。
+
+完整 runtime HTTP 行為由本機 root `npm test` 覆蓋；部署 zip 驗證聚焦在「包的內容是否可部署且未混入本機/secrets 檔」。
 
 ## 部署後驗證
 

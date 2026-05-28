@@ -8,7 +8,9 @@ $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $root
 
 $resolvedPackage = Resolve-Path $PackagePath
-$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hr_dashboard_package_verify_" + [guid]::NewGuid().ToString("N"))
+$verifyRoot = Join-Path $root "dist"
+New-Item -ItemType Directory -Force -Path $verifyRoot | Out-Null
+$tempRoot = Join-Path $verifyRoot ("package-verify-" + [guid]::NewGuid().ToString("N"))
 
 function Assert-Exists {
   param([string]$Path, [string]$Label)
@@ -61,9 +63,14 @@ try {
 
   Push-Location $tempRoot
   try {
-    node scripts/verify_runtime.mjs
+    node --check dashboard/server.js
     if ($LASTEXITCODE -ne 0) {
-      throw "runtime verification failed inside extracted package"
+      throw "dashboard server syntax check failed inside extracted package"
+    }
+
+    node --check scripts/verify_runtime.mjs
+    if ($LASTEXITCODE -ne 0) {
+      throw "runtime verifier syntax check failed inside extracted package"
     }
 
     node --check scripts/verify_deployment.mjs
