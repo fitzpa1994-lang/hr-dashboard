@@ -28,6 +28,7 @@
   - `doc/prompt.md` 內舊 n8n API Key 已替換為 `<ROTATED_N8N_API_KEY>`
 - 部署操作文件：
   - `doc/zeabur-deployment.md` 記錄 Zeabur 正確 root、start command、必要 env、health check、完整部署驗證與 n8n Dashboard API 驗證流程
+  - `npm run package:deployment` 可產生 `dist/hr-dashboard-zeabur.zip`，用於 GitHub remote 尚未設定時的乾淨部署包
 - 登入與 session：
   - `/api/health`
   - `/api/login`
@@ -160,3 +161,4 @@ python scripts\validate_dashboard_api.py
 
 4. 用一封測試 Outlook 面試信驗證資料流入 PostgreSQL 後，前端手動重新整理可看到新資料。
 5. 提供 GitHub repo URL 後設定 remote，push 目前通過驗證的版本，讓 Zeabur 重新從正確 repo 部署。
+6. 若暫時不走 GitHub，可先執行 `npm run package:deployment` 產生 zip，再用 Zeabur 可接受的手動匯入方式部署。

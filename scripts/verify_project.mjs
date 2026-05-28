@@ -55,6 +55,7 @@ const envExample = fs.existsSync(path.join(root, '.env.example'))
 if (rootPkg) {
   expectEqual(rootPkg.scripts?.start, 'node dashboard/server.js', 'root start script');
   expectEqual(rootPkg.scripts?.['verify:deployment'], 'node scripts/verify_deployment.mjs', 'deployment verification script');
+  expectIncludes(rootPkg.scripts?.['package:deployment'], 'scripts/create_deployment_package.ps1', 'deployment package script');
   expectIncludes(rootPkg.engines?.node, '>=20', 'root node engine');
 }
 
@@ -69,6 +70,7 @@ if (dashboardPkg) {
 }
 
 expectIncludes(gitignore, 'node_modules/', '.gitignore');
+expectIncludes(gitignore, 'dist/', '.gitignore');
 expectIncludes(gitignore, '.env', '.gitignore');
 expectIncludes(gitignore, '*.log', '.gitignore');
 expectIncludes(gitignore, '*.sqlite', '.gitignore');
@@ -78,6 +80,10 @@ expectIncludes(envExample, 'SESSION_SECRET=', '.env.example');
 expectIncludes(envExample, 'N8N_HR_WEBHOOK_URL=', '.env.example');
 expectIncludes(envExample, 'N8N_HR_TOKEN=', '.env.example');
 expectIncludes(envExample, 'N8N_PROXY_TIMEOUT_MS=', '.env.example');
+
+if (!fs.existsSync(path.join(root, 'scripts/create_deployment_package.ps1'))) {
+  errors.push('scripts/create_deployment_package.ps1: missing deployment package script');
+}
 
 run('Dashboard static verification', 'node', ['dashboard/scripts/verify-dashboard-static.mjs']);
 run('Dashboard Jest tests', 'node', [

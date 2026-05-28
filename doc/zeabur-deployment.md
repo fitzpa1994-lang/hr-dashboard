@@ -91,6 +91,31 @@ Zeabur 端確認：
 4. Start command 使用 `npm start`。
 5. 重新部署最新 commit。
 
+## 無 GitHub remote 時的部署包
+
+若暫時無法設定 GitHub remote，可以先產生乾淨的部署 zip：
+
+```powershell
+npm run package:deployment
+```
+
+輸出位置：
+
+```text
+dist/hr-dashboard-zeabur.zip
+```
+
+這個 zip 使用 `git archive HEAD` 產生，只包含目前 commit 內的檔案，不會包含：
+
+- `.env`
+- `node_modules/`
+- log 檔
+- `.claude/`
+- `tmp_*`
+- `dist/`
+
+產生 zip 前工作樹必須是乾淨狀態。若有未提交變更，腳本會停止，避免把尚未驗證的版本拿去部署。
+
 ## 部署後驗證
 
 先驗證 health endpoint：

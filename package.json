@@ -7,7 +7,8 @@
     "start": "node dashboard/server.js",
     "test": "node scripts/verify_project.mjs",
     "verify": "node scripts/verify_project.mjs",
-    "verify:deployment": "node scripts/verify_deployment.mjs"
+    "verify:deployment": "node scripts/verify_deployment.mjs",
+    "package:deployment": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create_deployment_package.ps1"
   },
   "engines": {
     "node": ">=20"
