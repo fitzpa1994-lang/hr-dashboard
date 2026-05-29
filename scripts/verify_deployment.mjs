@@ -76,10 +76,11 @@ async function main() {
   }
   expect(health.service === 'hr-dashboard', '/api/health service is not hr-dashboard');
   expect(health.env && typeof health.env === 'object', '/api/health missing env map');
-  for (const key of ['HR_DASHBOARD_PASSWORD', 'SESSION_SECRET', 'N8N_HR_WEBHOOK_URL', 'N8N_HR_TOKEN']) {
+  for (const key of ['HR_DASHBOARD_PASSWORD', 'SESSION_SECRET', 'N8N_HR_WEBHOOK_URL', 'N8N_HR_TOKEN', 'N8N_HR_WRITE_WEBHOOK_URL']) {
     expect(typeof health.env[key] === 'boolean', `/api/health env.${key} must be boolean`);
   }
   expect(health.ok === true, `/api/health not ok; env=${JSON.stringify(health.env)}`);
+  expect(health.env.N8N_HR_WRITE_WEBHOOK_URL === true, '/api/health indicates N8N_HR_WRITE_WEBHOOK_URL is missing');
   console.log('Health check passed');
 
   if (!password) {
@@ -131,6 +132,21 @@ async function main() {
   for (const key of ['today', 'schedEvents', 'onboardData', 'resignData', 'candidatesData', 'jobsData', 'monthlyTrend', 'departmentStats', 'stats']) {
     expect(Object.prototype.hasOwnProperty.call(dashboardData, key), `/api/hr-dashboard missing ${key}`);
   }
+
+  const writeProbe = await request('/api/job-requisitions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookie
+    },
+    body: JSON.stringify({})
+  });
+  const writeProbeText = await writeProbe.text();
+  expectNoSecretLeak(writeProbeText, '/api/job-requisitions');
+  expect(
+    writeProbe.status === 400,
+    `/api/job-requisitions probe returned ${writeProbe.status}, expected 400 validation response; body=${writeProbeText.slice(0, 160)}`
+  );
 
   const logout = await request('/api/logout', {
     method: 'POST',

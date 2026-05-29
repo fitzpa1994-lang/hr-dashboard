@@ -106,6 +106,11 @@ async function diagnose() {
     return 1;
   }
   printCheck('Zeabur env', 'PASS', 'all required keys reported true');
+  if (healthJson.env?.N8N_HR_WRITE_WEBHOOK_URL !== true) {
+    printCheck('Job write env', 'FAIL', 'N8N_HR_WRITE_WEBHOOK_URL is missing/unset');
+  } else {
+    printCheck('Job write env', 'PASS', 'write webhook URL reported true');
+  }
 
   if (!password) {
     printCheck('Authenticated flow', 'SKIP', 'set HR_DASHBOARD_PASSWORD to diagnose login and proxy');
@@ -157,6 +162,25 @@ async function diagnose() {
     return 1;
   }
   printCheck('/api/hr-dashboard proxy', 'PASS', 'Dashboard API contract present');
+
+  const writeProbe = await request('/api/job-requisitions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookie
+    },
+    body: JSON.stringify({})
+  });
+  if (!writeProbe.ok) {
+    printCheck('/api/job-requisitions write route', 'FAIL', writeProbe.error);
+    return 1;
+  }
+  if (writeProbe.status === 400) {
+    printCheck('/api/job-requisitions write route', 'PASS', 'route is live and validation responded 400');
+  } else {
+    printCheck('/api/job-requisitions write route', 'FAIL', `expected 400 validation response, got ${writeProbe.status}; body=${preview(writeProbe.text)}`);
+    return 1;
+  }
 
   return 0;
 }
