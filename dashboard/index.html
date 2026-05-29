@@ -553,6 +553,7 @@
 
   window.hrAuthReady = checkSession().then(isAuthed => isAuthed ? true : showLogin());
   window.hrShowLogin = showLogin;
+  window.hrRequestJson = requestJson;
   window.logoutDashboard = async function() {
     await requestJson('/api/logout', { method: 'POST', timeoutMs: 5000 });
     sessionStorage.removeItem(KEY);
@@ -567,6 +568,13 @@ const API_URL = '/api/hr-dashboard';
 let TODAY = new Date().toISOString().split('T')[0];
 let schedEvents = [], onboardData = [], resignData  = [], candidatesData = [], jobsData = [], monthlyTrend = [], departmentStats = [], stats = {};
 let lastGeneratedAt = null;
+window.hrDashboardBridge = {
+  getJobs: () => jobsData,
+  getJobFilter: () => jobFilter,
+  setRenderJobs: fn => { renderJobs = fn; },
+  getRenderJobs: () => renderJobs,
+  reloadData: () => loadData(),
+};
 
 // ============================================================
 // HELPERS
@@ -1089,5 +1097,6 @@ if (location.hash) {
   if (menuIndex !== undefined) showTab(initial, document.querySelectorAll('.menu-item')[menuIndex]);
 }
 </script>
+<script type="module" src="js/jobsEditor.js"></script>
 </body>
 </html>

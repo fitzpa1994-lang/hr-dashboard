@@ -30,6 +30,7 @@ FIELD_NAMES = ("status", "result", "action")
 
 DASHBOARD_API_REQUIRED = (
     "'jobsData'",
+    "'id', j.id",
     "'departmentStats'",
     "'pendingReviewCount'",
     "'resumeLink'",
@@ -39,6 +40,21 @@ DASHBOARD_API_REQUIRED = (
 LEGACY_EXPORTS = {
     "live_HR_Portal.json": "legacy static portal must stay archived; production uses Node.js server",
 }
+
+WORKFLOW3_REQUIRED = (
+    "UPDATE job_requisitions",
+    "SET headcount = GREATEST(j.headcount - 1, 0)",
+    "i.position = j.position_title",
+)
+
+JOB_WRITE_REQUIRED = (
+    "Bearer ' + $env.N8N_HR_TOKEN",
+    "INSERT INTO job_requisitions",
+    "UPDATE job_requisitions",
+    "NOT EXISTS (SELECT 1 FROM existing)",
+    "input.action = 'create' AND j.department = input.department AND j.position_title = input.position_title",
+    "'action', input.action",
+)
 
 
 def iter_strings(value):
@@ -178,6 +194,8 @@ def validate_dashboard_api(path_name, workflow, errors):
 
     if "'jobsData', '[]'::json" in query:
         errors.append(f"{path_name}: jobsData must query job_requisitions, not return []")
+    if "WHERE j.status != 'cancelled'" in query:
+        errors.append(f"{path_name}: jobsData must include closed requisitions for dashboard editing")
 
 
 def validate_legacy_exports(path_name, workflow, errors):
@@ -190,6 +208,35 @@ def validate_legacy_exports(path_name, workflow, errors):
         errors.append(f"{path_name}: {LEGACY_EXPORTS[path_name]} and isArchived must be true")
     if "LEGACY_DO_NOT_DEPLOY" not in str(workflow.get("name", "")):
         errors.append(f"{path_name}: legacy export name must include LEGACY_DO_NOT_DEPLOY")
+
+
+def validate_onboarding_decrement(path_name, workflow, errors):
+    if path_name != "live_Workflow3_到職離職.json":
+        return
+
+    queries = [
+        text
+        for text in sql_strings(workflow)
+        if "INSERT INTO onboardings" in text
+    ]
+    if not queries:
+        errors.append(f"{path_name}: onboarding insert query not found")
+        return
+
+    query = max(queries, key=len)
+    for marker in WORKFLOW3_REQUIRED:
+        if marker not in query:
+            errors.append(f"{path_name}: onboarding decrement query missing {marker}")
+
+
+def validate_job_write_workflow(path_name, workflow, errors):
+    if path_name != "live_Job_Requisition_Write.json":
+        return
+
+    content = list(iter_strings(workflow))
+    for marker in JOB_WRITE_REQUIRED:
+        if not any(marker in text for text in content):
+            errors.append(f"{path_name}: job write workflow missing {marker}")
 
 
 def main():
@@ -215,6 +262,8 @@ def main():
         validate_schema_literals(path.name, workflow, errors)
         validate_dashboard_api(path.name, workflow, errors)
         validate_legacy_exports(path.name, workflow, errors)
+        validate_onboarding_decrement(path.name, workflow, errors)
+        validate_job_write_workflow(path.name, workflow, errors)
 
     if errors:
         print("n8n export validation failed:")

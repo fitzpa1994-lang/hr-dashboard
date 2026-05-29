@@ -90,6 +90,12 @@ if (!fs.existsSync(path.join(root, 'scripts/create_deployment_package.ps1'))) {
 if (!fs.existsSync(path.join(root, 'scripts/verify_deployment_package.ps1'))) {
   errors.push('scripts/verify_deployment_package.ps1: missing deployment package verification script');
 }
+if (!fs.existsSync(path.join(root, 'database/job_requisitions_seed.sql'))) {
+  errors.push('database/job_requisitions_seed.sql: missing requisition seed SQL');
+}
+if (!fs.existsSync(path.join(root, 'database/job_requisitions_duplicate_audit.sql'))) {
+  errors.push('database/job_requisitions_duplicate_audit.sql: missing duplicate audit SQL');
+}
 
 run('Dashboard static verification', 'node', ['dashboard/scripts/verify-dashboard-static.mjs']);
 run('Dashboard Jest tests', 'node', [
@@ -104,7 +110,14 @@ run('Zeabur env preparation syntax check', 'node', ['--check', 'scripts/prepare_
 run('Visual fixture syntax check', 'node', ['--check', 'scripts/serve_visual_fixture.mjs']);
 run('Visual UI fixture syntax check', 'node', ['--check', 'scripts/serve_visual_ui_fixture.mjs']);
 run('n8n export validation', 'python', ['scripts/validate_n8n_exports.py']);
-run('Python verifier compile', 'python', ['-m', 'py_compile', 'scripts/validate_dashboard_api.py', 'scripts/validate_n8n_exports.py']);
+run('Job requisition asset validation', 'python', ['scripts/validate_job_requisition_assets.py']);
+run('Python verifier compile', 'python', [
+  '-m',
+  'py_compile',
+  'scripts/validate_dashboard_api.py',
+  'scripts/validate_n8n_exports.py',
+  'scripts/validate_job_requisition_assets.py'
+]);
 
 if (errors.length) {
   console.error('\nProject verification failed:');

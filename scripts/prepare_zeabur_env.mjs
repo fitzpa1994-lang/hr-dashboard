@@ -9,6 +9,7 @@ const rows = [
   ['HR_DASHBOARD_PASSWORD', '<set-dashboard-login-password>'],
   ['SESSION_SECRET', sessionSecret],
   ['N8N_HR_WEBHOOK_URL', '<set-live-dashboard-api-webhook-url>'],
+  ['N8N_HR_WRITE_WEBHOOK_URL', '<set-live-job-requisition-write-webhook-url>'],
   ['N8N_HR_TOKEN', '<set-rotated-n8n-dashboard-token>'],
   ['N8N_PROXY_TIMEOUT_MS', '10000']
 ];

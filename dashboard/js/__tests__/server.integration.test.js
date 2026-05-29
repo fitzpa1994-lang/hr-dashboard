@@ -18,12 +18,24 @@ async function startMockN8n() {
   const requests = [];
   const state = { delayMs: 0 };
   const server = http.createServer(async (req, res) => {
+    let body = '';
+    for await (const chunk of req) body += chunk;
     requests.push({
       url: req.url,
-      authorization: req.headers.authorization
+      method: req.method,
+      authorization: req.headers.authorization,
+      body: body ? JSON.parse(body) : null
     });
     if (state.delayMs > 0) {
       await new Promise(resolve => setTimeout(resolve, state.delayMs));
+    }
+    if (req.url.includes('/webhook/hr-dashboard-write')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({
+        ok: true,
+        action: requests.at(-1).body?.action || null,
+        requisition: requests.at(-1).body?.requisition || null
+      }));
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -52,6 +64,7 @@ describe('dashboard server auth flow', () => {
     process.env.HR_DASHBOARD_PASSWORD = 'correct-password';
     process.env.SESSION_SECRET = 'test-session-secret';
     process.env.N8N_HR_WEBHOOK_URL = `http://127.0.0.1:${mock.port}/webhook/hr-dashboard`;
+    process.env.N8N_HR_WRITE_WEBHOOK_URL = `http://127.0.0.1:${mock.port}/webhook/hr-dashboard-write`;
     process.env.N8N_HR_TOKEN = 'test-token';
 
     const imported = await import(`../../server.js?test=${Date.now()}-${Math.random()}`);
@@ -62,6 +75,7 @@ describe('dashboard server auth flow', () => {
   afterEach(async () => {
     delete process.env.N8N_PROXY_TIMEOUT_MS;
     delete process.env.SESSION_TTL_MS;
+    delete process.env.N8N_HR_WRITE_WEBHOOK_URL;
     await close(server);
     await close(mock?.server);
   });
@@ -82,6 +96,7 @@ describe('dashboard server auth flow', () => {
       HR_DASHBOARD_PASSWORD: true,
       SESSION_SECRET: true,
       N8N_HR_WEBHOOK_URL: true,
+      N8N_HR_WRITE_WEBHOOK_URL: true,
       N8N_HR_TOKEN: true
     });
   });
@@ -138,6 +153,104 @@ describe('dashboard server auth flow', () => {
     expect(dashboard.status).toBe(401);
   });
 
+  test('creates and updates job requisitions through the write webhook', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+
+    const created = await fetch(`${baseUrl}/api/job-requisitions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookie
+      },
+      body: JSON.stringify({
+        department: '五部',
+        positionTitle: 'RF SAR 測試工程師',
+        headcount: 999,
+        status: 'open',
+        urgency: 4,
+        notes: '數名'
+      })
+    });
+    expect(created.status).toBe(200);
+    const createdBody = await created.json();
+    expect(createdBody.ok).toBe(true);
+    expect(createdBody.action).toBe('create');
+    expect(createdBody.requisition.positionTitle).toBe('RF SAR 測試工程師');
+
+    const updated = await fetch(`${baseUrl}/api/job-requisitions/7`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookie
+      },
+      body: JSON.stringify({
+        department: '五部',
+        positionTitle: 'RF SAR 測試工程師',
+        headcount: 12,
+        status: 'open',
+        urgency: 4,
+        notes: '調整缺額'
+      })
+    });
+    expect(updated.status).toBe(200);
+    const updatedBody = await updated.json();
+    expect(updatedBody.ok).toBe(true);
+    expect(updatedBody.action).toBe('update');
+    expect(updatedBody.requisition.id).toBe(7);
+    expect(updatedBody.requisition.headcount).toBe(12);
+
+    const writeRequests = mock.requests.filter(request => request.url.includes('/webhook/hr-dashboard-write'));
+    expect(writeRequests).toHaveLength(2);
+    expect(writeRequests[0].method).toBe('POST');
+    expect(writeRequests[0].authorization).toBe('Bearer test-token');
+    expect(writeRequests[0].url).toContain('token=test-token');
+    expect(writeRequests[0].body).toEqual({
+      action: 'create',
+      requisition: {
+        department: '五部',
+        positionTitle: 'RF SAR 測試工程師',
+        headcount: 999,
+        status: 'open',
+        urgency: 4,
+        notes: '數名',
+        openDate: null,
+        targetDate: null
+      }
+    });
+    expect(writeRequests[1].body.requisition.id).toBe(7);
+  });
+
+  test('validates job requisition payloads before proxying upstream', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+
+    const bad = await fetch(`${baseUrl}/api/job-requisitions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookie
+      },
+      body: JSON.stringify({
+        department: '',
+        positionTitle: '',
+        headcount: -1,
+        urgency: 9,
+        status: 'invalid'
+      })
+    });
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: 'department is required' });
+  });
+
   test('returns 504 when dashboard upstream times out', async () => {
     process.env.N8N_PROXY_TIMEOUT_MS = '50';
     mock.state.delayMs = 200;
@@ -165,6 +278,7 @@ test('expires sessions after the configured TTL', async () => {
     process.env.HR_DASHBOARD_PASSWORD = 'ttl-password';
     process.env.SESSION_SECRET = 'ttl-session-secret';
     process.env.N8N_HR_WEBHOOK_URL = `http://127.0.0.1:${mock.port}/webhook/hr-dashboard`;
+    process.env.N8N_HR_WRITE_WEBHOOK_URL = `http://127.0.0.1:${mock.port}/webhook/hr-dashboard-write`;
     process.env.N8N_HR_TOKEN = 'ttl-token';
     process.env.SESSION_TTL_MS = '1200';
 

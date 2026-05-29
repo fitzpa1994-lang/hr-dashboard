@@ -1,75 +1,53 @@
-# Sporton HR 招募戰略面板進度
+# Sporton HR ???啁?Ｘ?脣漲
 
-更新日期：2026-05-28
+?湔?交?嚗?026-05-28
 
-## 目前架構
+## ?桀??嗆?
 
-| 層級 | 技術 | 狀態 |
+| 撅斤? | ?銵?| ???|
 | --- | --- | --- |
-| 資料來源 | Outlook 郵件 | 由 n8n workflow 讀取面試、到職、離職郵件 |
-| 自動化 | n8n on Zeabur | workflow export 已整理並通過本機 JSON/schema 驗證 |
-| 資料庫 | PostgreSQL on Zeabur | schema 使用 constrained status/action 值 |
-| 後端 | Node.js HTTP server | 提供密碼登入、8 小時 session、登出、Dashboard API proxy |
-| 前端 | 純 HTML/CSS/JS SPA | 五個 Tab、Today Bar、Drawer、搜尋、排序、圖表空狀態已實作 |
-| 部署 | Zeabur | root `package.json` + `zbpack.json` 指向 `npm start`，避免被當靜態站部署 |
-| 環境設定 | `.env.example` | 記錄 Zeabur 必要 env key，不包含真實密碼/token |
-| 版本保存 | Git + `.gitignore` | 已初始化本機 Git；排除 `node_modules`、`.env`、logs、local DB/cache、本機工具設定與暫存檔 |
+| 鞈?靘? | Outlook ?萎辣 | ??n8n workflow 霈?閰艾?瑯?琿隞?|
+| ?芸???| n8n on Zeabur | workflow export 撌脫?蒂???祆? JSON/schema 撽? |
+| 鞈?摨?| PostgreSQL on Zeabur | schema 雿輻 constrained status/action ??|
+| 敺垢 | Node.js HTTP server | ??撖Ⅳ?餃?? 撠? session??箝ashboard API proxy |
+| ?垢 | 蝝?HTML/CSS/JS SPA | 鈭?Tab?oday Bar?rawer??撠?摨?銵函征??歇撖虫? |
+| ?函蔡 | Zeabur | root `package.json` + `zbpack.json` ?? `npm start`嚗?◤?園????函蔡 |
+| ?啣?閮剖? | `.env.example` | 閮? Zeabur 敹? env key嚗???祕撖Ⅳ/token |
+| ?靽? | Git + `.gitignore` | 撌脣?憪??祆? Git嚗???`node_modules`?.env`?ogs?ocal DB/cache?璈極?瑁身摰??怠?瑼?|
 
-## 已完成
-
-- 前端版型切換：
-  - 已將使用者新做的 `hr (5).html` 接上現有 Node auth/session/API 流程
-  - `dashboard/index.html` 現在以 `hr (5).html` 為 UI 基底，仍使用 `/api/session`、`/api/login`、`/api/logout`、`/api/hr-dashboard`
-  - 已移除 `no_response` 假資料殘留，候選人篩選改對齊目前 schema
-  - 已補回重新整理、登出、最後更新、全域搜尋、候選人搜尋/計數、職缺急迫度欄
-- Zeabur root 啟動設定：
-  - `package.json`：`npm start` 執行 `node dashboard/server.js`
-  - `zbpack.json`：`start_command` 為 `npm start`
-  - `.env.example`：列出 `HR_DASHBOARD_PASSWORD`、`SESSION_SECRET`、`N8N_HR_WEBHOOK_URL`、`N8N_HR_TOKEN`
-  - `.gitignore`：避免提交 secrets、依賴、log、local DB 檔
-- 版本保存：
-  - 已執行 `git init`
-  - `.gitignore` 已加入 `.claude/` 與 `tmp_*`
-  - `doc/prompt.md` 內舊 n8n API Key 已替換為 `<ROTATED_N8N_API_KEY>`
-- 部署操作文件：
-  - `doc/zeabur-deployment.md` 記錄 Zeabur 正確 root、start command、必要 env、health check、完整部署驗證與 n8n Dashboard API 驗證流程
-  - `npm run diagnose:deployment` 可判斷線上目前是舊靜態站、env 缺漏、登入失敗，或 n8n proxy / API contract 失敗
-  - `npm run prepare:zeabur-env` 可產生 Zeabur env 清單與新的 `SESSION_SECRET`
-  - `npm run package:deployment` 可產生 `dist/hr-dashboard-zeabur.zip`，用於 GitHub remote 尚未設定時的乾淨部署包
-  - `npm run verify:package` 可解壓部署包並驗證 root 檔案位置、排除 secrets/local files、執行 server/verifier 語法檢查；runtime HTTP 行為由 root `npm test` 覆蓋
-- 登入與 session：
-  - `/api/health`
+## 撌脣???
+- ?垢????嚗?  - 撌脣?雿輻??? `hr (5).html` ?乩??暹? Node auth/session/API 瘚?
+  - `dashboard/index.html` ?曉隞?`hr (5).html` ??UI ?箏?嚗?雿輻 `/api/session`?/api/login`?/api/logout`?/api/hr-dashboard`
+  - 撌脩宏??`no_response` ???????鈭箇祟?豢撠??桀? schema
+  - 撌脰????唳??箝?敺?啜??撠鈭箸?撠?閮?蝻箸亥翰摨行?
+- Zeabur root ??閮剖?嚗?  - `package.json`嚗npm start` ?瑁? `node dashboard/server.js`
+  - `zbpack.json`嚗start_command` ??`npm start`
+  - `.env.example`嚗???`HR_DASHBOARD_PASSWORD`?SESSION_SECRET`?N8N_HR_WEBHOOK_URL`?N8N_HR_TOKEN`
+  - `.gitignore`嚗??鈭?secrets??鞈氬og?ocal DB 瑼?- ?靽?嚗?  - 撌脣銵?`git init`
+  - `.gitignore` 撌脣???`.claude/` ??`tmp_*`
+  - `doc/prompt.md` ?扯? n8n API Key 撌脫? `<ROTATED_N8N_API_KEY>`
+- ?函蔡???辣嚗?  - `doc/zeabur-deployment.md` 閮? Zeabur 甇?Ⅱ root?tart command??閬?env?ealth check???湧蝵脤?霅? n8n Dashboard API 撽?瘚?
+  - `npm run diagnose:deployment` ?臬?瑞?銝??????nv 蝻箸???亙仃????n8n proxy / API contract 憭望?
+  - `npm run prepare:zeabur-env` ?舐??Zeabur env 皜???`SESSION_SECRET`
+  - `npm run package:deployment` ?舐??`dist/hr-dashboard-zeabur.zip`嚗??GitHub remote 撠閮剖???銋暹楊?函蔡??  - `npm run verify:package` ?航圾憯蝵脣?銝阡?霅?root 瑼?雿蔭????secrets/local files?銵?server/verifier 隤?瑼Ｘ嚗untime HTTP 銵??root `npm test` 閬?
+- ?餃??session嚗?  - `/api/health`
   - `/api/login`
   - `/api/session`
   - `/api/logout`
   - `/api/hr-dashboard`
-  - `/api/health` 可免登入檢查 Node server 是否啟動、必要 env 是否存在；只回傳 boolean，不洩漏密碼/token
-  - cookie 使用 `HttpOnly`、`SameSite=Lax`、預設 8 小時有效
-  - 已有 integration test 覆蓋 `SESSION_TTL_MS` 到期後 `/api/session` 會回 401
-  - 前端遇到 401 / session 過期會回到登入遮罩，重新登入後自動重載資料
-  - `/api/hr-dashboard` 代理 n8n 時有 server-side timeout，預設 10 秒；逾時回 504，避免 Zeabur 請求卡住
-- 前端 UX：
-  - 移除「示意版」
-  - Header 顯示日期、最後更新時間、重新整理、登出、全域搜尋
-  - 登入請求有 timeout 與錯誤提示
-  - Today Bar 顯示今日面試、今日到職、本週離職、待回應履歷人名 chip
-  - 月曆日期可聯動篩選排程
-  - 排程卡片可開 Drawer、原始信件，或顯示明確 fallback
-  - 人選列表支援搜尋、排序、狀態篩選、備註截斷
-  - 已移除不符合 DB schema 的 `no_response` 狀態殘留
-  - 到職追蹤拆成待到職 / 已到職
-  - 圖表無資料時顯示空狀態
-  - Drawer 對缺少 Outlook / 履歷連結有明確說明
-  - Tab 切換會同步 URL hash
-  - 職缺表已呈現 `urgency`
-- n8n / DB 一致性：
-  - workflow 不再靠 runtime `DROP CONSTRAINT` 放寬資料庫
-  - `email_logs.action` 改用 schema 允許值
-  - candidate / interview / onboarding / resignation 寫入狀態已對齊 PostgreSQL schema
-  - Dashboard API export 包含 `jobsData`、`departmentStats`、`pendingReviewCount`、`resumeLink`、`avgDaysToOffer`
-  - `live_HR_Portal.json` 已標記為 legacy / do-not-deploy，維持 inactive + archived；正式入口是 Node server + `live_Dashboard_API.json`
-- 驗證：
-  - `dashboard/scripts/verify-dashboard-static.mjs`
+  - `/api/health` ?臬??餃瑼Ｘ Node server ?臬????閬?env ?臬摮嚗? boolean嚗?瘣拇?撖Ⅳ/token
+  - cookie 雿輻 `HttpOnly`?SameSite=Lax`??閮?8 撠???
+  - 撌脫? integration test 閬? `SESSION_TTL_MS` ?唳?敺?`/api/session` ?? 401
+  - ?垢? 401 / session ?????啁?仿蝵抬???餃敺??頛???  - `/api/hr-dashboard` 隞?? n8n ?? server-side timeout嚗?閮?10 蝘??暹???504嚗??Zeabur 隢??∩?
+- ?垢 UX嚗?  - 蝘駁?內????  - Header 憿舐內?交???敺?唳????唳??箝??撠?  - ?餃隢???timeout ?隤斗?蝷?  - Today Bar 憿舐內隞?Ｚ岫???亙?瑯?梢?瑯???撅交風鈭箏? chip
+  - ???交??航?祟?豢?蝔?  - ???∠??舫? Drawer??憪縑隞塚??＊蝷箸?蝣?fallback
+  - 鈭粹?”?舀????摨??祟?詻?閮餅??  - 撌脩宏?支?蝚血? DB schema ??`no_response` ?????  - ?啗餈質馱??敺??/ 撌脣??  - ?”?∟???憿舐內蝛箇???  - Drawer 撠撩撠?Outlook / 撅交風?????蝣箄牧??  - Tab ????甇?URL hash
+  - ?瑞撩銵典歇? `urgency`
+- n8n / DB 銝?湔改?
+  - workflow 銝???runtime `DROP CONSTRAINT` ?曉祝鞈?摨?  - `email_logs.action` ?寧 schema ?迂??  - candidate / interview / onboarding / resignation 撖怠??歇撠? PostgreSQL schema
+  - Dashboard API export ? `jobsData`?departmentStats`?pendingReviewCount`?resumeLink`?avgDaysToOffer`
+  - `live_HR_Portal.json` 撌脫?閮 legacy / do-not-deploy嚗雁??inactive + archived嚗迤撘?? Node server + `live_Dashboard_API.json`
+- 撽?嚗?  - `dashboard/scripts/verify-dashboard-static.mjs`
   - `dashboard/js/__tests__/server.integration.test.js`
   - `dashboard/js/__tests__/dataUtils.test.js`
   - `scripts/verify_runtime.mjs`
@@ -79,8 +57,7 @@
   - `scripts/validate_n8n_exports.py`
   - `scripts/verify_project.mjs`
 
-## 最近驗證結果
-
+## ?餈?霅???
 ```text
 npm test
 Dashboard static verification passed
@@ -110,74 +87,53 @@ Health check passed
 No HR_DASHBOARD_PASSWORD provided; skipping authenticated flow.
 ```
 
-## 尚未完成 / 尚未被充分證明
-
-- 2026-05-28 已將 Zeabur `hr-dashboard` service source 從 GitHub `main` 切到 `node-dashboard-deploy` 分支，並重新部署。
-- 2026-05-28 已實測 `https://sp-hr.zeabur.app/api/health`：目前回傳 Node health JSON，`service=hr-dashboard`，四個必要 env key 都是 `true`。
-- 已用本機獨立 Node 子行程驗證 root runtime HTTP 流程；Zeabur 線上已通過 health/env 檢查，但尚未提供本機 `HR_DASHBOARD_PASSWORD` 執行 authenticated deployment flow：
-  - `/api/login`
+## 撠摰? / 撠鋡怠?????
+- 2026-05-28 撌脣? Zeabur `hr-dashboard` service source 敺?GitHub `main` ? `node-dashboard-deploy` ?嚗蒂??函蔡??- 2026-05-28 撌脣祕皜?`https://sp-hr.zeabur.app/api/health`嚗????Node health JSON嚗service=hr-dashboard`嚗???閬?env key ?賣 `true`??- 撌脩?祆??函? Node 摮?蝔?霅?root runtime HTTP 瘚?嚗eabur 蝺?撌脤? health/env 瑼Ｘ嚗?撠???祆? `HR_DASHBOARD_PASSWORD` ?瑁? authenticated deployment flow嚗?  - `/api/login`
   - `/api/session`
   - `/api/hr-dashboard`
   - `/api/logout`
-- 尚未用有效 Zeabur n8n token 執行 `scripts/validate_dashboard_api.py` 驗證 live Dashboard webhook。
-- 尚未用真實 Outlook 新信件完整走完：
+- 撠?冽???Zeabur n8n token ?瑁? `scripts/validate_dashboard_api.py` 撽? live Dashboard webhook??- 撠?函?撖?Outlook ?唬縑隞嗅??渲粥摰?
   - Outlook trigger
   - n8n parse
-  - PostgreSQL 寫入
-  - Dashboard refresh 顯示
-- 已設定 GitHub remote `https://github.com/fitzpa1994-lang/hr-dashboard.git`，並將本機修正版推到 `node-dashboard-deploy` 分支；Zeabur 目前指向此分支。
+  - PostgreSQL 撖怠
+  - Dashboard refresh 憿舐內
+- 撌脰身摰?GitHub remote `https://github.com/fitzpa1994-lang/hr-dashboard.git`嚗蒂撠璈耨甇???典 `node-dashboard-deploy` ?嚗eabur ?桀???甇文??胯?
+## Zeabur 敹??啣?霈
 
-## Zeabur 必要環境變數
-
-| Key | 用途 |
+| Key | ?券?|
 | --- | --- |
-| `HR_DASHBOARD_PASSWORD` | Dashboard 登入密碼 |
-| `HR_DASHBOARD_URL` | 部署驗證腳本使用的 Dashboard URL，例如 `https://sp-hr.zeabur.app` |
-| `SESSION_SECRET` | 簽署 session cookie，請使用長隨機字串 |
+| `HR_DASHBOARD_PASSWORD` | Dashboard ?餃撖Ⅳ |
+| `HR_DASHBOARD_URL` | ?函蔡撽??單雿輻??Dashboard URL嚗?憒?`https://sp-hr.zeabur.app` |
+| `SESSION_SECRET` | 蝪賜蔡 session cookie嚗?雿輻?琿璈?銝?|
 | `N8N_HR_WEBHOOK_URL` | n8n `live_Dashboard_API.json` webhook URL |
 | `N8N_HR_TOKEN` | n8n Dashboard API token |
-| `N8N_PROXY_TIMEOUT_MS` | 可選；Node proxy 等 n8n 的 timeout，預設 10000 |
+| `N8N_PROXY_TIMEOUT_MS` | ?舫嚗ode proxy 蝑?n8n ??timeout嚗?閮?10000 |
 
-線上部署後可先檢查：
+蝺??函蔡敺?炎?伐?
 
 ```powershell
 Invoke-WebRequest -UseBasicParsing https://sp-hr.zeabur.app/api/health
 ```
 
-預期 `ok: true`，且四個必要 env key 都是 `true`。此端點不會回傳實際密碼或 token。
-
-完整線上部署檢查：
-
+?? `ok: true`嚗???閬?env key ?賣 `true`?迨蝡舫?銝??撖阡?撖Ⅳ??token??
+摰蝺??函蔡瑼Ｘ嚗?
 ```powershell
 $env:HR_DASHBOARD_URL="https://sp-hr.zeabur.app"
 $env:HR_DASHBOARD_PASSWORD="<dashboard password>"
 npm run verify:deployment
 ```
 
-若只設定 `HR_DASHBOARD_URL`，腳本會只檢查 `/api/health`；同時設定 `HR_DASHBOARD_PASSWORD` 時，會再驗證登入、session、Dashboard proxy 與登出。
+?亙閮剖? `HR_DASHBOARD_URL`嚗?祆??芣炎??`/api/health`嚗??身摰?`HR_DASHBOARD_PASSWORD` ????撽??餃?ession?ashboard proxy ??箝?
+## n8n Export 瘜冽?鈭?
 
-## n8n Export 注意事項
-
-- 正式使用：
-  - `live_Workflow1_面試解析.json`
-  - `live_Workflow3_到職離職.json`
+- 甇??雿輻嚗?  - `live_Workflow1_?Ｚ岫閫??.json`
+  - `live_Workflow3_?啗?Ｚ.json`
   - `live_Dashboard_API.json`
-- `live_HR_Portal.json` 是舊版靜態 portal，內含過期 UI 邏輯，僅保留參考，禁止作為正式 Dashboard 入口。
-- `scripts/validate_n8n_exports.py` 會檢查 legacy portal 必須保持 `active: false`、`isArchived: true`、名稱包含 `LEGACY_DO_NOT_DEPLOY`。
-
-## Browser 驗證紀錄
-
-- 使用本機 UI fixture 驗證桌面主畫面可載入 mock Dashboard API 資料。
-- 已確認 Today Bar 顯示今日面試、今日到職、待回應履歷。
-- Browser 驗證發現「本週離職（至週日）」原本漏掉週日資料；已修正週末計算邏輯為週日結束，並避免 `toISOString()` 時區偏移。
-- 已確認桌面 Drawer 可由排程卡片開啟，且缺少 Outlook / 履歷連結時有說明文字。
-- 已用 390px 手機寬度檢查主要 Header / Today Bar / 搜尋 / 操作按鈕可見，頁面沒有因主要內容造成整體橫向溢出。
-- 截圖 API 在目前 Browser 外掛環境逾時，這次以 DOM snapshot 與 layout bounding box 作為視覺驗證證據。
-
-## 下一步建議
-
-1. 在本機設定 `HR_DASHBOARD_PASSWORD` 後跑完整 authenticated deployment flow：
-
+- `live_HR_Portal.json` ?航?????portal嚗?恍???UI ?摩嚗?靽???蝳迫雿甇?? Dashboard ?亙??- `scripts/validate_n8n_exports.py` ?炎??legacy portal 敹?靽? `active: false`?isArchived: true`??蝔勗???`LEGACY_DO_NOT_DEPLOY`??
+## Browser 撽?蝝??
+- 雿輻?祆? UI fixture 撽?獢銝餌?Ｗ頛 mock Dashboard API 鞈???- 撌脩Ⅱ隤?Today Bar 憿舐內隞?Ｚ岫???亙?瑯???撅交風??- Browser 撽??潛??梢?瘀??喲望嚗??祆??望鞈?嚗歇靽格迤?望閮??摩?粹望蝯?嚗蒂?踹? `toISOString()` ???宏??- 撌脩Ⅱ隤???Drawer ?舐???∠???嚗?蝻箏? Outlook / 撅交風?????隤芣?????- 撌脩 390px ??撖砍漲瑼Ｘ銝餉? Header / Today Bar / ?? / ?????航?嚗??Ｘ???銝餉??批捆???湧?璈怠?皞Ｗ??- ?芸? API ?函??Browser 憭??啣??暹?嚗活隞?DOM snapshot ??layout bounding box 雿閬死撽?霅???
+## 銝?甇亙遣霅?
+1. ?冽璈身摰?`HR_DASHBOARD_PASSWORD` 敺?摰 authenticated deployment flow嚗?
 ```powershell
 $env:HR_DASHBOARD_URL="https://sp-hr.zeabur.app"
 $env:HR_DASHBOARD_PASSWORD="<dashboard password>"
@@ -185,12 +141,25 @@ npm run diagnose:deployment
 npm run verify:deployment
 ```
 
-2. 用有效的 `N8N_HR_TOKEN` 跑：
+2. ?冽??? `N8N_HR_TOKEN` 頝?
 
 ```powershell
 $env:N8N_HR_TOKEN="..."
 python scripts\validate_dashboard_api.py
 ```
 
-3. 用一封測試 Outlook 面試信驗證資料流入 PostgreSQL 後，前端手動重新整理可看到新資料。
-4. authenticated flow 與 n8n/Outlook E2E 都通過後，再決定是否將 `node-dashboard-deploy` 合併或同步到 GitHub `main`。
+3. ?其?撠葫閰?Outlook ?Ｚ岫靽⊿?霅?????PostgreSQL 敺??垢????渡??舐??唳鞈???4. authenticated flow ??n8n/Outlook E2E ?賡?敺??捱摰?血? `node-dashboard-deploy` ?蔥??甇亙 GitHub `main`??## 2026-05-29 Job Requisition Update
+- Dashboard jobs editing path is now wired end-to-end in local code:
+  - POST /api/job-requisitions
+  - PATCH /api/job-requisitions/:id
+  - n8n/live_Job_Requisition_Write.json
+- n8n/live_Dashboard_API.json now includes requisition id in jobsData.
+- jobsData no longer excludes status = 'cancelled', so closed requisitions remain visible for dashboard editing.
+- scripts/validate_n8n_exports.py now fails if the dashboard export drops requisition ids or reintroduces the cancelled filter.
+- Local verification status:
+  - python scripts\\validate_n8n_exports.py passed
+  - npm test passed (16 passed)
+- Remaining work:
+  - deploy updated dashboard server + n8n exports to Zeabur
+  - import database/job_requisitions_seed.sql
+  - verify live jobs tab create/update flow against PostgreSQL

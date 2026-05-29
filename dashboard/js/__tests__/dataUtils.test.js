@@ -5,6 +5,9 @@ import {
   getTodayInterviews,
   getWeekResigns,
   getCalendarDots,
+  normalizeJobRequisition,
+  filterJobRequisitions,
+  serializeJobRequisitionPayload,
 } from '../dataUtils.js';
 
 const TODAY = '2026-05-26';
@@ -24,6 +27,84 @@ describe('getTodayOnboard', () => {
 
   test('無資料時回傳空陣列', () => {
     expect(getTodayOnboard([], TODAY)).toEqual([]);
+  });
+});
+
+describe('normalizeJobRequisition', () => {
+  test('maps 999 open slots to 數名 and keeps open status', () => {
+    const job = normalizeJobRequisition({
+      pos: 'RF SAR 測試工程師',
+      dept: '五部',
+      headcount: 999,
+      cands: 3,
+      hired: 1,
+      status: 'open',
+      note: '數名',
+    });
+
+    expect(job.openSlots).toBe(999);
+    expect(job.displayOpenSlots).toBe('數名');
+    expect(job.displayStatus).toBe('open');
+    expect(job.candidateCount).toBe(3);
+    expect(job.hiredCount).toBe(1);
+  });
+
+  test('treats zero slots as closed', () => {
+    const job = normalizeJobRequisition({
+      pos: 'PM',
+      dept: '新華',
+      headcount: 0,
+      status: 'cancelled',
+    });
+
+    expect(job.displayStatus).toBe('closed');
+    expect(job.isClosed).toBe(true);
+  });
+});
+
+describe('filterJobRequisitions', () => {
+  test('filters by derived display status', () => {
+    const jobs = [
+      { pos: 'A', dept: 'D1', headcount: 2, status: 'open' },
+      { pos: 'B', dept: 'D1', headcount: 0, status: 'cancelled' },
+      { pos: 'C', dept: 'D1', headcount: 1, status: 'on_hold' },
+      { pos: 'D', dept: 'D1', headcount: 0, status: 'filled' },
+    ];
+
+    expect(filterJobRequisitions(jobs, 'all')).toHaveLength(4);
+    expect(filterJobRequisitions(jobs, 'open').map(j => j.pos)).toEqual(['A']);
+    expect(filterJobRequisitions(jobs, 'closed').map(j => j.pos)).toEqual(['B']);
+    expect(filterJobRequisitions(jobs, 'cancelled').map(j => j.pos)).toEqual(['B']);
+    expect(filterJobRequisitions(jobs, 'on_hold').map(j => j.pos)).toEqual(['C']);
+    expect(filterJobRequisitions(jobs, 'filled').map(j => j.pos)).toEqual(['D']);
+  });
+});
+
+describe('serializeJobRequisitionPayload', () => {
+  test('maps dashboard job data into write API payload', () => {
+    const payload = serializeJobRequisitionPayload({
+      id: 12,
+      pos: 'MIS工程師',
+      dept: '汐止/行政',
+      headcount: 1,
+      status: 'open',
+      urgency: 4,
+      note: 'HyperV+VMware',
+      open: '2026-05-29',
+      target: null,
+    }, { includeId: true });
+
+    expect(payload).toEqual({
+      id: 12,
+      department: '汐止/行政',
+      positionTitle: 'MIS工程師',
+      headcount: 1,
+      status: 'open',
+      urgency: 4,
+      notes: 'HyperV+VMware',
+      openDate: '2026-05-29',
+      targetDate: null,
+    });
   });
 });
 

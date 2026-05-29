@@ -17,6 +17,16 @@ Browser
   -> PostgreSQL
 ```
 
+Planned job requisition write path:
+
+```text
+Browser
+  -> Zeabur Node.js dashboard server
+  -> /api/job-requisitions (POST/PATCH)
+  -> n8n live_Job_Requisition_Write.json webhook
+  -> PostgreSQL
+```
+
 Do not deploy `live_HR_Portal.json` as the production dashboard. It is a legacy static n8n portal retained for reference only and must remain archived/inactive.
 
 ## Active Exports
@@ -26,6 +36,7 @@ Do not deploy `live_HR_Portal.json` as the production dashboard. It is a legacy 
 | `live_Workflow1_面試解析.json` | HR Workflow 1：面試信件解析 | Parses Outlook interview/recommendation email and writes candidates/interviews/email logs. |
 | `live_Workflow3_到職離職.json` | HR Workflow：到職離職信件自動匯入 | Parses onboarding and resignation email and writes onboardings/resignations/email logs. |
 | `live_Dashboard_API.json` | HR Dashboard API | Returns dashboard JSON for the Node.js proxy. |
+| `live_Job_Requisition_Write.json` | HR Job Requisition Write | Receives authenticated create/update requests for `job_requisitions` from the Node dashboard service. |
 
 ## Inactive / Utility Exports
 

@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dashboardDir = path.resolve(__dirname, '..');
 const indexHtml = fs.readFileSync(path.join(dashboardDir, 'index.html'), 'utf8');
 const serverJs = fs.readFileSync(path.join(dashboardDir, 'server.js'), 'utf8');
+const jobsEditorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'jobsEditor.js'), 'utf8');
 
 const errors = [];
 
@@ -46,6 +47,12 @@ for (const script of inlineScripts(indexHtml)) {
   } catch (error) {
     errors.push(`inline script parse failed: ${error.message}`);
   }
+
+try {
+  parse(jobsEditorJs, { sourceType: 'module' });
+} catch (error) {
+  errors.push(`jobs editor module parse failed: ${error.message}`);
+}
 }
 
 expectNotIncludes(indexHtml, '示意版', 'demo label');
@@ -64,6 +71,9 @@ expectIncludes(indexHtml, 'fetchWithTimeout', 'network timeout handling');
 expectIncludes(indexHtml, 'window.hrShowLogin = showLogin', 'expired session login recovery hook');
 expectIncludes(indexHtml, 'res.status === 401', 'expired session detection');
 expectIncludes(indexHtml, "id=\"job-tbody\"", 'jobs table body');
+expectIncludes(indexHtml, 'window.hrRequestJson = requestJson', 'request bridge');
+expectIncludes(indexHtml, 'window.hrDashboardBridge = {', 'jobs bridge');
+expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
 expectIncludes(indexHtml, '急迫度', 'urgency column');
 expectIncludes(indexHtml, 'stats.pendingReviewCount', 'pending review KPI from API stats');
 expectIncludes(indexHtml, "const API_URL = '/api/hr-dashboard';", 'dashboard API endpoint');
@@ -81,9 +91,14 @@ expectIncludes(serverJs, "sendJson(res, 504", 'dashboard upstream timeout respon
 expectIncludes(serverJs, 'function healthPayload()', 'deployment health payload');
 expectIncludes(serverJs, "url.pathname === '/api/health'", 'health endpoint');
 expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/login'", 'login endpoint');
+expectIncludes(jobsEditorJs, 'bridge.setRenderJobs(renderEditableJobs)', 'jobs editor render override');
+expectIncludes(jobsEditorJs, '/api/job-requisitions', 'jobs editor API usage');
 expectIncludes(serverJs, "req.method === 'GET' && url.pathname === '/api/session'", 'session endpoint');
 expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/logout'", 'logout endpoint');
 expectIncludes(serverJs, "req.method === 'GET' && url.pathname === '/api/hr-dashboard'", 'dashboard proxy endpoint');
+expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/job-requisitions'", 'job requisition create endpoint');
+expectIncludes(serverJs, "req.method === 'PATCH' && match?.[1]", 'job requisition update endpoint');
+expectIncludes(serverJs, 'N8N_HR_WRITE_WEBHOOK_URL', 'write webhook env');
 expectIncludes(serverJs, "'Cache-Control': 'no-store'", 'no-store API responses');
 
 if (errors.length) {
