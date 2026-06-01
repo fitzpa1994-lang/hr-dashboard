@@ -4,7 +4,7 @@ const baseUrl = normalizeBaseUrl(
   process.argv[2] ||
   process.env.HR_DASHBOARD_URL ||
   process.env.ZEABUR_DASHBOARD_URL ||
-  ''
+  'https://sp-hr.zeabur.app'
 );
 const password = process.env.HR_DASHBOARD_PASSWORD || process.env.DEPLOYMENT_DASHBOARD_PASSWORD || '';
 
@@ -53,10 +53,6 @@ function expectNoSecretLeak(text, label) {
 }
 
 async function main() {
-  if (!baseUrl) {
-    fail('missing target URL. Pass it as argv[2] or set HR_DASHBOARD_URL / ZEABUR_DASHBOARD_URL');
-  }
-
   console.log(`Verifying deployment: ${baseUrl}`);
 
   const healthRes = await request('/api/health');
