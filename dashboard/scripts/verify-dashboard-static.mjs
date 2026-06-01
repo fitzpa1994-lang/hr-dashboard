@@ -77,6 +77,8 @@ expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
 expectIncludes(indexHtml, '急迫度', 'urgency column');
 expectIncludes(indexHtml, 'getOverviewKpis()', 'overview KPI helper invocation');
 expectIncludes(indexHtml, 'function getOverviewKpis()', 'overview KPI helper definition');
+expectIncludes(indexHtml, 'id="kpi-next-onboard-label"', 'dynamic onboard KPI label');
+expectIncludes(indexHtml, 'nextOnboardDate', 'next onboard date KPI logic');
 expectIncludes(indexHtml, "const API_URL = '/api/hr-dashboard';", 'dashboard API endpoint');
 expectIncludes(indexHtml, 'departmentStats = d.departmentStats || []', 'department stats assignment');
 expectCount(indexHtml, /function openDrawer\s*\(/g, 1, 'openDrawer definition count');

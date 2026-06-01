@@ -168,7 +168,7 @@
           </div>
           <div class="bg-surface border border-border p-4 rounded-lg">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-gray-500 uppercase">本週預計到職</span>
+              <span class="text-xs font-semibold text-gray-500 uppercase" id="kpi-next-onboard-label">近期預計到職</span>
               <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
             </div>
             <div class="flex items-end gap-2">
@@ -622,10 +622,20 @@ function getOverviewKpis() {
     item.date <= week.end
   );
 
+  const upcomingOnboards = onboardData
+    .filter(item => item.status === 'pending' && item.date >= TODAY)
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+  const nextOnboardDate = upcomingOnboards.length ? upcomingOnboards[0].date : null;
+  const nextOnboardCount = nextOnboardDate
+    ? upcomingOnboards.filter(item => item.date === nextOnboardDate).length
+    : 0;
+
   return {
     pendingReviewCount: pendingReview.length,
     pendingInviteCount: pendingInvite.length,
     weekOnboardCount: weekOnboard.length,
+    nextOnboardDate,
+    nextOnboardCount,
   };
 }
 
@@ -745,7 +755,10 @@ function initOverview() {
   document.getElementById('kpi-today-intv').textContent = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview').length;
   document.getElementById('kpi-pending-review').textContent = overviewKpis.pendingReviewCount;
   document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
-  document.getElementById('kpi-week-onboard').textContent = overviewKpis.weekOnboardCount;
+  document.getElementById('kpi-week-onboard').textContent = overviewKpis.nextOnboardCount;
+  document.getElementById('kpi-next-onboard-label').textContent = overviewKpis.nextOnboardDate
+    ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))}預計到職`
+    : '近期預計到職';
 
   // Today Interviews Table
   const todayList = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
