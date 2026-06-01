@@ -47,6 +47,12 @@ WORKFLOW3_REQUIRED = (
     "i.position = j.position_title",
 )
 
+WORKFLOW3_CANONICALIZATION_REQUIRED = (
+    "canonicalizeDepartment",
+    "canonicalizePosition",
+    "raw_department",
+)
+
 JOB_WRITE_REQUIRED = (
     "Bearer ' + $env.N8N_HR_TOKEN",
     "INSERT INTO job_requisitions",
@@ -227,6 +233,11 @@ def validate_onboarding_decrement(path_name, workflow, errors):
     for marker in WORKFLOW3_REQUIRED:
         if marker not in query:
             errors.append(f"{path_name}: onboarding decrement query missing {marker}")
+
+    content = list(iter_strings(workflow))
+    for marker in WORKFLOW3_CANONICALIZATION_REQUIRED:
+        if not any(marker in text for text in content):
+            errors.append(f"{path_name}: onboarding workflow missing {marker}")
 
 
 def validate_job_write_workflow(path_name, workflow, errors):

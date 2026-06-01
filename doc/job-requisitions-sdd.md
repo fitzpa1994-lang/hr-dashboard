@@ -103,7 +103,9 @@ Over-decrement rule:
 
 ### Matching strictness
 
-This slice uses strict exact matching only.
+The database update still uses strict exact matching only.
+
+Before the exact match, onboarding parsing may canonicalize department/title aliases into the seeded requisition keys.
 
 Examples:
 
@@ -111,7 +113,12 @@ Examples:
 - `五部 + RF SAR 測試工程師` does not match `新華 + RF SAR 測試工程師`.
 - `業務助理` does not match `助理業務`.
 
-Alias mapping is explicitly out of scope for the first slice.
+Current canonicalization examples:
+
+- `五部 SAR工程部 + 工程師` -> `五部 + RF SAR 測試工程師`
+- `新華 RF工程組 + 工程師` -> `新華 + RF SAR 測試工程師`
+- `新竹 工程部 + 工程師(EMC)` -> `新竹 + 新竹測試工程師`
+- `五部 RF工程一部 + 實習工程師` -> `五部 + WE1工程助理(理工相關)`
 
 ## Interface
 

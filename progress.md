@@ -194,3 +194,17 @@ python scripts\validate_dashboard_api.py
   - the live onboarding ingestion path is writing rows into `onboardings`
   - but the current exact-match decrement rule does not hit any current requisition rows
   - automatic vacancy decrement is therefore not yet proven in real live data
+
+## 2026-06-01 Canonical Match Layer
+- Added `dashboard/js/onboardingCanonicalization.js` and tests for canonical department/title mapping.
+- `npm run audit:onboarding-matches` now applies the same canonicalization rules before checking exact requisition keys.
+- Current audit result after canonicalization:
+  - `pendingOnboardCount = 29`
+  - `matchedCount = 19`
+  - `decrementableMatchCount = 15`
+- Representative canonicalized live matches:
+  - `五部 SAR工程部 / 工程師` -> `五部 / RF SAR 測試工程師`
+  - `新華 RF工程組 / 工程師` -> `新華 / RF SAR 測試工程師`
+  - `新竹 工程部 / 工程師(EMC)` -> `新竹 / 新竹測試工程師`
+  - `五部 RF工程一部 / 實習工程師` -> `五部 / WE1工程助理(理工相關)`
+- Local `live_Workflow3_*.json` export now rewrites onboarding `department` and `position` through the same canonicalization rules before the `INSERT INTO onboardings` / decrement query.

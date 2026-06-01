@@ -1,3 +1,5 @@
+import { canonicalizeOnboardingMatch } from './onboardingCanonicalization.js';
+
 export function getTodayOnboard(onboardData, today) {
   return onboardData.filter(o => o.date === today && o.status !== 'cancelled');
 }
@@ -90,19 +92,29 @@ export function analyzeOnboardingRequisitionMatches(onboardData, jobs) {
   const unmatched = [];
 
   for (const onboarding of pendingOnboards) {
-    const dept = String(onboarding?.dept || '').trim();
-    const pos = String(onboarding?.pos || '').trim();
+    const canonical = canonicalizeOnboardingMatch({
+      department: onboarding?.dept,
+      position: onboarding?.pos,
+      emailSubject: onboarding?.subject || onboarding?.email_subject || '',
+    });
+    const dept = String(canonical.canonicalDepartment || onboarding?.dept || '').trim();
+    const pos = String(canonical.canonicalPosition || onboarding?.pos || '').trim();
     const key = `${dept}||${pos}`;
     const job = jobLookup.get(key);
 
     if (job) {
       matched.push({
         onboarding,
+        canonical,
         job,
         canDecrement: job.displayStatus === 'open' && job.openSlots > 0,
       });
     } else {
-      unmatched.push(onboarding);
+      unmatched.push({
+        ...onboarding,
+        canonicalDepartment: canonical.canonicalDepartment,
+        canonicalPosition: canonical.canonicalPosition,
+      });
     }
   }
 

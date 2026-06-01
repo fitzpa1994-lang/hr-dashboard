@@ -21,6 +21,8 @@ function previewRows(rows, limit = 10) {
     dept: item.dept,
     pos: item.pos,
     date: item.date,
+    canonicalDepartment: item.canonicalDepartment,
+    canonicalPosition: item.canonicalPosition,
   }));
 }
 
@@ -66,6 +68,8 @@ console.log(JSON.stringify({
     dept: item.onboarding.dept,
     pos: item.onboarding.pos,
     date: item.onboarding.date,
+    canonicalDepartment: item.canonical.canonicalDepartment,
+    canonicalPosition: item.canonical.canonicalPosition,
     jobDept: item.job.dept,
     jobPos: item.job.pos,
     jobStatus: item.job.status,
