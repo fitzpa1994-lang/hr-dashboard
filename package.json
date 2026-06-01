@@ -11,6 +11,7 @@
     "diagnose:deployment": "node scripts/diagnose_deployment.mjs",
     "audit:onboarding-matches": "node scripts/audit_onboarding_matches.mjs",
     "deploy:n8n:workflow3": "node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json",
+    "migrate:live-requisitions": "node scripts/migrate_live_requisitions.mjs",
     "prepare:zeabur-env": "node scripts/prepare_zeabur_env.mjs",
     "package:deployment": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create_deployment_package.ps1",
     "verify:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_deployment_package.ps1"

@@ -9,16 +9,16 @@ DUPLICATE_AUDIT_PATH = ROOT / "database" / "job_requisitions_duplicate_audit.sql
 POST_SEED_CHECK_PATH = ROOT / "database" / "job_requisitions_post_seed_check.sql"
 UNIQUE_CONSTRAINT_PATH = ROOT / "database" / "job_requisitions_add_unique_constraint.sql"
 
-EXPECTED_DEPARTMENTS = {
-    "汐止/行政",
-    "五部",
+EXPECTED_TOP_LEVEL_DEPARTMENTS = {
+    "行政",
+    "安規",
+    "WBU",
     "新竹",
     "新華",
-    "全球",
-    "安規",
+    "ICC",
 }
 
-EXPECTED_ROW_COUNT = 25
+EXPECTED_ROW_COUNT = 28
 EXPECTED_OPEN_ENDED_COUNT = 3
 
 ROW_PATTERN = re.compile(
@@ -79,9 +79,11 @@ def main() -> int:
         errors.append(f"expected {EXPECTED_ROW_COUNT} seed rows, found {len(rows)}")
 
     departments = {row["department"] for row in rows}
-    if departments != EXPECTED_DEPARTMENTS:
+    top_level_departments = {row["department"].split(" / ", 1)[0] for row in rows}
+    if top_level_departments != EXPECTED_TOP_LEVEL_DEPARTMENTS:
         errors.append(
-            f"department set mismatch: expected {sorted(EXPECTED_DEPARTMENTS)}, got {sorted(departments)}"
+            "top-level department set mismatch: "
+            f"expected {sorted(EXPECTED_TOP_LEVEL_DEPARTMENTS)}, got {sorted(top_level_departments)}"
         )
 
     seen = set()
@@ -115,10 +117,12 @@ def main() -> int:
         )
 
     required_titles = {
-        ("汐止/行政", "MIS工程師"),
-        ("五部", "RF SAR 測試工程師"),
-        ("全球", "ICC PM"),
-        ("安規", "助理業務"),
+        ("行政 / 資訊部", "MIS工程師"),
+        ("WBU / PM", "PM"),
+        ("ICC / 技術支援部", "案件專員"),
+        ("安規 / 安規業務部", "助理業務/業務"),
+        ("行政 / 財務部", "出納短期職代"),
+        ("新華 / 業務三部", "客服業務"),
     }
     actual_titles = {(row["department"], row["position_title"]) for row in rows}
     missing_titles = sorted(required_titles - actual_titles)
@@ -129,10 +133,10 @@ def main() -> int:
         errors.append("duplicate audit SQL must filter to duplicated requisitions")
     if "GROUP BY department, position_title" not in duplicate_audit_sql:
         errors.append("duplicate audit SQL must group by department + position_title")
-    if "'expectedTotalRows', 25" not in post_seed_check_sql:
+    if "'expectedTotalRows', 28" not in post_seed_check_sql:
         errors.append("post-seed check SQL must assert expected total rows")
-    if "'expectedDepartmentCount', 6" not in post_seed_check_sql:
-        errors.append("post-seed check SQL must assert expected department count")
+    if "'expectedTopLevelDepartmentCount', 6" not in post_seed_check_sql:
+        errors.append("post-seed check SQL must assert expected top-level department count")
     if "'expectedOpenEndedCount', 3" not in post_seed_check_sql:
         errors.append("post-seed check SQL must assert expected open-ended count")
     if "HAVING COUNT(*) > 1" not in post_seed_check_sql:
@@ -149,7 +153,8 @@ def main() -> int:
         return 1
 
     print(
-        f"job requisition asset validation passed: {len(rows)} seed rows across {len(departments)} departments"
+        "job requisition asset validation passed: "
+        f"{len(rows)} seed rows across {len(top_level_departments)} top-level departments"
     )
     return 0
 

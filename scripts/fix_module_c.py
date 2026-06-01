@@ -40,11 +40,7 @@ const body = rawBody
 
 const parts = subject.split('-');
 const candidate = parts[parts.length - 1].trim();
-const keywords = ['錄取','通知','耕興','全球','股份','有限','RE:','re:'];
-const name_from_subject = (
-  candidate.length >= 2 && candidate.length <= 5 &&
-  !keywords.some(k => candidate.includes(k))
-) ? candidate : null;
+const name_from_subject = (candidate.length >= 2 && candidate.length <= 5) ? candidate : null;
 
 return {
   email_msg_id: item.id,
@@ -53,7 +49,7 @@ return {
   sender: item.from?.emailAddress?.address || null,
   received_at: item.receivedDateTime,
   source_type: 'onboarding',
-  name_from_subject: name_from_subject,
+  name_from_subject,
   body_text: body.substring(0, 2000),
 };"""
 
@@ -61,34 +57,41 @@ JS_ASSEMBLE_ONBOARD_AI = r"""const item = $input.item.json;
 return {
   model: "claude-haiku-4-5-20251001",
   max_tokens: 400,
-  system: "你是 HR 信件解析助手，讀取錄取通知信件，輸出純 JSON。\nHR 人員：李沛晴（Peggy）、陳清彥（Yen）、黃友為（Evan）\n\n判斷欄位：\n- intent: new_onboard | update_date | cancel | skip\n- name: 優先主旨最後「-」後取，主旨無法確定才從內文找\n- scheduled_onboard_date: 報到日期 YYYY-MM-DD（找「報到日期：」或「預定報到日期：」後的日期）\n- department: 部門（找不到填 null）\n- position: 職稱（找不到填 null）\n- hr_owner: 負責 HR 姓名（找不到填 null）\n\n規則：\n1. 主旨以「RE:」開頭 → intent = skip\n2. body 有「調整」「延後」「更改報到」→ intent = update_date\n3. 即使主旨與第一封相同，仍需讀 body 判斷意圖",
+  system: "You are an HR email parser for onboarding notices. Return pure JSON only.\nHR owners: Peggy, Yen, Evan.\n\nOutput fields:\n- intent: new_onboard | update_date | cancel | skip\n- name: candidate name. Prefer the last segment after '-' in subject when it is clearly a person name; otherwise infer from body.\n- scheduled_onboard_date: onboarding date in YYYY-MM-DD\n- department: department text from the email, or null\n- position: title text from the email, or null\n- hr_owner: HR owner name, or null\n\nRules:\n1. Do not skip a message only because the subject starts with RE:. Read the body first.\n2. If the body says the onboarding date/time was adjusted, delayed, changed, moved, postponed, or contains wording like \u6539\u70ba, \u6539\u5230, \u5ef6\u5f8c, \u5ef6\u81f3, \u66f4\u6539\u5831\u5230, \u8abf\u6574\u5831\u5230, then intent = update_date.\n3. If the message is only an acknowledgement, attachment submission, receipt confirmation, or generic reply without a new onboarding date, then intent = skip.\n4. If the message is a fresh offer/onboarding notice, intent = new_onboard.\n5. Even for reply threads, if the latest body contains a new onboarding date, return update_date and that newest date.",
   messages: [
     {
       role: "user",
-      content: "主旨：" + item.email_subject + "\n\n" + item.body_text
+      content: "Subject: " + item.email_subject + "\n\n" + item.body_text
     }
   ]
 };"""
 
-JS_INTEGRATE_ONBOARD = r"""const base = $('Code：萃取 name_from_subject').item.json;
+JS_INTEGRATE_ONBOARD = r"""const base = $('Code?????name_from_subject').item.json;
 let aiResult = {};
 try {
   const raw = $input.item.json.content;
   const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');
   const match = text.match(/\{[\s\S]*\}/);
   if (match) aiResult = JSON.parse(match[0]);
-} catch(e) {}
+} catch (e) {}
 
-// Parse scheduled_onboard_date from body as fallback
 let regexDate = null;
 const bodyText = base.body_text || '';
+const fallbackYear = String(new Date(base.received_at || Date.now()).getFullYear());
 const datePatterns = [
-  { re: /報到日期[：:]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
-  { re: /預定報到日期[：:]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
+  { re: /(?:\u6539\u70ba|\u6539\u5230|\u5ef6\u5f8c\u5230|\u5ef6\u81f3|\u9806\u5ef6\u81f3|\u66f4\u6539\u5831\u5230(?:\u65e5\u671f|\u6642\u9593)?\u70ba?|\u8abf\u6574\u5831\u5230(?:\u65e5\u671f|\u6642\u9593)?\u70ba?)\s*(\d{4})[\/\-\u5e74](\d{1,2})[\/\-\u6708](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
+  { re: /(?:\u6539\u70ba|\u6539\u5230|\u5ef6\u5f8c\u5230|\u5ef6\u81f3|\u9806\u5ef6\u81f3|\u66f4\u6539\u5831\u5230(?:\u65e5\u671f|\u6642\u9593)?\u70ba?|\u8abf\u6574\u5831\u5230(?:\u65e5\u671f|\u6642\u9593)?\u70ba?)\s*(\d{1,2})[\/\-\u6708](\d{1,2})/, fn: m => fallbackYear+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0') },
+  { re: /\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
+  { re: /\u9810\u5b9a\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
+  { re: /\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})\u5e74(\d{1,2})\u6708(\d{1,2})\u65e5/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
+  { re: /\u9810\u5b9a\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})\u5e74(\d{1,2})\u6708(\d{1,2})\u65e5/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
 ];
-for (const {re, fn} of datePatterns) {
+for (const { re, fn } of datePatterns) {
   const m = bodyText.match(re);
-  if (m) { regexDate = fn(m); break; }
+  if (m) {
+    regexDate = fn(m);
+    break;
+  }
 }
 
 return {
@@ -98,7 +101,7 @@ return {
   sender: base.sender,
   received_at: base.received_at,
   source_type: 'onboarding',
-  name: base.name_from_subject || aiResult.name || '未知姓名',
+  name: base.name_from_subject || aiResult.name || '\u672a\u77e5\u59d3\u540d',
   scheduled_onboard_date: regexDate || aiResult.scheduled_onboard_date || null,
   department: aiResult.department || null,
   position: aiResult.position || null,

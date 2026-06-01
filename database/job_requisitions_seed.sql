@@ -1,8 +1,13 @@
--- Initial manual seed for the six-department vacancy list.
+-- Initial manual seed for the requisition rollout.
 -- Safe to rerun: inserts only missing (department, position_title) pairs.
 -- Current business rule:
 --   headcount = current open vacancy count
 --   status = 'cancelled' means recruitment closed
+-- Naming rule:
+--   preserve notebook vacancy counts
+--   rename requisitions to the closest formal org path + title used by HR
+--   for roles not yet in the formal sheet, keep the business title and
+--   rely on onboarding keyword mapping instead of exact mail text matching
 
 WITH seed (
     position_title,
@@ -14,36 +19,39 @@ WITH seed (
     notes
 ) AS (
     VALUES
-        ('董事長室助理', '汐止/行政', 1, 0, 'open', 3, NULL),
-        ('財務部副理/主任', '汐止/行政', 2, 0, 'open', 3, NULL),
-        ('軟體工程師', '汐止/行政', 2, 0, 'open', 3, NULL),
-        ('MIS工程師', '汐止/行政', 1, 0, 'open', 4, 'HyperV+VMware 建置整個完整網路環境，需回應很多 USER 問題'),
-        ('品管工程師', '汐止/行政', 1, 0, 'open', 3, NULL),
+        ('行政專員', '行政 / 董事長室', 1, 0, 'open', 3, NULL),
+        ('副理', '行政 / 財務部', 1, 0, 'open', 3, NULL),
+        ('主任', '行政 / 財務部', 1, 0, 'open', 3, NULL),
+        ('出納短期職代', '行政 / 財務部', 0, 0, 'cancelled', 3, NULL),
+        ('軟體工程師(ERP開發維運)', '行政 / 資訊部', 1, 0, 'open', 3, NULL),
+        ('軟體工程師(AI開發)', '行政 / 資訊部', 1, 0, 'open', 3, NULL),
+        ('MIS工程師', '行政 / 資訊部', 1, 0, 'open', 4, 'HyperV+VMware 建置整個完整網路環境，需回應很多 USER 問題'),
+        ('品管人員', '行政 / 品管部', 1, 0, 'open', 3, NULL),
+        ('驗證人員', '行政 / 品管部', 1, 0, 'open', 3, NULL),
 
-        ('PM', '五部', 2, 0, 'open', 3, NULL),
-        ('五部業務助理', '五部', 0, 0, 'cancelled', 3, NULL),
-        ('五部認證專員', '五部', 1, 0, 'open', 3, NULL),
-        ('業務專員', '五部', 2, 0, 'open', 3, NULL),
-        ('客服業務', '五部', 1, 0, 'open', 3, NULL),
-        ('SAR工程助理', '五部', 0, 0, 'cancelled', 3, NULL),
-        ('SAR文件專員', '五部', 1, 0, 'open', 3, NULL),
-        ('五部RF PM', '五部', 2, 0, 'open', 3, NULL),
-        ('WE1工程助理(理工相關)', '五部', 1, 0, 'open', 3, NULL),
-        ('WE1：場測工程師', '五部', 2, 0, 'open', 3, NULL),
-        ('RF SAR 測試工程師', '五部', 999, 0, 'open', 4, '數名'),
+        ('業務助理(David)', '安規 / 安規業務部', 1, 0, 'open', 3, NULL),
+        ('助理業務/業務', '安規 / 安規業務部', 2, 0, 'open', 4, 'Peggy 希望人員具一些電子經驗、女性、會開車'),
+        ('電池案件工程師', '安規', 1, 0, 'open', 3, NULL),
 
-        ('新竹測試工程師', '新竹', 4, 0, 'open', 3, NULL),
+        ('PM', 'WBU / PM', 2, 0, 'open', 3, '筆記中的 PM 與 五部RF PM 視為同一個職缺'),
+        ('業務助理', 'WBU / 業務部', 0, 0, 'cancelled', 3, NULL),
+        ('認證專員', 'WBU / 國際認證一部', 1, 0, 'open', 3, NULL),
+        ('業務專員', 'WBU / 業務部', 2, 0, 'open', 3, NULL),
+        ('工程助理', 'WBU / SAR工程部', 0, 0, 'cancelled', 3, NULL),
+        ('文件專員', 'WBU / SAR工程部', 1, 0, 'open', 3, NULL),
+        ('工程助理', 'WBU / RF工程一部', 1, 0, 'open', 3, NULL),
+        ('測試工程師', 'WBU / 場測工程部', 2, 0, 'open', 3, NULL),
+        ('測試工程師', 'WBU / SAR工程部', 999, 0, 'open', 4, '數名'),
 
-        ('RF SAR 測試工程師', '新華', 999, 0, 'open', 4, '數名'),
-        ('PM', '新華', 0, 0, 'cancelled', 3, NULL),
+        ('測試工程師(RF/EMC)', '新竹 / 工程部', 4, 0, 'open', 3, NULL),
 
-        ('ICC 測試工程師', '全球', 999, 0, 'open', 4, '數名'),
-        ('ICC PM', '全球', 2, 0, 'open', 3, NULL),
-        ('ICC 客服業務', '全球', 3, 0, 'open', 3, NULL),
+        ('客服業務', '新華 / 業務三部', 2, 0, 'open', 3, NULL),
+        ('測試工程師', '新華 / RF工程組', 999, 0, 'open', 4, '數名'),
+        ('PM', '新華 / PM', 0, 0, 'cancelled', 3, '郵件中的新華案件專員視為 PM'),
 
-        ('業務助理', '安規', 1, 0, 'open', 3, NULL),
-        ('助理業務', '安規', 2, 0, 'open', 4, 'Peggy 希望人員具一些電子經驗、女性、會開車'),
-        ('電池案件工程師', '安規', 1, 0, 'open', 3, NULL)
+        ('測試工程師', 'ICC / 工程部', 999, 0, 'open', 4, '數名'),
+        ('案件專員', 'ICC / 技術支援部', 2, 0, 'open', 3, '筆記中的 ICC PM 以正式錄取通知名稱案件專員管理'),
+        ('客服業務', 'ICC / 業務部', 3, 0, 'open', 3, NULL)
 )
 INSERT INTO job_requisitions (
     position_title,

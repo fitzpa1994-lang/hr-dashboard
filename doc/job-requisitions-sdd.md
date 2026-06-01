@@ -1,6 +1,6 @@
 # Job Requisitions SDD
 
-Last updated: 2026-05-29
+Last updated: 2026-06-01
 
 ## Scope
 
@@ -27,6 +27,13 @@ Every job requisition is uniquely identified by:
 
 - `department`
 - `position_title`
+
+For the current rollout, `department` stores the canonical org path used by HR,
+for example:
+
+- `行政 / 財務部`
+- `WBU / RF工程一部`
+- `新華 / 工程 / 文件部 / 文件組`
 
 This is the only matching key for automatic decrement.
 
@@ -61,8 +68,10 @@ This matches the user's notebook meaning:
 
 Rules for converting the notebook list into structured rows:
 
-1. Department headers become `department`.
-2. Title text becomes `position_title`.
+1. Preserve the notebook vacancy counts unless the user explicitly splits one row.
+2. Rename notebook rows to the closest formal org path + title used by HR.
+3. Keep roles that are not yet in the formal sheet as business titles, and
+   match them later through keyword aliases.
 3. Trailing integer becomes `headcount`.
 4. Missing trailing integer means:
    - `headcount = 0`
@@ -83,13 +92,16 @@ Trigger condition:
 
 Update rule:
 
-1. Find `job_requisitions` row by exact match:
-   - `department = onboarding.department`
-   - `position_title = onboarding.position`
-2. Only update rows with `status = 'open'`.
-3. If found and `headcount > 0`, set:
+1. Canonicalize the onboarding email into:
+   - canonical org path
+   - canonical title
+2. Find `job_requisitions` row by exact match:
+   - `department = canonical onboarding department`
+   - `position_title = canonical onboarding position`
+3. Only update rows with `status = 'open'`.
+4. If found and `headcount > 0`, set:
    - `headcount = headcount - 1`
-4. Never decrement below `0`.
+5. Never decrement below `0`.
 
 No-match rule:
 
@@ -105,20 +117,29 @@ Over-decrement rule:
 
 The database update still uses strict exact matching only.
 
-Before the exact match, onboarding parsing may canonicalize department/title aliases into the seeded requisition keys.
+Before the exact match, onboarding parsing canonicalizes department/title aliases
+into the seeded requisition keys.
 
 Examples:
 
-- `安規 + 助理業務` matches only that exact row.
-- `五部 + RF SAR 測試工程師` does not match `新華 + RF SAR 測試工程師`.
-- `業務助理` does not match `助理業務`.
+- `全球檢測股份有限公司 + 技術支援部 + 案件專員`
+  -> `ICC / 技術支援部 + 案件專員`
+- `國際標準認證事業五部 + RF工程一部 + 實習工程師`
+  -> `WBU / RF工程一部 + 測試工程師`
+- `安規 + 電池 + 工程師`
+  -> `安規 + 電池案件工程師`
+- `業務助理` does not match `助理業務/業務`.
 
 Current canonicalization examples:
 
-- `五部 SAR工程部 + 工程師` -> `五部 + RF SAR 測試工程師`
-- `新華 RF工程組 + 工程師` -> `新華 + RF SAR 測試工程師`
-- `新竹 工程部 + 工程師(EMC)` -> `新竹 + 新竹測試工程師`
-- `五部 RF工程一部 + 實習工程師` -> `五部 + WE1工程助理(理工相關)`
+- `全球檢測股份有限公司 + 技術支援部 + 案件專員`
+  -> `ICC / 技術支援部 + 案件專員`
+- `新華營運處 + 業務三部 + 客服業務`
+  -> `新華 / 業務三部 + 客服業務`
+- `國際標準認證事業五部 + RF工程一部 + 實習工程師`
+  -> `WBU / RF工程一部 + 測試工程師`
+- `財務部 + 財務主任`
+  -> `行政 / 財務部 + 主任`
 
 ## Interface
 
@@ -171,3 +192,4 @@ Delete can wait until a later slice.
 2. Decide whether `filled_count` should later represent cumulative hires or be removed from the UI model.
 3. Add a visible mismatch queue for onboarding records that fail exact vacancy matching.
 4. Keep a bounded live verification path for onboarding-driven decrement, because the SQL is live but still depends on a fresh onboarding event to prove the whole chain.
+5. If onboarding delay/update emails can exist only in `寄件備份` and not in `預計報到人員`, add a second Outlook trigger for that folder. The current live workflow only monitors `預計報到人員` for onboarding updates.

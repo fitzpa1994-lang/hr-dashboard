@@ -58,6 +58,7 @@ if (rootPkg) {
   expectEqual(rootPkg.scripts?.['diagnose:deployment'], 'node scripts/diagnose_deployment.mjs', 'deployment diagnosis script');
   expectEqual(rootPkg.scripts?.['audit:onboarding-matches'], 'node scripts/audit_onboarding_matches.mjs', 'onboarding match audit script');
   expectEqual(rootPkg.scripts?.['deploy:n8n:workflow3'], 'node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json', 'Workflow3 deployment script');
+  expectEqual(rootPkg.scripts?.['migrate:live-requisitions'], 'node scripts/migrate_live_requisitions.mjs', 'live requisition migration script');
   expectEqual(rootPkg.scripts?.['prepare:zeabur-env'], 'node scripts/prepare_zeabur_env.mjs', 'Zeabur env preparation script');
   expectIncludes(rootPkg.scripts?.['package:deployment'], 'scripts/create_deployment_package.ps1', 'deployment package script');
   expectIncludes(rootPkg.scripts?.['verify:package'], 'scripts/verify_deployment_package.ps1', 'deployment package verification script');
@@ -110,6 +111,7 @@ run('Deployment diagnosis syntax check', 'node', ['--check', 'scripts/diagnose_d
 run('Deployment verifier syntax check', 'node', ['--check', 'scripts/verify_deployment.mjs']);
 run('Onboarding match audit syntax check', 'node', ['--check', 'scripts/audit_onboarding_matches.mjs']);
 run('n8n export deploy syntax check', 'node', ['--check', 'scripts/deploy_n8n_export.mjs']);
+run('Live requisition migration syntax check', 'node', ['--check', 'scripts/migrate_live_requisitions.mjs']);
 run('Zeabur env preparation syntax check', 'node', ['--check', 'scripts/prepare_zeabur_env.mjs']);
 run('Visual fixture syntax check', 'node', ['--check', 'scripts/serve_visual_fixture.mjs']);
 run('Visual UI fixture syntax check', 'node', ['--check', 'scripts/serve_visual_ui_fixture.mjs']);

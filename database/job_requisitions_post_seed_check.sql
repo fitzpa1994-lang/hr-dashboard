@@ -1,14 +1,14 @@
 -- Verify the live database after running job_requisitions_seed.sql.
 -- Expected current state for the initial rollout:
---   - 25 requisitions
---   - 6 departments
+--   - 28 requisitions
+--   - 6 top-level departments
 --   - 3 open-ended requisitions with headcount = 999
 --   - no duplicate (department, position_title) pairs
 
 WITH summary AS (
     SELECT
         COUNT(*) AS total_rows,
-        COUNT(DISTINCT department) AS department_count,
+        COUNT(DISTINCT SPLIT_PART(department, ' / ', 1)) AS department_count,
         COUNT(*) FILTER (WHERE headcount = 999) AS open_ended_count
     FROM job_requisitions
 ),
@@ -20,11 +20,11 @@ duplicates AS (
 )
 SELECT json_build_object(
     'totalRows', summary.total_rows,
-    'departmentCount', summary.department_count,
+    'topLevelDepartmentCount', summary.department_count,
     'openEndedCount', summary.open_ended_count,
     'duplicateCount', (SELECT COUNT(*) FROM duplicates),
-    'expectedTotalRows', 25,
-    'expectedDepartmentCount', 6,
+    'expectedTotalRows', 28,
+    'expectedTopLevelDepartmentCount', 6,
     'expectedOpenEndedCount', 3
 ) AS rollout_check
 FROM summary;

@@ -208,3 +208,28 @@ python scripts\validate_dashboard_api.py
   - `新竹 工程部 / 工程師(EMC)` -> `新竹 / 新竹測試工程師`
   - `五部 RF工程一部 / 實習工程師` -> `五部 / WE1工程助理(理工相關)`
 - Local `live_Workflow3_*.json` export now rewrites onboarding `department` and `position` through the same canonicalization rules before the `INSERT INTO onboardings` / decrement query.
+
+## 2026-06-01 Live Wrap-up
+- Deployed updated `live_Workflow3_到職離職.json` to live n8n so reply threads are no longer skipped just because the subject starts with `RE:`.
+- Workflow3 now prioritizes body-based `update_date` detection and can extract revised onboarding dates from wording such as:
+  - `改為`
+  - `改到`
+  - `延後到`
+  - `延至`
+  - `更改報到`
+  - `調整報到`
+- Added and executed one-off cleanup script:
+  - `scripts/fix_chentianyi_onboarding_history.mjs`
+- Cleanup result:
+  - cancelled `4` bad historical onboarding rows (`未知姓名 / 未分類 / 未知職位`)
+  - upserted `1` corrected row for `陳天怡 / 行政 / 財務部 / 主任 / 2026-06-01`
+- Latest live onboarding audit:
+  - `pendingOnboardCount = 26`
+  - `matchedCount = 26`
+  - `unmatchedCount = 0`
+  - `decrementableMatchCount = 21`
+- Current functional status:
+  - live onboarding vacancy matching is fully reconciled for current pending rows
+  - delayed onboarding reply emails in `預計報到人員` now update the expected onboard date correctly
+- Remaining non-blocking follow-up:
+  - if some delay/update emails exist only in `寄件備份` and never appear in `預計報到人員`, add a second Outlook trigger for `寄件備份`
