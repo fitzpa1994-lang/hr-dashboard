@@ -639,6 +639,29 @@ function getOverviewKpis() {
   };
 }
 
+function comparePrimaryDates(aDate, bDate) {
+  const a = String(aDate || '');
+  const b = String(bDate || '');
+  const aUpcoming = !!a && a >= TODAY;
+  const bUpcoming = !!b && b >= TODAY;
+
+  if (aUpcoming && !bUpcoming) return -1;
+  if (!aUpcoming && bUpcoming) return 1;
+  if (aUpcoming && bUpcoming) return a.localeCompare(b);
+  if (!a && b) return 1;
+  if (a && !b) return -1;
+  if (!a && !b) return 0;
+  return b.localeCompare(a);
+}
+
+function sortByPrimaryDate(items, getDateValue) {
+  return [...items].sort((left, right) => {
+    const dateCompare = comparePrimaryDates(getDateValue(left), getDateValue(right));
+    if (dateCompare !== 0) return dateCompare;
+    return String(left?.name || '').localeCompare(String(right?.name || ''));
+  });
+}
+
 function dateDiff(a,b){return Math.round((new Date(b)-new Date(a))/86400000)}
 function daysOpen(d){return dateDiff(d,TODAY)}
 function fmtDate(d){if(!d||d==='null')return'—';const p=d.split('-');return`${+p[1]}/${+p[2]}`}
@@ -838,7 +861,7 @@ function setSchedF(f,btn){
 }
 function renderSchedule(){
   let items=schedFilter==='all'?schedEvents:schedEvents.filter(e=>e.type===schedFilter);
-  items=[...items].sort((a,b)=>a.date.localeCompare(b.date));
+  items = sortByPrimaryDate(items, item => item.date);
   const tbody=document.getElementById('sched-list');
   
   if(!items.length){tbody.innerHTML='<tr><td colspan="6" class="text-center py-8 text-gray-400">無排程資料</td></tr>';return;}
@@ -902,7 +925,8 @@ function calNext(){calDate.setMonth(calDate.getMonth()+1);renderCalendar();}
 // ============================================================
 function renderOnboardResign(){
   const oBody=document.getElementById('onboard-list');
-  oBody.innerHTML = onboardData.length ? onboardData.map(o=>`
+  const orderedOnboards = sortByPrimaryDate(onboardData, item => item.date);
+  oBody.innerHTML = orderedOnboards.length ? orderedOnboards.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
@@ -912,7 +936,8 @@ function renderOnboardResign(){
   `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">無資料</td></tr>`;
 
   const rBody=document.getElementById('resign-list');
-  rBody.innerHTML = resignData.length ? resignData.map(r=>`
+  const orderedResigns = sortByPrimaryDate(resignData, item => item.lastDay);
+  rBody.innerHTML = orderedResigns.length ? orderedResigns.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
