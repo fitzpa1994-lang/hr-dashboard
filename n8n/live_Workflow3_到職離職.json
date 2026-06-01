@@ -491,6 +491,39 @@
           "name": "Postgres account"
         }
       }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "foldersToInclude": [
+            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMDAAA="
+          ]
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "id": "c2f1788f-c2b9-4a80-b7ae-sentbackup001",
+      "name": "Outlook ??????? (????)",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        -320
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "gRnSdH5u4gDyDZzB",
+          "name": "Microsoft Outlook account"
+        }
+      }
     }
   ],
   "connections": {
@@ -704,6 +737,17 @@
     "PG：離職 email_logs": {
       "main": [
         []
+      ]
+    },
+    "Outlook ??????? (????)": {
+      "main": [
+        [
+          {
+            "node": "IF：過濾新進人員通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

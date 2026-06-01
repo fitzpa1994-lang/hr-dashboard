@@ -192,4 +192,4 @@ Delete can wait until a later slice.
 2. Decide whether `filled_count` should later represent cumulative hires or be removed from the UI model.
 3. Add a visible mismatch queue for onboarding records that fail exact vacancy matching.
 4. Keep a bounded live verification path for onboarding-driven decrement, because the SQL is live but still depends on a fresh onboarding event to prove the whole chain.
-5. If onboarding delay/update emails can exist only in `寄件備份` and not in `預計報到人員`, add a second Outlook trigger for that folder. The current live workflow only monitors `預計報到人員` for onboarding updates.
+5. Monitor both `預計報到人員` and `寄件備份` for onboarding delay/update emails so self-sent reply threads are also eligible for `update_date`.

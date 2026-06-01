@@ -232,4 +232,12 @@ python scripts\validate_dashboard_api.py
   - live onboarding vacancy matching is fully reconciled for current pending rows
   - delayed onboarding reply emails in `預計報到人員` now update the expected onboard date correctly
 - Remaining non-blocking follow-up:
-  - if some delay/update emails exist only in `寄件備份` and never appear in `預計報到人員`, add a second Outlook trigger for `寄件備份`
+  - none on the current live path
+
+## 2026-06-01 Sent Backup Trigger
+- Added a second live onboarding Outlook trigger for `寄件備份`.
+- Purpose:
+  - capture self-sent onboarding delay/update emails that may never re-enter `預計報到人員`
+  - send them through the same Workflow3 onboarding intent path
+- Live workflow redeployed after the trigger update.
+- This removes the previous known gap where HR-originated update threads could be missed if they only existed in Sent Backup.
