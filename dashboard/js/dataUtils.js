@@ -78,3 +78,40 @@ export function serializeJobRequisitionPayload(job, { includeId = false } = {}) 
     targetDate: job?.target ?? job?.targetDate ?? job?.target_date ?? null,
   };
 }
+
+export function analyzeOnboardingRequisitionMatches(onboardData, jobs) {
+  const normalizedJobs = jobs.map(normalizeJobRequisition);
+  const jobLookup = new Map(
+    normalizedJobs.map(job => [`${String(job.dept || '').trim()}||${String(job.pos || '').trim()}`, job])
+  );
+
+  const pendingOnboards = onboardData.filter(item => String(item?.status || '') === 'pending');
+  const matched = [];
+  const unmatched = [];
+
+  for (const onboarding of pendingOnboards) {
+    const dept = String(onboarding?.dept || '').trim();
+    const pos = String(onboarding?.pos || '').trim();
+    const key = `${dept}||${pos}`;
+    const job = jobLookup.get(key);
+
+    if (job) {
+      matched.push({
+        onboarding,
+        job,
+        canDecrement: job.displayStatus === 'open' && job.openSlots > 0,
+      });
+    } else {
+      unmatched.push(onboarding);
+    }
+  }
+
+  return {
+    pendingOnboardCount: pendingOnboards.length,
+    matchedCount: matched.length,
+    unmatchedCount: unmatched.length,
+    decrementableMatchCount: matched.filter(item => item.canDecrement).length,
+    matched,
+    unmatched,
+  };
+}

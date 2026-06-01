@@ -178,3 +178,19 @@ python scripts\validate_dashboard_api.py
   - initial seed rollout is considered verified
 - Remaining high-signal follow-up:
   - prove a fresh live onboarding event decrements the matching requisition headcount through the full Outlook -> n8n -> PostgreSQL chain
+
+## 2026-06-01 Onboarding Match Audit
+- Added `npm run audit:onboarding-matches` via `scripts/audit_onboarding_matches.mjs`.
+- The audit authenticates against `https://sp-hr.zeabur.app`, reads `/api/hr-dashboard`, and compares pending `onboardData` rows against `jobsData` by exact `dept + pos`.
+- Current live result:
+  - `pendingOnboardCount = 29`
+  - `matchedCount = 0`
+  - `decrementableMatchCount = 0`
+- Representative unmatched live rows:
+  - `張洛圖 / 五部 SAR工程部 / 工程師 / 2026-06-01`
+  - `楊芝萱 / 新華 RF工程組 / 工程師 / 2026-06-01`
+  - `翁如慧 / ICC 技術支援部 / 案件專員 / 2026-06-15`
+- Conclusion:
+  - the live onboarding ingestion path is writing rows into `onboardings`
+  - but the current exact-match decrement rule does not hit any current requisition rows
+  - automatic vacancy decrement is therefore not yet proven in real live data

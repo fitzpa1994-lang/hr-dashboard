@@ -8,6 +8,7 @@ import {
   normalizeJobRequisition,
   filterJobRequisitions,
   serializeJobRequisitionPayload,
+  analyzeOnboardingRequisitionMatches,
 } from '../dataUtils.js';
 
 const TODAY = '2026-05-26';

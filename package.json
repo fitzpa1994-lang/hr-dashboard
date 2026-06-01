@@ -9,6 +9,7 @@
     "verify": "node scripts/verify_project.mjs",
     "verify:deployment": "node scripts/verify_deployment.mjs",
     "diagnose:deployment": "node scripts/diagnose_deployment.mjs",
+    "audit:onboarding-matches": "node scripts/audit_onboarding_matches.mjs",
     "prepare:zeabur-env": "node scripts/prepare_zeabur_env.mjs",
     "package:deployment": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create_deployment_package.ps1",
     "verify:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_deployment_package.ps1"
