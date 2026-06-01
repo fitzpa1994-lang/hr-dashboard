@@ -75,7 +75,8 @@ expectIncludes(indexHtml, 'window.hrRequestJson = requestJson', 'request bridge'
 expectIncludes(indexHtml, 'window.hrDashboardBridge = {', 'jobs bridge');
 expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
 expectIncludes(indexHtml, '急迫度', 'urgency column');
-expectIncludes(indexHtml, 'stats.pendingReviewCount', 'pending review KPI from API stats');
+expectIncludes(indexHtml, 'getOverviewKpis()', 'overview KPI helper invocation');
+expectIncludes(indexHtml, 'function getOverviewKpis()', 'overview KPI helper definition');
 expectIncludes(indexHtml, "const API_URL = '/api/hr-dashboard';", 'dashboard API endpoint');
 expectIncludes(indexHtml, 'departmentStats = d.departmentStats || []', 'department stats assignment');
 expectCount(indexHtml, /function openDrawer\s*\(/g, 1, 'openDrawer definition count');

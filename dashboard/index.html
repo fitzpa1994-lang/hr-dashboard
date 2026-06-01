@@ -589,6 +589,46 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
   }
 }
 
+function getWeekBounds(dateString) {
+  const [year, month, day] = String(dateString).split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const sundayOffset = date.getDay();
+  const weekStart = new Date(date);
+  weekStart.setDate(date.getDate() - sundayOffset);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  const toLocalDateString = value => {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+  return {
+    start: toLocalDateString(weekStart),
+    end: toLocalDateString(weekEnd),
+  };
+}
+
+function getOverviewKpis() {
+  const week = getWeekBounds(TODAY);
+  const pendingReviewPool = candidatesData.filter(candidate => candidate.status === 'pending_review');
+
+  const pendingReview = pendingReviewPool.filter(candidate => !!candidate.date);
+  const pendingInvite = pendingReviewPool.filter(candidate => !candidate.date);
+
+  const weekOnboard = onboardData.filter(item =>
+    item.status === 'pending' &&
+    item.date >= week.start &&
+    item.date <= week.end
+  );
+
+  return {
+    pendingReviewCount: pendingReview.length,
+    pendingInviteCount: pendingInvite.length,
+    weekOnboardCount: weekOnboard.length,
+  };
+}
+
 function dateDiff(a,b){return Math.round((new Date(b)-new Date(a))/86400000)}
 function daysOpen(d){return dateDiff(d,TODAY)}
 function fmtDate(d){if(!d||d==='null')return'—';const p=d.split('-');return`${+p[1]}/${+p[2]}`}
@@ -700,11 +740,12 @@ function renderAll() {
 // OVERVIEW TAB (DASHBOARD)
 // ============================================================
 function initOverview() {
+  const overviewKpis = getOverviewKpis();
   // KPIs
   document.getElementById('kpi-today-intv').textContent = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview').length;
-  document.getElementById('kpi-pending-review').textContent = stats.pendingReviewCount ?? candidatesData.filter(c=>c.status==='pending_review').length;
-  document.getElementById('kpi-pending-invite').textContent = candidatesData.filter(c=>c.status==='interviewing').length;
-  document.getElementById('kpi-week-onboard').textContent = onboardData.filter(o=>o.status==='pending').length;
+  document.getElementById('kpi-pending-review').textContent = overviewKpis.pendingReviewCount;
+  document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
+  document.getElementById('kpi-week-onboard').textContent = overviewKpis.weekOnboardCount;
 
   // Today Interviews Table
   const todayList = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
