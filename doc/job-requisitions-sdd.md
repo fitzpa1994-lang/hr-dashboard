@@ -143,7 +143,7 @@ Backend write endpoints:
 - `POST /api/job-requisitions`
 - `PATCH /api/job-requisitions/:id`
 
-The current code slice implements the write endpoints and reserves the UI wiring for the next step.
+The current code slice implements both the write endpoints and the dashboard jobs editing UI.
 
 ### Manual editing requirements for the dashboard
 
@@ -163,4 +163,4 @@ Delete can wait until a later slice.
 1. Add a unique constraint on `(department, position_title)` after existing live data is checked.
 2. Decide whether `filled_count` should later represent cumulative hires or be removed from the UI model.
 3. Add a visible mismatch queue for onboarding records that fail exact vacancy matching.
-4. After live duplicate audit is clean, make the database uniqueness rule explicit instead of relying on workflow-side dedupe.
+4. Keep a bounded live verification path for onboarding-driven decrement, because the SQL is live but still depends on a fresh onboarding event to prove the whole chain.

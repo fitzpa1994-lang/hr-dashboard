@@ -163,3 +163,18 @@ python scripts\validate_dashboard_api.py
   - deploy updated dashboard server + n8n exports to Zeabur
   - import database/job_requisitions_seed.sql
   - verify live jobs tab create/update flow against PostgreSQL
+
+## 2026-06-01 Deployment Verification Update
+- `scripts/verify_deployment.mjs` now defaults to `https://sp-hr.zeabur.app`, matching `diagnose:deployment` and `.env.example`.
+- `npm run verify:deployment` now works without passing the dashboard URL explicitly.
+- Re-verified current live deployment with:
+  - `npm test`
+  - `npm run diagnose:deployment`
+  - `npm run verify:deployment` with `HR_DASHBOARD_PASSWORD`
+- Verified live job requisition rollout status:
+  - dashboard jobs editor route is live
+  - `jobsData` contains 25 requisitions across 6 departments
+  - live create/update writes round-trip through PostgreSQL and back into `/api/hr-dashboard`
+  - initial seed rollout is considered verified
+- Remaining high-signal follow-up:
+  - prove a fresh live onboarding event decrements the matching requisition headcount through the full Outlook -> n8n -> PostgreSQL chain

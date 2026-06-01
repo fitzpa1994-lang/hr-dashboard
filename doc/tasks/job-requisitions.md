@@ -14,7 +14,7 @@ Last updated: 2026-05-29
 - [x] Deduplicate create requests by exact `department + position_title`
 - [x] Add focused tests/validators for vacancy decrement logic
 - [x] Add manual editing UI for requisitions in the dashboard
-- [ ] Verify live import procedure for the initial seed
+- [x] Verify live import procedure for the initial seed
 
 ## Current decision
 
