@@ -759,14 +759,28 @@ function refreshDashboard() {
   loadData();
 }
 
+function safeRender(sectionName, renderFn) {
+  try {
+    renderFn();
+  } catch (error) {
+    console.error(`Render error [${sectionName}]`, error);
+    window.hrRenderErrors = window.hrRenderErrors || [];
+    window.hrRenderErrors.push({
+      section: sectionName,
+      message: error?.message || String(error),
+      at: new Date().toISOString(),
+    });
+  }
+}
+
 function renderAll() {
-  initOverview();
-  renderSchedule();
-  renderCalendar();
-  renderOnboardResign();
-  renderCandidates();
-  renderJobs();
-  lucide.createIcons();
+  safeRender('overview', initOverview);
+  safeRender('schedule', renderSchedule);
+  safeRender('calendar', renderCalendar);
+  safeRender('hr-events', renderOnboardResign);
+  safeRender('candidates', renderCandidates);
+  safeRender('jobs', renderJobs);
+  safeRender('icons', () => lucide.createIcons());
 }
 
 // ============================================================
