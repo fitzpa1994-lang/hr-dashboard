@@ -58,8 +58,10 @@ if (rootPkg) {
   expectEqual(rootPkg.scripts?.['diagnose:deployment'], 'node scripts/diagnose_deployment.mjs', 'deployment diagnosis script');
   expectEqual(rootPkg.scripts?.['audit:onboarding-matches'], 'node scripts/audit_onboarding_matches.mjs', 'onboarding match audit script');
   expectEqual(rootPkg.scripts?.['rebuild:n8n:workflow1'], 'node scripts/rebuild_workflow1_export.mjs', 'Workflow1 rebuild script');
+  expectEqual(rootPkg.scripts?.['patch:n8n:recruitment'], 'node scripts/patch_workflow_recruitment_exports.mjs', 'recruitment workflow patch script');
   expectEqual(rootPkg.scripts?.['backfill:workflow1:day'], 'node scripts/backfill_workflow1_day.mjs', 'Workflow1 day backfill script');
   expectEqual(rootPkg.scripts?.['backfill:candidates:20260602'], 'node scripts/backfill_candidates_20260602.mjs', 'Candidate day backfill script');
+  expectEqual(rootPkg.scripts?.['backfill:today:20260603'], 'node scripts/backfill_today_20260603.mjs', '2026-06-03 backfill script');
   expectEqual(rootPkg.scripts?.['deploy:n8n:workflow1'], 'node scripts/deploy_n8n_export.mjs n8n/live_Workflow1_面試解析.json', 'Workflow1 deployment script');
   expectEqual(rootPkg.scripts?.['deploy:n8n:workflow3'], 'node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json', 'Workflow3 deployment script');
   expectEqual(rootPkg.scripts?.['migrate:live-requisitions'], 'node scripts/migrate_live_requisitions.mjs', 'live requisition migration script');
@@ -115,8 +117,10 @@ run('Deployment diagnosis syntax check', 'node', ['--check', 'scripts/diagnose_d
 run('Deployment verifier syntax check', 'node', ['--check', 'scripts/verify_deployment.mjs']);
 run('Onboarding match audit syntax check', 'node', ['--check', 'scripts/audit_onboarding_matches.mjs']);
 run('Workflow1 rebuild syntax check', 'node', ['--check', 'scripts/rebuild_workflow1_export.mjs']);
+run('Recruitment workflow patch syntax check', 'node', ['--check', 'scripts/patch_workflow_recruitment_exports.mjs']);
 run('Workflow1 day backfill syntax check', 'node', ['--check', 'scripts/backfill_workflow1_day.mjs']);
 run('Candidate day backfill syntax check', 'node', ['--check', 'scripts/backfill_candidates_20260602.mjs']);
+run('2026-06-03 backfill syntax check', 'node', ['--check', 'scripts/backfill_today_20260603.mjs']);
 run('n8n export deploy syntax check', 'node', ['--check', 'scripts/deploy_n8n_export.mjs']);
 run('Live requisition migration syntax check', 'node', ['--check', 'scripts/migrate_live_requisitions.mjs']);
 run('Zeabur env preparation syntax check', 'node', ['--check', 'scripts/prepare_zeabur_env.mjs']);
