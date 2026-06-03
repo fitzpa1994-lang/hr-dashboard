@@ -57,6 +57,8 @@ if (rootPkg) {
   expectEqual(rootPkg.scripts?.['verify:deployment'], 'node scripts/verify_deployment.mjs', 'deployment verification script');
   expectEqual(rootPkg.scripts?.['diagnose:deployment'], 'node scripts/diagnose_deployment.mjs', 'deployment diagnosis script');
   expectEqual(rootPkg.scripts?.['audit:onboarding-matches'], 'node scripts/audit_onboarding_matches.mjs', 'onboarding match audit script');
+  expectEqual(rootPkg.scripts?.['rebuild:n8n:workflow1'], 'node scripts/rebuild_workflow1_export.mjs', 'Workflow1 rebuild script');
+  expectEqual(rootPkg.scripts?.['deploy:n8n:workflow1'], 'node scripts/deploy_n8n_export.mjs n8n/live_Workflow1_面試解析.json', 'Workflow1 deployment script');
   expectEqual(rootPkg.scripts?.['deploy:n8n:workflow3'], 'node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json', 'Workflow3 deployment script');
   expectEqual(rootPkg.scripts?.['migrate:live-requisitions'], 'node scripts/migrate_live_requisitions.mjs', 'live requisition migration script');
   expectEqual(rootPkg.scripts?.['prepare:zeabur-env'], 'node scripts/prepare_zeabur_env.mjs', 'Zeabur env preparation script');
@@ -110,6 +112,7 @@ run('Runtime HTTP verification', 'node', ['scripts/verify_runtime.mjs']);
 run('Deployment diagnosis syntax check', 'node', ['--check', 'scripts/diagnose_deployment.mjs']);
 run('Deployment verifier syntax check', 'node', ['--check', 'scripts/verify_deployment.mjs']);
 run('Onboarding match audit syntax check', 'node', ['--check', 'scripts/audit_onboarding_matches.mjs']);
+run('Workflow1 rebuild syntax check', 'node', ['--check', 'scripts/rebuild_workflow1_export.mjs']);
 run('n8n export deploy syntax check', 'node', ['--check', 'scripts/deploy_n8n_export.mjs']);
 run('Live requisition migration syntax check', 'node', ['--check', 'scripts/migrate_live_requisitions.mjs']);
 run('Zeabur env preparation syntax check', 'node', ['--check', 'scripts/prepare_zeabur_env.mjs']);

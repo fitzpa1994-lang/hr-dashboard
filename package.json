@@ -10,6 +10,8 @@
     "verify:deployment": "node scripts/verify_deployment.mjs",
     "diagnose:deployment": "node scripts/diagnose_deployment.mjs",
     "audit:onboarding-matches": "node scripts/audit_onboarding_matches.mjs",
+    "rebuild:n8n:workflow1": "node scripts/rebuild_workflow1_export.mjs",
+    "deploy:n8n:workflow1": "node scripts/deploy_n8n_export.mjs n8n/live_Workflow1_面試解析.json",
     "deploy:n8n:workflow3": "node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json",
     "migrate:live-requisitions": "node scripts/migrate_live_requisitions.mjs",
     "prepare:zeabur-env": "node scripts/prepare_zeabur_env.mjs",
