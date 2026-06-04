@@ -2,10 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+const n8nDir = path.join(root, 'n8n');
 
-const WORKFLOW1_PATH = path.join(root, 'n8n', 'live_Workflow1_面試解析.json');
-const WORKFLOW2_PATH = path.join(root, 'n8n', 'live_Workflow2_歷史匯入.json');
-const WORKFLOW3_PATH = path.join(root, 'n8n', 'live_Workflow3_到職離職.json');
+function findWorkflowFile(prefix) {
+  const file = fs.readdirSync(n8nDir).find((name) => name.startsWith(prefix) && name.endsWith('.json'));
+  if (!file) throw new Error(`Missing workflow export with prefix ${prefix}`);
+  return path.join(n8nDir, file);
+}
+
+const WORKFLOW1_PATH = findWorkflowFile('live_Workflow1_');
+const WORKFLOW2_PATH = findWorkflowFile('live_Workflow2_歷史匯入.json'.replace('.json', ''));
+const WORKFLOW2_30DAY_PATH = findWorkflowFile('live_Workflow2_歷史匯入_近30天');
+const WORKFLOW3_PATH = findWorkflowFile('live_Workflow3_');
 
 const EXTRACTOR_CODE = String.raw`const item = $input.item.json;
 const subject = String(item.subject || '');
@@ -19,27 +27,26 @@ const body = rawBody
   .trim();
 
 const SKIP = new Set([
-  '履歷推薦',
   '面試時間',
-  '面試通知',
+  '履歷推薦',
   '面談通知',
   '初試',
   '複試',
   'interview',
   '通知',
-  '邀約',
-  '前往',
-  '前往公司',
-  '請您前來',
-  '現場',
+  '安排',
+  '主管',
+  '候選人',
+  '應徵者',
+  '人選',
 ]);
 
 function normalizeCandidateName(value) {
   const cleaned = String(value || '')
     .replace(/^(?:RE|FW|FWD)\s*:\s*/gi, '')
-    .replace(/[【】「」『』<>]/g, ' ')
-    .replace(/(?:先生|小姐|您好|人選|候選人)$/g, '')
-    .replace(/^[\s:：\-–—]+|[\s:：\-–—]+$/g, '')
+    .replace(/[【】\[\]<>]/g, ' ')
+    .replace(/(?:先生|小姐|同學|人選|候選人)$/g, '')
+    .replace(/^[\s:,\-–—]+|[\s:,\-–—]+$/g, '')
     .replace(/\s+/g, '');
 
   if (!cleaned) return null;
@@ -50,9 +57,9 @@ function normalizeCandidateName(value) {
 
 let candidateName = null;
 const subjectPatterns = [
-  /【[^】]+】\s*[–—-]\s*([^\s/、，,()（）]{2,20})/,
-  /[–—-]\s*([^\s/、，,()（）]{2,20})\s*$/,
-  /】\s*([^\s/、，,()（）]{2,20})(?:先生|小姐)?/,
+  /[】-]\s*([^\s/、,()<>]{2,20})$/,
+  /【[^】]+】[-–—]?\s*([^\s/、,()<>]{2,20})$/,
+  /面試時間【[^】]+】[-–—]?\s*([^\s/、,()<>]{2,20})/,
 ];
 
 for (const pattern of subjectPatterns) {
@@ -62,8 +69,8 @@ for (const pattern of subjectPatterns) {
   if (candidateName) break;
 }
 
-if (!candidateName && /[–—-]/.test(subject)) {
-  const tail = subject.split(/[–—-]/).pop();
+if (!candidateName && /[\/、,]/.test(subject)) {
+  const tail = subject.split(/[】-]/).pop();
   candidateName = normalizeCandidateName(tail);
 }
 
@@ -80,22 +87,10 @@ function toDate(year, month, day) {
 
 let interviewDate = null;
 const datePatterns = [
-  {
-    re: /(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/,
-    fn: (m) => toDate(m[1], m[2], m[3]),
-  },
-  {
-    re: /(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/,
-    fn: (m) => toDate(m[1], m[2], m[3]),
-  },
-  {
-    re: /(\d{1,2})月\s*(\d{1,2})日/,
-    fn: (m) => toDate(baseYear, m[1], m[2]),
-  },
-  {
-    re: /(\d{1,2})[\/-](\d{1,2})/,
-    fn: (m) => toDate(baseYear, m[1], m[2]),
-  },
+  { re: /(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/, fn: (m) => toDate(m[1], m[2], m[3]) },
+  { re: /(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/, fn: (m) => toDate(m[1], m[2], m[3]) },
+  { re: /(\d{1,2})月\s*(\d{1,2})日/, fn: (m) => toDate(baseYear, m[1], m[2]) },
+  { re: /(\d{1,2})[\/-](\d{1,2})/, fn: (m) => toDate(baseYear, m[1], m[2]) },
 ];
 
 for (const { re, fn } of datePatterns) {
@@ -109,7 +104,10 @@ for (const { re, fn } of datePatterns) {
 let interviewTime = null;
 const timeMatch = searchText.match(/(\d{1,2})[:：](\d{2})/);
 if (timeMatch) {
-  interviewTime = pad2(timeMatch[1]) + ':' + timeMatch[2];
+  let hour = Number(timeMatch[1]);
+  const context = searchText.slice(Math.max(0, searchText.indexOf(timeMatch[0]) - 12), searchText.indexOf(timeMatch[0]) + 12);
+  if (/(下午|PM|pm)/.test(context) && hour < 12) hour += 12;
+  interviewTime = pad2(hour) + ':' + timeMatch[2];
 }
 
 return {
@@ -131,12 +129,12 @@ function splitCandidateNames(rawValue) {
   if (!value || value === '未知姓名') return [value || '未知姓名'];
 
   const cleaned = value
-    .replace(/[()（）]/g, ' ')
-    .replace(/(?:先生|小姐|候選人|人選)/g, '')
+    .replace(/[()<>]/g, ' ')
+    .replace(/(?:先生|小姐|同學|候選人|人選)/g, '')
     .replace(/\s+/g, '');
 
   const parts = cleaned
-    .split(/[\/、，,+]/)
+    .split(/[\/、,，+＋]/)
     .map((part) => part.trim())
     .filter(Boolean);
 
@@ -161,66 +159,21 @@ return candidateNames.map((candidateName, index) => ({
   },
 }));`;
 
-function patchWorkflow(filePath, patches) {
-  const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  for (const patch of patches) {
-    const node = json.nodes.find((entry) => entry.id === patch.id);
-    if (!node) {
-      throw new Error(`Missing node ${patch.id} in ${path.basename(filePath)}`);
-    }
-    node.parameters = {
-      ...node.parameters,
-      mode: patch.mode || node.parameters?.mode,
-      jsCode: patch.jsCode,
-    };
-  }
-  fs.writeFileSync(filePath, JSON.stringify(json, null, 4), 'utf8');
-}
-
-patchWorkflow(WORKFLOW1_PATH, [
-  {
-    id: 'd265f169-59ed-42a6-a38c-ef5bca944e69',
-    mode: 'runOnceForEachItem',
-    jsCode: EXTRACTOR_CODE,
-  },
-  {
-    id: 'code-split-multi-candidates-001',
-    mode: 'runOnceForEachItem',
-    jsCode: SPLIT_MULTI_CANDIDATES_CODE,
-  },
-]);
-
-patchWorkflow(WORKFLOW2_PATH, [
-  {
-    id: '002204b0-1719-4a16-bc1f-965e28c071db',
-    mode: 'runOnceForEachItem',
-    jsCode: EXTRACTOR_CODE,
-  },
-]);
-
-patchWorkflow(WORKFLOW3_PATH, [
-  {
-    id: 'code-integrate-onboard-001',
-    mode: 'runOnceForEachItem',
-    jsCode: String.raw`const base = $('Code嚗???name_from_subject').item.json;
+const ONBOARDING_INTEGRATION_CODE = String.raw`const base = $('Code：萃取 name_from_subject').item.json;
 let aiResult = {};
 try {
   const raw = $input.item.json.content;
   const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');
   const match = text.match(/\{[\s\S]*\}/);
   if (match) aiResult = JSON.parse(match[0]);
-} catch (e) {}
+} catch {}
 
 let regexDate = null;
 const bodyText = base.body_text || '';
 const fallbackYear = String(new Date(base.received_at || Date.now()).getFullYear());
 const datePatterns = [
-  { re: /(?:改為|改到|延後到|延至|順延至|更改報到(?:日期|時間)?為?|調整報到(?:日期|時間)?為?)\s*(\d{4})[\/\-\u5e74](\d{1,2})[\/\-\u6708](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
-  { re: /(?:改為|改到|延後到|延至|順延至|更改報到(?:日期|時間)?為?|調整報到(?:日期|時間)?為?)\s*(\d{1,2})[\/\-\u6708](\d{1,2})/, fn: m => fallbackYear+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0') },
-  { re: /\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
-  { re: /\u9810\u5b9a\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
-  { re: /\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})\u5e74(\d{1,2})\u6708(\d{1,2})\u65e5/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
-  { re: /\u9810\u5b9a\u5831\u5230\u65e5\u671f[\uff1a:]\s*(\d{4})\u5e74(\d{1,2})\u6708(\d{1,2})\u65e5/, fn: m => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
+  { re: /(?:報到日期|預定報到日期|預計於|改為|改到|延後到|延至|更改報到|調整報到)\s*(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/, fn: (m) => m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') },
+  { re: /(?:報到日期|預定報到日期|預計於|改為|改到|延後到|延至|更改報到|調整報到)\s*(\d{1,2})[\/\-月](\d{1,2})/, fn: (m) => fallbackYear+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0') },
 ];
 for (const { re, fn } of datePatterns) {
   const m = bodyText.match(re);
@@ -243,20 +196,44 @@ return {
   position: aiResult.position || null,
   hr_owner: aiResult.hr_owner || null,
   intent: aiResult.intent || 'new_onboard',
-};`,
-  },
+};`;
+
+function patchWorkflow(filePath, patches) {
+  const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  for (const patch of patches) {
+    const node = json.nodes.find((entry) => entry.id === patch.id);
+    if (!node) throw new Error(`Missing node ${patch.id} in ${path.basename(filePath)}`);
+    node.parameters = {
+      ...node.parameters,
+      mode: patch.mode || node.parameters?.mode,
+      jsCode: patch.jsCode,
+    };
+  }
+  fs.writeFileSync(filePath, JSON.stringify(json, null, 4), 'utf8');
+}
+
+patchWorkflow(WORKFLOW1_PATH, [
+  { id: 'd265f169-59ed-42a6-a38c-ef5bca944e69', mode: 'runOnceForEachItem', jsCode: EXTRACTOR_CODE },
+  { id: 'code-split-multi-candidates-001', mode: 'runOnceForEachItem', jsCode: SPLIT_MULTI_CANDIDATES_CODE },
 ]);
 
-console.log(
-  JSON.stringify(
-    {
-      patched: [
-        path.relative(root, WORKFLOW1_PATH),
-        path.relative(root, WORKFLOW2_PATH),
-        path.relative(root, WORKFLOW3_PATH),
-      ],
-    },
-    null,
-    2,
-  ),
-);
+patchWorkflow(WORKFLOW2_PATH, [
+  { id: '002204b0-1719-4a16-bc1f-965e28c071db', mode: 'runOnceForEachItem', jsCode: EXTRACTOR_CODE },
+]);
+
+patchWorkflow(WORKFLOW2_30DAY_PATH, [
+  { id: 'code-parse-interview', mode: 'runOnceForEachItem', jsCode: EXTRACTOR_CODE },
+]);
+
+patchWorkflow(WORKFLOW3_PATH, [
+  { id: 'code-integrate-onboard-001', mode: 'runOnceForEachItem', jsCode: ONBOARDING_INTEGRATION_CODE },
+]);
+
+console.log(JSON.stringify({
+  patched: [
+    path.relative(root, WORKFLOW1_PATH),
+    path.relative(root, WORKFLOW2_PATH),
+    path.relative(root, WORKFLOW2_30DAY_PATH),
+    path.relative(root, WORKFLOW3_PATH),
+  ],
+}, null, 2));
