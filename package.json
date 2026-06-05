@@ -15,6 +15,7 @@
     "backfill:workflow1:day": "node scripts/backfill_workflow1_day.mjs",
     "backfill:candidates:20260602": "node scripts/backfill_candidates_20260602.mjs",
     "backfill:today:20260603": "node scripts/backfill_today_20260603.mjs",
+    "run:n8n:workflow": "node scripts/run_n8n_workflow_once.mjs",
     "deploy:n8n:workflow1": "node scripts/deploy_n8n_export.mjs n8n/live_Workflow1_面試解析.json",
     "deploy:n8n:workflow3": "node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json",
     "migrate:live-requisitions": "node scripts/migrate_live_requisitions.mjs",
