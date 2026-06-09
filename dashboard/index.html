@@ -55,6 +55,32 @@
   .cal-day-num { font-size: 11px; margin-bottom: 4px; }
   .cal-dots { display: flex; flex-wrap: wrap; gap: 2px; }
   .cal-dot { width: 6px; height: 6px; border-radius: 2px; }
+  .schedule-shell { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr); gap: 0; }
+  .schedule-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: #E5E7EB; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; }
+  .schedule-day { background: white; min-height: 132px; padding: 10px 10px 8px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+  .schedule-day:hover { background: #F9FAFB; }
+  .schedule-day.other { background: #FAFAFA; color: #9CA3AF; }
+  .schedule-day.today { background: #EFF6FF; }
+  .schedule-day.selected { box-shadow: inset 0 0 0 2px #1E3A5F; background: #F8FAFC; }
+  .schedule-day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .schedule-day-num { font-size: 13px; font-weight: 700; color: #111827; }
+  .schedule-day.other .schedule-day-num { color: #9CA3AF; }
+  .schedule-count { font-size: 10px; font-weight: 600; color: #64748B; }
+  .schedule-items { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .schedule-pill { border-radius: 6px; padding: 5px 6px; font-size: 11px; line-height: 1.2; color: #111827; overflow: hidden; }
+  .schedule-pill-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .schedule-pill-time { font-size: 10px; color: #6B7280; margin-top: 2px; }
+  .schedule-pill-more { font-size: 10px; color: #6B7280; padding-top: 2px; }
+  .schedule-pane { border-left: 1px solid #E5E7EB; background: #FCFDFE; }
+  .schedule-pane-list { max-height: 760px; overflow-y: auto; }
+  .schedule-pane-empty { padding: 48px 24px; text-align: center; color: #9CA3AF; font-size: 12px; }
+  .schedule-type-interview { background: #EFF6FF; border: 1px solid #DBEAFE; }
+  .schedule-type-onboard { background: #F0FDF4; border: 1px solid #DCFCE7; }
+  .schedule-type-resign { background: #FEF2F2; border: 1px solid #FEE2E2; }
+  @media (max-width: 1280px) {
+    .schedule-shell { grid-template-columns: 1fr; }
+    .schedule-pane { border-left: 0; border-top: 1px solid #E5E7EB; }
+  }
   
   /* Drawer */
   .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(17, 24, 39, 0.4); backdrop-filter: blur(2px); z-index: 50; }
@@ -294,10 +320,50 @@
             </div>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i>匯出</button>
           </div>
-          <table class="w-full tbl-compact">
-            <thead><tr><th>日期 / 時間</th><th>類型</th><th>人員姓名</th><th>職位/部門</th><th>負責HR</th><th>備註</th></tr></thead>
-            <tbody id="sched-list"></tbody>
-          </table>
+          <div class="schedule-shell">
+            <div class="p-5">
+              <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3">
+                  <button class="p-2 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedPrevMonth()">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                  </button>
+                  <div>
+                    <div id="sched-month-label" class="text-base font-semibold text-gray-900"></div>
+                    <div class="text-xs text-gray-500">點日期看當天排程，點候選人看詳細資料</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedGoToday()">回到今天</button>
+                  <button class="p-2 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedNextMonth()">
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="grid grid-cols-7 gap-1 text-center mb-1">
+                <div class="text-[11px] font-semibold text-gray-400 py-2">日</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">一</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">二</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">三</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">四</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">五</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">六</div>
+              </div>
+              <div id="sched-cal-grid" class="schedule-calendar-grid"></div>
+            </div>
+            <div class="schedule-pane">
+              <div class="px-5 py-4 border-b border-border bg-white sticky top-0 z-10">
+                <div id="sched-selected-date" class="text-sm font-semibold text-gray-900"></div>
+                <div id="sched-selected-summary" class="text-xs text-gray-500 mt-1"></div>
+              </div>
+              <div id="sched-pane-list" class="schedule-pane-list">
+                <table class="w-full tbl-compact">
+                  <thead><tr><th class="w-[92px]">時間</th><th class="w-[78px]">類型</th><th>人員姓名 / 內容</th></tr></thead>
+                  <tbody id="sched-list"></tbody>
+                </table>
+                <div id="sched-pane-empty" class="schedule-pane-empty hidden">當天沒有排程</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -866,6 +932,8 @@ function updateFunnel() {
 // SCHEDULE TAB
 // ============================================================
 let schedFilter='all';
+let schedMonthDate=new Date(TODAY+'T00:00:00');
+let schedSelectedDate=TODAY;
 function setSchedF(f,btn){
   schedFilter=f;
   const btns = btn.parentElement.querySelectorAll('button');
@@ -873,26 +941,137 @@ function setSchedF(f,btn){
   btn.className = 'px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white';
   renderSchedule();
 }
+function getFilteredScheduleItems(){
+  return schedFilter==='all' ? schedEvents : schedEvents.filter(e=>e.type===schedFilter);
+}
+function getScheduleTypeLabel(type){
+  return {interview:'面試', onboard:'到職', resign:'離職', 'interview-changed':'面試改期'}[type] || '事件';
+}
+function getScheduleTypeClass(type){
+  return {interview:'schedule-type-interview', onboard:'schedule-type-onboard', resign:'schedule-type-resign', 'interview-changed':'schedule-type-interview'}[type] || 'schedule-type-interview';
+}
 function renderSchedule(){
-  let items=schedFilter==='all'?schedEvents:schedEvents.filter(e=>e.type===schedFilter);
-  items = sortByPrimaryDate(items, item => item.date);
+  const items = sortByPrimaryDate(getFilteredScheduleItems(), item => item.date);
   const tbody=document.getElementById('sched-list');
-  
-  if(!items.length){tbody.innerHTML='<tr><td colspan="6" class="text-center py-8 text-gray-400">無排程資料</td></tr>';return;}
+  const monthStart = new Date(schedMonthDate.getFullYear(), schedMonthDate.getMonth(), 1);
+  const monthEnd = new Date(schedMonthDate.getFullYear(), schedMonthDate.getMonth() + 1, 0);
+  const monthDates = items.map(item => item.date).filter(Boolean);
 
-  const typeMap = {interview:'面試', onboard:'到職', resign:'離職', 'interview-changed':'面試改期'};
-  const badgeMap = {interview:'badge-blue', onboard:'badge-green', resign:'badge-red', 'interview-changed':'badge-orange'};
+  if (!schedSelectedDate || !monthDates.includes(schedSelectedDate) || !isSameMonthString(schedSelectedDate, monthStart)) {
+    const fallback = items.find(item => item.date && isSameMonthString(item.date, monthStart))?.date
+      || `${monthStart.getFullYear()}-${String(monthStart.getMonth()+1).padStart(2,'0')}-${String(monthStart.getDate()).padStart(2,'0')}`;
+    schedSelectedDate = fallback;
+  }
 
-  tbody.innerHTML = items.map(e=>`
+  document.getElementById('sched-month-label').textContent = `${monthStart.getFullYear()}年 ${monthStart.getMonth()+1}月`;
+  renderScheduleCalendar(items, monthStart, monthEnd);
+
+  const dayItems = items.filter(item => item.date === schedSelectedDate);
+  const selectedLabel = document.getElementById('sched-selected-date');
+  const selectedSummary = document.getElementById('sched-selected-summary');
+  const empty = document.getElementById('sched-pane-empty');
+  selectedLabel.textContent = fmtDateWeek(schedSelectedDate);
+  selectedSummary.textContent = dayItems.length ? `共 ${dayItems.length} 筆排程` : '當天沒有排程';
+
+  if(!dayItems.length){
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  tbody.innerHTML = dayItems.map(e=>`
     <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
-      <td><div class="font-medium text-gray-900">${fmtDateWeek(e.date)}</div><div class="text-xs text-gray-500">${e.time||''}</div></td>
-      <td><span class="badge ${badgeMap[e.type]||'badge-gray'}">${typeMap[e.type]}</span></td>
-      <td class="font-semibold text-brand">${e.name}</td>
-      <td>${e.pos||'—'} <span class="text-gray-400 text-[11px] ml-1">${e.dept||''}</span></td>
-      <td class="text-gray-500">${e.hr||'—'}</td>
-      <td class="text-gray-500 text-xs">${e.note||'—'}</td>
+      <td><div class="font-medium text-gray-900">${e.time||'—'}</div><div class="text-xs text-gray-500">${fmtDateWeek(e.date)}</div></td>
+      <td><span class="badge ${e.type==='interview' || e.type==='interview-changed' ? 'badge-blue' : e.type==='onboard' ? 'badge-green' : 'badge-red'}">${getScheduleTypeLabel(e.type)}</span></td>
+      <td>
+        <div class="font-semibold text-brand">${e.name}</div>
+        <div class="text-xs text-gray-500 mt-1">${e.pos||'—'} <span class="ml-1">${e.dept||''}</span></div>
+        <div class="text-xs text-gray-400 mt-1">${e.hr||'—'}${e.note ? ` · ${escHtml(e.note)}` : ''}</div>
+      </td>
     </tr>
   `).join('');
+}
+function renderScheduleCalendar(items, monthStart){
+  const yr = monthStart.getFullYear();
+  const mo = monthStart.getMonth();
+  const firstDow = new Date(yr, mo, 1).getDay();
+  const daysInMo = new Date(yr, mo + 1, 0).getDate();
+  const prevMonthDays = new Date(yr, mo, 0).getDate();
+  const eventMap = {};
+
+  for (const item of items) {
+    if (!item.date) continue;
+    if (!eventMap[item.date]) eventMap[item.date] = [];
+    eventMap[item.date].push(item);
+  }
+
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) {
+    const day = prevMonthDays - firstDow + i + 1;
+    const ds = `${yr}-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    cells.push({ day, ds, other: true });
+  }
+  for (let d = 1; d <= daysInMo; d++) {
+    const ds = `${yr}-${String(mo + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cells.push({ day: d, ds, other: false });
+  }
+  while (cells.length % 7 !== 0) {
+    const nextDay = cells.length - (firstDow + daysInMo) + 1;
+    const ds = `${yr}-${String(mo + 2).padStart(2,'0')}-${String(nextDay).padStart(2,'0')}`;
+    cells.push({ day: nextDay, ds, other: true });
+  }
+
+  document.getElementById('sched-cal-grid').innerHTML = cells.map(cell => {
+    const dayItems = eventMap[cell.ds] || [];
+    const visible = dayItems.slice(0, 3);
+    const moreCount = dayItems.length - visible.length;
+    const classes = [
+      'schedule-day',
+      cell.other ? 'other' : '',
+      cell.ds === TODAY ? 'today' : '',
+      cell.ds === schedSelectedDate ? 'selected' : '',
+    ].filter(Boolean).join(' ');
+    return `
+      <div class="${classes}" onclick="selectScheduleDate('${cell.ds}')">
+        <div class="schedule-day-head">
+          <div class="schedule-day-num">${cell.day}</div>
+          ${dayItems.length ? `<div class="schedule-count">${dayItems.length} 筆</div>` : ''}
+        </div>
+        <div class="schedule-items">
+          ${visible.map(item => `
+            <div class="schedule-pill ${getScheduleTypeClass(item.type)}">
+              <div class="schedule-pill-name">${escHtml(item.name || getScheduleTypeLabel(item.type))}</div>
+              <div class="schedule-pill-time">${escHtml(item.time || getScheduleTypeLabel(item.type))}</div>
+            </div>
+          `).join('')}
+          ${moreCount > 0 ? `<div class="schedule-pill-more">+${moreCount} more</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+function selectScheduleDate(dateString){
+  schedSelectedDate = dateString;
+  renderSchedule();
+}
+function schedPrevMonth(){
+  schedMonthDate.setMonth(schedMonthDate.getMonth() - 1);
+  schedSelectedDate = `${schedMonthDate.getFullYear()}-${String(schedMonthDate.getMonth()+1).padStart(2,'0')}-01`;
+  renderSchedule();
+}
+function schedNextMonth(){
+  schedMonthDate.setMonth(schedMonthDate.getMonth() + 1);
+  schedSelectedDate = `${schedMonthDate.getFullYear()}-${String(schedMonthDate.getMonth()+1).padStart(2,'0')}-01`;
+  renderSchedule();
+}
+function schedGoToday(){
+  schedMonthDate = new Date(TODAY+'T00:00:00');
+  schedSelectedDate = TODAY;
+  renderSchedule();
+}
+function isSameMonthString(dateString, refDate){
+  return String(dateString || '').slice(0, 7) === `${refDate.getFullYear()}-${String(refDate.getMonth()+1).padStart(2,'0')}`;
 }
 
 // ============================================================
