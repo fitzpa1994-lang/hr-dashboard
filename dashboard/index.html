@@ -404,7 +404,7 @@
       <div class="flex items-center gap-5">
         <div class="relative">
           <i data-lucide="search" class="w-4 h-4 absolute left-4 top-[14px] text-gray-400"></i>
-          <input id="global-search" type="text" placeholder="???鈭箝蝻?.." class="dashboard-top-search pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20">
+          <input id="global-search" type="text" placeholder="搜尋候選人、職缺..." class="dashboard-top-search pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20">
           <div id="global-results" class="hidden absolute top-9 left-0 w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-30"></div>
         </div>
         <div class="text-right min-w-[180px]">
@@ -419,13 +419,13 @@
     <!-- Pages Container -->
     <div class="dashboard-content flex-1 overflow-y-auto relative">
       
-      <!-- ===== TAB: ??蝮質汗 (Dashboard) ===== -->
+      <!-- ===== TAB: 招募總覽 ===== -->
       <div id="tab-overview" class="page page-shell block">
         <!-- KPI Row -->
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">隞?Ｚ岫</span>
+              <span class="kpi-label">今日面試</span>
               <i data-lucide="users" class="w-4 h-4 text-brand"></i>
             </div>
             <div class="flex items-end gap-2">
@@ -440,7 +440,7 @@
             </div>
             <div class="flex items-end gap-2">
               <span class="kpi-value" id="kpi-pending-review">8</span>
-              <span class="text-xs text-red-500 font-medium mb-1 flex items-center">3 蝑暹?</span>
+              <span class="text-xs text-red-500 font-medium mb-1 flex items-center">3 筆逾期</span>
             </div>
           </div>
           <div class="kpi-card">
@@ -454,7 +454,7 @@
           </div>
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label" id="kpi-next-onboard-label">餈????啗</span>
+              <span class="kpi-label" id="kpi-next-onboard-label">近期預計到職</span>
               <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
             </div>
             <div class="flex items-end gap-2">
@@ -467,25 +467,25 @@
         <div class="grid grid-cols-12 gap-6">
           <!-- Left Column (Span 8) -->
           <div class="col-span-8 flex flex-col gap-6">
-            <!-- 隞?Ｚ岫?? -->
+            <!-- 今日面試排程 -->
             <div class="surface-panel-strong flex flex-col">
               <div class="section-head">
-                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i>隞?Ｚ岫??</h2>
-                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule', document.querySelectorAll('.menu-item')[1])">?亦??券</button>
+                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i>今日面試排程</h2>
+                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule', document.querySelectorAll('.menu-item')[1])">查看全部</button>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full tbl-compact">
-                  <thead><tr><th>??</th><th>?鈭?/th><th>?噩?瑞撩</th><th>?挾</th><th>鞎痊HR</th><th>???/th></tr></thead>
+                  <thead><tr><th>時間</th><th>候選人</th><th>應徵職缺</th><th>階段</th><th>負責 HR</th><th>狀態</th></tr></thead>
                   <tbody id="overview-today-tbody"></tbody>
                 </table>
               </div>
             </div>
 
-            <!-- ??瞍? & 餈??? -->
+            <!-- 招募漏斗 & 近期狀態變更 -->
             <div class="grid grid-cols-2 gap-5">
               <div class="surface-panel-strong p-6">
                 <div class="flex items-center justify-between mb-4">
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-gray-500"></i>??瞍? (瘥? KPI)</h2>
+                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-gray-500"></i>招募漏斗（月度 KPI）</h2>
                   <select id="funnel-month-select" class="text-xs border border-gray-200 rounded px-2 py-1 bg-gray-50 text-gray-600 focus:outline-none focus:border-brand cursor-pointer" onchange="updateFunnel()">
                     <option value="all">全部月份</option>
                     <option value="2026-05" selected>2026 年 5 月</option>
@@ -493,15 +493,15 @@
                   </select>
                 </div>
                 <div class="flex items-center justify-between mt-2 px-4">
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-total">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">HR ?刻</div></div>
+                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-total">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">HR 推薦</div></div>
                   <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-interview">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">?Ｚ岫摰?</div></div>
+                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-interview">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">進入面試</div></div>
                   <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-brand" id="funnel-offer">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">?</div></div>
+                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-brand" id="funnel-offer">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">錄取 / Offer</div></div>
                 </div>
                 <div class="mt-5 pt-3 border-t border-gray-100 flex justify-between text-[11px] text-gray-500">
-                  <span id="rate-recommend-interview">?刻?閰? 0%</span>
-                  <span id="rate-interview-offer">?Ｚ岫???? 0%</span>
+                  <span id="rate-recommend-interview">推薦轉面試率 0%</span>
+                  <span id="rate-interview-offer">面試轉錄取率 0%</span>
                 </div>
               </div>
               <div class="surface-panel-strong flex flex-col">
@@ -525,41 +525,41 @@
                 <button class="p-1 hover:bg-gray-100 rounded border border-gray-200" onclick="calNext()"><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600"></i></button>
               </div>
               <div class="grid grid-cols-7 gap-1 text-center mb-1">
-                <div class="text-[10px] font-semibold text-gray-400 py-1">??/div><div class="text-[10px] font-semibold text-gray-400 py-1">銝</div><div class="text-[10px] font-semibold text-gray-400 py-1">鈭?/div><div class="text-[10px] font-semibold text-gray-400 py-1">銝?/div><div class="text-[10px] font-semibold text-gray-400 py-1">??/div><div class="text-[10px] font-semibold text-gray-400 py-1">鈭?/div><div class="text-[10px] font-semibold text-gray-400 py-1">??/div>
+                <div class="text-[10px] font-semibold text-gray-400 py-1">日</div><div class="text-[10px] font-semibold text-gray-400 py-1">一</div><div class="text-[10px] font-semibold text-gray-400 py-1">二</div><div class="text-[10px] font-semibold text-gray-400 py-1">三</div><div class="text-[10px] font-semibold text-gray-400 py-1">四</div><div class="text-[10px] font-semibold text-gray-400 py-1">五</div><div class="text-[10px] font-semibold text-gray-400 py-1">六</div>
               </div>
               <div class="cal-grid" id="cal-grid"></div>
               <div class="flex gap-3 justify-center mt-3">
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-blue-500"></div>?Ｚ岫</div>
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-green-500"></div>?啗</div>
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-red-400"></div>?Ｚ</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-blue-500"></div>面試</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-green-500"></div>到職</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-red-400"></div>離職</div>
               </div>
             </div>
 
             <!-- Important & Warnings -->
             <div class="surface-panel-strong p-5">
-              <h2 class="text-[13px] font-semibold text-gray-800 flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>銝餌恣??鈭?</h2>
+              <h2 class="text-[13px] font-semibold text-gray-800 flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>主管提醒事項</h2>
               <div class="space-y-3">
                 <div class="p-3 bg-purple-50 border border-purple-100 rounded text-[12px] text-purple-800 leading-tight">
                   <span class="font-semibold block mb-0.5">錄取職缺核定待確認</span>
-                  敺垢撌亦?撣?(???? 撅交風撌脫?阡?3 憭抬?<span class="font-semibold">撠?嗅?桐?隞颱???</span>嚗??餈質馱??
+                  目前仍有 3 筆錄取案件等待主管確認職缺核定，請優先完成，以免影響後續報到排程。
                 </div>
                 <div class="p-3 bg-red-50 border border-red-100 rounded text-[12px] text-red-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">???趙霅血?</span>
-                  ?垢撌亦?撣?RD-01 蝻粹?撌脤???45 憭抬?? 7 憭拍?啣?撅交風嚗遣霅唳炎閬???隞嗚?
+                  <span class="font-semibold block mb-0.5">招募進度需追蹤</span>
+                  目前有多筆職缺超過 45 天仍未完成招募，建議先檢查高優先級職缺是否需要調整策略。
                 </div>
                 <div class="p-3 bg-amber-50 border border-amber-100 rounded text-[12px] text-amber-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">敺???Offer</span>
-                  璆剖?撠 (?喳) ?貉蝪賣撌脣??3 憭抬?隢???銝餌恣蝣箄???
+                  <span class="font-semibold block mb-0.5">待處理 Offer</span>
+                  仍有 3 筆候選人已進入錄取流程但尚未完成 Offer 作業，請確認回覆與報到安排。
                 </div>
                 <div class="border-t border-gray-100 pt-3 mt-1">
-                  <div class="text-[11px] font-semibold text-gray-500 mb-2">餈?????</div>
+                  <div class="text-[11px] font-semibold text-gray-500 mb-2">近期重要排程</div>
                   <div class="flex gap-2 items-start mb-2">
                     <div class="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0"></div>
-                    <div class="text-[12px] text-gray-700">5/29 (鈭? 10:00 ?唬犖???勗?? (3鈭?</div>
+                    <div class="text-[12px] text-gray-700">5/29（四）10:00 主管核定會議（3 筆待確認）</div>
                   </div>
                   <div class="flex gap-2 items-start">
                     <div class="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0"></div>
-                    <div class="text-[12px] text-gray-700">6/01 (銝) 09:00 ????瑼Ｚ???</div>
+                    <div class="text-[12px] text-gray-700">6/01（一）09:00 招募例會與到職追蹤</div>
                   </div>
                 </div>
               </div>
@@ -568,17 +568,17 @@
         </div>
       </div>
 
-      <!-- ===== TAB: ?Ｚ岫?? ===== -->
+      <!-- ===== TAB: 面試排程 ===== -->
       <div id="tab-schedule" class="page page-shell hidden">
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg">
             <div class="flex gap-2">
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setSchedF('all', this)">?券??</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('interview', this)">?Ｚ岫</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('onboard', this)">?啗</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('resign', this)">?Ｚ</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setSchedF('all', this)">全部排程</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('interview', this)">面試</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('onboard', this)">到職</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('resign', this)">離職</button>
             </div>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i>?臬</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i>匯出</button>
           </div>
           <div class="schedule-shell">
             <div class="p-5">
@@ -589,11 +589,11 @@
                   </button>
                   <div>
                     <div id="sched-month-label" class="text-base font-semibold text-gray-900"></div>
-                    <div class="text-xs text-gray-500">暺???嗅予??嚗??鈭箇?閰喟敦鞈?</div>
+                    <div class="text-xs text-gray-500">點選日期查看當日排程，並可點入候選人詳情。</div>
                   </div>
                 </div>
                 <div class="flex items-center gap-3">
-                  <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedGoToday()">?隞予</button>
+                  <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedGoToday()">回到今天</button>
                   <button class="p-2 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedNextMonth()">
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
                   </button>
@@ -617,47 +617,47 @@
               </div>
               <div id="sched-pane-list" class="schedule-pane-list">
                 <table class="w-full tbl-compact">
-                  <thead><tr><th class="w-[92px]">??</th><th class="w-[78px]">憿?</th><th>鈭箏憪? / ?批捆</th></tr></thead>
+                  <thead><tr><th class="w-[92px]">時間</th><th class="w-[78px]">類型</th><th>對象 / 說明</th></tr></thead>
                   <tbody id="sched-list"></tbody>
                 </table>
-                <div id="sched-pane-empty" class="schedule-pane-empty hidden">?嗅予瘝???</div>
+                <div id="sched-pane-empty" class="schedule-pane-empty hidden">這一天沒有排程</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ===== TAB: 鈭箔??? ===== -->
+      <!-- ===== TAB: 異動作業 ===== -->
       <div id="tab-hr-events" class="page page-shell hidden">
         <div class="grid grid-cols-2 gap-5">
           <div class="surface-panel-strong flex flex-col h-fit">
              <div class="section-head bg-transparent">
-                <i data-lucide="user-check" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">餈??啗餈質馱</h2>
+                <i data-lucide="user-check" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">近期到職名單</h2>
              </div>
              <table class="w-full tbl-compact">
-               <thead><tr><th>憪?</th><th>?券?/?瑚?</th><th>???啗??/th><th>???/th></tr></thead>
+               <thead><tr><th>姓名</th><th>職位 / 部門</th><th>預計到職日</th><th>狀態</th></tr></thead>
                <tbody id="onboard-list"></tbody>
              </table>
           </div>
           <div class="surface-panel-strong flex flex-col h-fit">
              <div class="section-head bg-transparent">
-                <i data-lucide="user-minus" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">餈??Ｚ餈質馱</h2>
+                <i data-lucide="user-minus" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">近期離職名單</h2>
              </div>
              <table class="w-full tbl-compact">
-               <thead><tr><th>憪?</th><th>?券?/?瑚?</th><th>?敺極雿</th><th>???/th></tr></thead>
+               <thead><tr><th>姓名</th><th>職位 / 部門</th><th>最後在職日</th><th>狀態</th></tr></thead>
                <tbody id="resign-list"></tbody>
              </table>
           </div>
         </div>
       </div>
 
-      <!-- ===== TAB: ?瑞撩?瘜?===== -->
+      <!-- ===== TAB: 職缺管理 ===== -->
       <div id="tab-jobs" class="page page-shell hidden">
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg">
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setJobF('all', this)">?券</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">??銝?/button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">撌脰?朣?/button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setJobF('all', this)">全部</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">開缺中</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">已補滿</button>
           </div>
           <table class="w-full tbl-compact">
             <thead><tr><th>單位</th><th>職缺名稱</th><th>缺額</th><th>已補數</th><th>開缺日期</th><th>目標日期</th><th>急迫度</th><th>狀態</th></tr></thead>
@@ -666,41 +666,41 @@
         </div>
       </div>
 
-      <!-- ===== TAB: 鈭粹?瘜?===== -->
+      <!-- ===== TAB: 候選人資料 ===== -->
       <div id="tab-candidates" class="page page-shell hidden">
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg flex-wrap">
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">?券</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">敺蜓蝞∪?閬?/button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">?Ｚ岫銝?/button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">??銝?/button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">撌脣??/button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">撌脫??/button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待主管回覆</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">錄取中</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">已到職</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">已撤回</button>
             <div class="ml-auto flex items-center gap-3">
-              <input id="candidate-search" type="text" placeholder="???鈭?.." class="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand">
+              <input id="candidate-search" type="text" placeholder="搜尋候選人..." class="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand">
               <span id="cand-count" class="text-xs text-gray-500">0 / 0 筆</span>
             </div>
           </div>
           <table class="w-full tbl-compact">
-            <thead><tr><th>憪?</th><th>?噩?瑚?</th><th>?券?</th><th>鞎痊HR</th><th>???/th><th>?敺??/th><th>?酉</th></tr></thead>
+            <thead><tr><th>姓名</th><th>應徵職位</th><th>部門</th><th>負責 HR</th><th>狀態</th><th>最近更新</th><th>備註</th></tr></thead>
             <tbody id="cand-tbody"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- ===== TAB: 頞典?? ===== -->
+      <!-- ===== TAB: 分析報表 ===== -->
       <div id="tab-analytics" class="page page-shell hidden">
         <div class="grid grid-cols-2 gap-5">
           <div class="surface-panel-strong p-6">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="line-chart" class="w-4 h-4"></i>?漲??/?啗頞典</h2>
+            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="line-chart" class="w-4 h-4"></i>近月招募 / 到職趨勢</h2>
             <div class="relative h-64"><canvas id="trendChart"></canvas></div>
           </div>
           <div class="surface-panel-strong p-6">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="bar-chart" class="w-4 h-4"></i>?????脣漲</h2>
+            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="bar-chart" class="w-4 h-4"></i>各部門招募成效</h2>
             <div class="relative h-64"><canvas id="deptChart"></canvas></div>
           </div>
           <div class="surface-panel-strong p-6 col-span-2">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i>HR ?Ｚ岫?湔活蝯梯?</h2>
+            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i>HR 面試工作量</h2>
             <div class="relative h-64"><canvas id="hrWorkChart"></canvas></div>
           </div>
         </div>
@@ -727,20 +727,20 @@
     <div class="flex-1 overflow-y-auto p-6 space-y-6">
       <!-- Quick links -->
       <section>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">憭???</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">快速連結</h3>
         <div class="flex gap-3">
           <a class="flex-1 flex items-center justify-center gap-2 py-2 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition" id="dr-email-btn" href="#" target="_blank">
-            <i data-lucide="mail" class="w-4 h-4"></i> Outlook 靽∩辣
+            <i data-lucide="mail" class="w-4 h-4"></i> Outlook 郵件
           </a>
           <a class="flex-1 flex items-center justify-center gap-2 py-2 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition" id="dr-resume-btn" href="#" target="_blank">
-            <i data-lucide="file-text" class="w-4 h-4"></i> 撅交風瑼?
+            <i data-lucide="file-text" class="w-4 h-4"></i> 履歷附件
           </a>
         </div>
       </section>
 
       <!-- Basic info -->
       <section>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">?箸鞈?</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">基本資訊</h3>
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3" id="dr-info">
           <!-- JS Render -->
         </div>
@@ -748,13 +748,13 @@
 
       <!-- HR Notes -->
       <section id="dr-notes-section">
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">HR ?酉</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">HR 備註</h3>
         <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-[12px] leading-relaxed" id="dr-notes"></div>
       </section>
 
       <!-- Timeline -->
       <section>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">甇瑞?閮?</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">歷程記錄</h3>
         <div class="relative pl-3 border-l-2 border-gray-200 ml-2 space-y-4" id="dr-timeline">
           <!-- JS Render -->
         </div>
@@ -1120,8 +1120,8 @@ function initOverview() {
   document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
   document.getElementById('kpi-week-onboard').textContent = overviewKpis.nextOnboardCount;
   document.getElementById('kpi-next-onboard-label').textContent = overviewKpis.nextOnboardDate
-    ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))}???啗`
-    : '餈????啗';
+    ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))} 預計到職`
+    : '近期預計到職';
 
   // Today Interviews Table
   const todayList = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
@@ -1150,12 +1150,12 @@ function initOverview() {
         <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">${c.name[0]}</div>
         <div>
           <div class="text-[13px] font-semibold text-gray-800">${c.name}</div>
-          <div class="text-[11px] text-gray-500">${c.pos} 繚 ${c.dept}</div>
+          <div class="text-[11px] text-gray-500">${c.pos} · ${c.dept}</div>
         </div>
       </div>
       <div class="text-right">
         ${getBadge(c.status)}
-        <div class="text-[10px] text-gray-400 mt-1">${fmtDate(c.date)} ?湔</div>
+        <div class="text-[10px] text-gray-400 mt-1">${fmtDate(c.date)} 更新</div>
       </div>
     </div>
   `).join('');
@@ -1165,27 +1165,23 @@ function updateFunnel() {
   const month = document.getElementById('funnel-month-select').value;
   let data = candidatesData;
   
-  // 靘??詨???隞賜祟?貉???
   if (month !== 'all') {
     data = candidatesData.filter(c => c.date.startsWith(month));
   }
 
   const totalRecommended = data.length;
   const totalInterviewed = data.filter(c => ['interviewing', 'offer', 'onboarded'].includes(c.status)).length;
-  // ??犖嚗??葉?歇?啗嚗?
   const totalOffered = data.filter(c => ['offer', 'onboarded'].includes(c.status)).length;
 
-  // ?湔?詨?
   document.getElementById('funnel-total').textContent = totalRecommended;
   document.getElementById('funnel-interview').textContent = totalInterviewed;
   document.getElementById('funnel-offer').textContent = totalOffered;
 
-  // ?湔頧???
   const rateIntv = totalRecommended > 0 ? Math.round((totalInterviewed / totalRecommended) * 100) : 0;
   const rateOff = totalInterviewed > 0 ? Math.round((totalOffered / totalInterviewed) * 100) : 0;
 
-  document.getElementById('rate-recommend-interview').textContent = `?刻?閰? ${rateIntv}%`;
-  document.getElementById('rate-interview-offer').textContent = `?Ｚ岫???? ${rateOff}%`;
+  document.getElementById('rate-recommend-interview').textContent = `推薦轉面試率 ${rateIntv}%`;
+  document.getElementById('rate-interview-offer').textContent = `面試轉錄取率 ${rateOff}%`;
 }
 
 // ============================================================
@@ -1478,9 +1474,9 @@ function renderCharts(){
     data:{
       labels:trend6.map(m=>m.month),
       datasets:[
-        {label:'?Ｚ岫',data:trend6.map(m=>m.interviews),borderColor:'#1E3A5F',backgroundColor:'#1E3A5F',tension:0.3,borderWidth:2,pointRadius:3},
-        {label:'?',data:trend6.map(m=>m.offers),borderColor:'#D97706',backgroundColor:'#D97706',tension:0.3,borderWidth:2,pointRadius:3},
-        {label:'?啗',data:trend6.map(m=>m.onboarded),borderColor:'#16A34A',backgroundColor:'#16A34A',tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'面試',data:trend6.map(m=>m.interviews),borderColor:'#1E3A5F',backgroundColor:'#1E3A5F',tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'錄取',data:trend6.map(m=>m.offers),borderColor:'#D97706',backgroundColor:'#D97706',tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'到職',data:trend6.map(m=>m.onboarded),borderColor:'#16A34A',backgroundColor:'#16A34A',tension:0.3,borderWidth:2,pointRadius:3},
       ]
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:6}}}}
