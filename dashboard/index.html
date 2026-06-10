@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HR 招募戰略面板 - 企業版</title>
+<title>HR ???啁?Ｘ - 隡平??/title>
 
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -12,14 +12,14 @@
     theme: {
       extend: {
         colors: {
-          brand: { DEFAULT: '#1E3A5F', dark: '#0F2742', light: '#2B5282' },
-          background: '#F6F8FA',
+          brand: { DEFAULT: '#163A63', dark: '#0A1B31', light: '#2E5B88' },
+          background: '#EEF2F7',
           surface: '#FFFFFF',
-          border: '#E5E7EB',
-          text: { primary: '#111827', secondary: '#6B7280', muted: '#9CA3AF' }
+          border: '#D9E2EC',
+          text: { primary: '#132033', secondary: '#526277', muted: '#8A97A8' }
         },
         fontFamily: {
-          sans: ['Inter', 'Noto Sans TC', 'system-ui', 'sans-serif']
+          sans: ['Plus Jakarta Sans', 'Noto Sans TC', 'system-ui', 'sans-serif']
         }
       }
     }
@@ -27,51 +27,260 @@
 </script>
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
 <style>
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  
-  body { font-size: 13px; color: #111827; }
-  
-  /* Compact Table Overrides */
-  .tbl-compact th { padding: 10px 12px; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.02em; border-bottom: 1px solid #E5E7EB; background-color: #F9FAFB; }
-  .tbl-compact td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #F3F4F6; vertical-align: middle; }
-  .tbl-compact tr:last-child td { border-bottom: none; }
-  .tbl-compact tr:hover td { background-color: #F9FAFB; }
+  :root {
+    --shell-bg: radial-gradient(circle at top left, rgba(53, 90, 135, 0.18), transparent 24%), linear-gradient(180deg, #0b1424 0%, #101a2d 100%);
+    --shell-border: rgba(255, 255, 255, 0.08);
+    --shell-muted: rgba(203, 213, 225, 0.78);
+    --panel-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+    --panel-shadow-soft: 0 12px 28px rgba(15, 23, 42, 0.06);
+    --panel-border: rgba(148, 163, 184, 0.2);
+    --panel-tint: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.985) 100%);
+  }
 
-  /* Calendar */
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #E5E7EB; border: 1px solid #E5E7EB; border-radius: 6px; overflow: hidden; }
-  .cal-day { background: white; padding: 6px 4px; min-height: 48px; position: relative; cursor: pointer; transition: background 0.15s; }
-  .cal-day:hover { background: #F9FAFB; }
-  .cal-day.other { color: #9CA3AF; background: #FAFAFA; }
-  .cal-day.today { background: #EFF6FF; font-weight: 600; color: #1E3A5F; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #b4c1d1; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #8ea1b7; }
+
+  body {
+    font-size: 13px;
+    color: #132033;
+    background: var(--shell-bg);
+    letter-spacing: 0;
+  }
+
+  .dashboard-shell { background: transparent; }
+  .dashboard-sidebar {
+    width: 272px;
+    background:
+      linear-gradient(180deg, rgba(18, 30, 51, 0.98) 0%, rgba(10, 20, 36, 0.98) 100%);
+    border-right: 1px solid var(--shell-border);
+    box-shadow: inset -1px 0 0 rgba(255,255,255,0.03);
+  }
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2f6ea9 0%, #6ea6d8 100%);
+    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.3);
+  }
+  .sidebar-caption {
+    font-size: 10px;
+    color: rgba(148, 163, 184, 0.72);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 0 14px;
+    margin-bottom: 10px;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    color: rgba(226, 232, 240, 0.76);
+    border-radius: 14px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .menu-item:hover {
+    background: rgba(59, 130, 246, 0.12);
+    color: #f8fafc;
+    border-color: rgba(96, 165, 250, 0.18);
+  }
+  .menu-item.active {
+    background: linear-gradient(180deg, rgba(38, 74, 111, 0.92) 0%, rgba(23, 53, 84, 0.92) 100%);
+    color: #ffffff;
+    border-color: rgba(125, 177, 226, 0.2);
+    box-shadow: 0 10px 24px rgba(8, 15, 28, 0.22);
+  }
+  .dashboard-main {
+    min-width: 0;
+    background: linear-gradient(180deg, rgba(241,245,249,0.86) 0%, rgba(233,239,246,0.96) 100%);
+    backdrop-filter: blur(20px);
+  }
+  .dashboard-topbar {
+    height: 76px;
+    background: rgba(248, 250, 252, 0.76);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.72);
+  }
+  .dashboard-content {
+    padding: 28px;
+  }
+  .page-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .surface-card,
+  .surface-panel {
+    background: var(--panel-tint);
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    box-shadow: var(--panel-shadow-soft);
+  }
+  .surface-panel-strong {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,252,255,0.98) 100%);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 24px;
+    box-shadow: var(--panel-shadow);
+  }
+  .section-head {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .section-title {
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #132033;
+    letter-spacing: 0;
+  }
+  .section-subtitle {
+    font-size: 12px;
+    color: #6b7a8e;
+    margin-top: 4px;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .kpi-card {
+    position: relative;
+    overflow: hidden;
+    padding: 20px 22px 18px;
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,249,253,0.96) 100%);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: var(--panel-shadow-soft);
+  }
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(22,58,99,0.92), rgba(80,128,181,0.6));
+  }
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7a8796;
+  }
+  .kpi-value {
+    font-size: 38px;
+    line-height: 1;
+    font-weight: 800;
+    color: #132033;
+    letter-spacing: -0.02em;
+  }
+  .kpi-footnote {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7a8e;
+  }
+  .dashboard-top-search {
+    width: 420px;
+    max-width: 42vw;
+    height: 44px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255,255,255,0.8);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.64);
+    font-size: 13px;
+    color: #132033;
+  }
+  .dashboard-top-search::placeholder { color: #8a97a8; }
+  .ghost-button,
+  .ghost-button-icon {
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(255,255,255,0.78);
+    color: #425166;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+    transition: all 0.18s ease;
+  }
+  .ghost-button:hover,
+  .ghost-button-icon:hover {
+    background: rgba(255,255,255,0.96);
+    border-color: rgba(96, 165, 250, 0.28);
+    color: #163a63;
+  }
+  .primary-chip {
+    border: 1px solid rgba(22, 58, 99, 0.18);
+    background: linear-gradient(180deg, #173e67 0%, #143553 100%);
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(20, 53, 83, 0.18);
+  }
+  .filter-chip {
+    border-radius: 14px;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .tbl-compact th {
+    padding: 13px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #728196;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    background-color: rgba(244, 247, 251, 0.9);
+  }
+  .tbl-compact td {
+    padding: 15px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    vertical-align: middle;
+    color: #223042;
+  }
+  .tbl-compact tr:last-child td { border-bottom: none; }
+  .tbl-compact tr:hover td { background-color: rgba(246, 249, 252, 0.95); }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #d7e0ea; border: 1px solid #d7e0ea; border-radius: 18px; overflow: hidden; }
+  .cal-day { background: rgba(255,255,255,0.96); padding: 9px 7px; min-height: 62px; position: relative; cursor: pointer; transition: background 0.15s; }
+  .cal-day:hover { background: #f6f9fc; }
+  .cal-day.other { color: #9CA3AF; background: #F8FAFC; }
+  .cal-day.today { background: #edf4fb; font-weight: 700; color: #163a63; }
   .cal-day-num { font-size: 11px; margin-bottom: 4px; }
   .cal-dots { display: flex; flex-wrap: wrap; gap: 2px; }
   .cal-dot { width: 6px; height: 6px; border-radius: 2px; }
-  .schedule-shell { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr); gap: 0; }
-  .schedule-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: #E5E7EB; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; }
-  .schedule-day { background: white; min-height: 132px; padding: 10px 10px 8px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
-  .schedule-day:hover { background: #F9FAFB; }
-  .schedule-day.other { background: #FAFAFA; color: #9CA3AF; }
-  .schedule-day.today { background: #EFF6FF; }
-  .schedule-day.selected { box-shadow: inset 0 0 0 2px #1E3A5F; background: #F8FAFC; }
+  .schedule-shell { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.82fr); gap: 0; }
+  .schedule-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: #d7e0ea; border: 1px solid #d7e0ea; border-radius: 18px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7); }
+  .schedule-day { background: rgba(255,255,255,0.98); min-height: 144px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+  .schedule-day:hover { background: #f7fafe; }
+  .schedule-day.other { background: #f7f9fc; color: #9CA3AF; }
+  .schedule-day.today { background: #edf4fb; }
+  .schedule-day.selected { box-shadow: inset 0 0 0 2px #163a63; background: #f7fbff; }
   .schedule-day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .schedule-day-num { font-size: 13px; font-weight: 700; color: #111827; }
+  .schedule-day-num { font-size: 13px; font-weight: 800; color: #132033; }
   .schedule-day.other .schedule-day-num { color: #9CA3AF; }
-  .schedule-count { font-size: 10px; font-weight: 600; color: #64748B; }
+  .schedule-count { font-size: 10px; font-weight: 700; color: #64748B; }
   .schedule-items { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-  .schedule-pill { border-radius: 6px; padding: 5px 6px; font-size: 11px; line-height: 1.2; color: #111827; overflow: hidden; }
-  .schedule-pill-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .schedule-pill { border-radius: 12px; padding: 8px 8px 7px; font-size: 11px; line-height: 1.25; color: #111827; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+  .schedule-pill-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .schedule-pill-time { font-size: 10px; color: #6B7280; margin-top: 2px; }
   .schedule-pill-more { font-size: 10px; color: #6B7280; padding-top: 2px; }
-  .schedule-pane { border-left: 1px solid #E5E7EB; background: #FCFDFE; }
+  .schedule-pane { border-left: 1px solid rgba(148, 163, 184, 0.16); background: linear-gradient(180deg, rgba(252,253,254,0.94) 0%, rgba(247,250,252,0.96) 100%); }
   .schedule-pane-list { max-height: 760px; overflow-y: auto; }
   .schedule-pane-empty { padding: 48px 24px; text-align: center; color: #9CA3AF; font-size: 12px; }
   .schedule-type-interview { background: #EFF6FF; border: 1px solid #DBEAFE; }
@@ -89,7 +298,7 @@
   .drawer-panel.open { transform: translateX(0); }
 
   /* Utilities */
-  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; line-height: 1.2; border: 1px solid transparent; }
+  .badge { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.2; border: 1px solid transparent; }
   .badge-blue { background: #EFF6FF; color: #1D4ED8; border-color: #DBEAFE; }
   .badge-green { background: #F0FDF4; color: #15803D; border-color: #DCFCE7; }
   .badge-orange { background: #FFF7ED; color: #C2410C; border-color: #FFEDD5; }
@@ -97,156 +306,207 @@
   .badge-gray { background: #F3F4F6; color: #4B5563; border-color: #E5E7EB; }
   .badge-purple { background: #F3E8FF; color: #7E22CE; border-color: #E9D5FF; }
   .badge-teal { background: #F0FDFA; color: #0F766E; border-color: #CCFBF1; }
-  
-  .menu-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; color: #9CA3AF; border-radius: 6px; margin-bottom: 4px; cursor: pointer; transition: all 0.15s; font-size: 13px; font-weight: 500; }
-  .menu-item:hover { background: #1E3A5F; color: white; }
-  .menu-item.active { background: #2B5282; color: white; }
+
+  .soft-note {
+    border-radius: 18px;
+    padding: 16px 18px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+  }
+
+  .page .rounded-lg { border-radius: 22px; }
+  .page .rounded-t-lg { border-top-left-radius: 22px; border-top-right-radius: 22px; }
+  .page canvas { filter: saturate(1.02); }
+  .page button {
+    transition: all 0.18s ease;
+  }
+  .page button:hover {
+    transform: translateY(-1px);
+  }
+  .page select,
+  .page input[type="text"] {
+    border-radius: 14px;
+  }
+  .page .text-brand {
+    color: #163a63;
+  }
+  .page .border-brand {
+    border-color: rgba(22, 58, 99, 0.2);
+  }
+  .page .bg-brand {
+    background: linear-gradient(180deg, #173e67 0%, #143553 100%);
+  }
+  .page .bg-gray-50\/50 {
+    background: transparent;
+  }
+  .page .border-border {
+    border-color: rgba(148, 163, 184, 0.14);
+  }
+  .page .text-gray-800 { color: #132033; }
+  .page .text-gray-700 { color: #314155; }
+  .page .text-gray-600 { color: #56667a; }
+  .page .text-gray-500 { color: #748397; }
+  .page .text-gray-400 { color: #94a0af; }
+  .page .p-3.bg-purple-50,
+  .page .p-3.bg-red-50,
+  .page .p-3.bg-amber-50 {
+    border-radius: 18px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.56);
+  }
 </style>
 </head>
-<body class="flex h-screen bg-background overflow-hidden">
+<body class="dashboard-shell flex h-screen overflow-hidden">
 
   <!-- Sidebar -->
-  <aside class="w-60 bg-brand-dark flex flex-col flex-shrink-0 border-r border-gray-800">
-    <div class="h-14 flex items-center px-5 border-b border-gray-800">
-      <i data-lucide="boxes" class="w-5 h-5 text-blue-400 mr-2"></i>
-      <span class="text-white font-bold text-sm tracking-wide">SPORTON HRIS</span>
-    </div>
-    <div class="p-3 flex-1 overflow-y-auto">
-      <div class="text-[10px] text-gray-500 font-semibold mb-2 px-3 uppercase tracking-wider">招募管理</div>
-      <div class="menu-item active" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> 招募總覽</div>
-      <div class="menu-item" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
-      <div class="menu-item" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人管理</div>
-      <div class="menu-item" onclick="showTab('jobs', this)"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
-      
-      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">異動作業</div>
-      <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 人事動態 (到/離)</div>
-      
-      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">報表與設定</div>
-      <div class="menu-item" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 趨勢分析</div>
-      <div class="menu-item"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
-    </div>
-    <div class="p-4 border-t border-gray-800 flex items-center gap-3">
-      <div class="w-8 h-8 rounded bg-brand-light flex items-center justify-center text-white font-semibold text-xs">HR</div>
+  <aside class="dashboard-sidebar flex flex-col flex-shrink-0">
+    <div class="h-[76px] flex items-center px-6 border-b border-white/10">
+      <div class="brand-mark flex items-center justify-center mr-3">
+        <i data-lucide="boxes" class="w-5 h-5 text-white"></i>
+      </div>
       <div>
-        <div class="text-white text-xs font-semibold">System Admin</div>
-        <div class="text-gray-400 text-[11px]">HR Department</div>
+        <div class="text-white font-extrabold text-sm tracking-[0.08em]">SPORTON HRIS</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">HR operations console</div>
+      </div>
+    </div>
+    <div class="p-4 flex-1 overflow-y-auto">
+      <div class="text-[10px] text-gray-500 font-semibold mb-2 px-3 uppercase tracking-wider">??蝞∠?</div>
+      <div class="menu-item active" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> ??蝮質汗</div>
+      <div class="menu-item" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> ?Ｚ岫??</div>
+      <div class="menu-item" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> ?鈭箇恣??/div>
+      <div class="menu-item" onclick="showTab('jobs', this)"><i data-lucide="briefcase" class="w-4 h-4"></i> ?瑞撩蝞∠?</div>
+      
+      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">?啣?雿平</div>
+      <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 鈭箔??? (????</div>
+      
+      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">?梯”?身摰?/div>
+      <div class="menu-item" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 頞典??</div>
+      <div class="menu-item"><i data-lucide="settings" class="w-4 h-4"></i> 蝟餌絞閮剖?</div>
+    </div>
+    <div class="p-5 border-t border-white/10 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white font-semibold text-xs border border-white/10">HR</div>
+      <div>
+        <div class="text-white text-xs font-semibold tracking-[0.02em]">System Admin</div>
+        <div class="text-slate-400 text-[11px]">HR Department</div>
       </div>
     </div>
   </aside>
 
   <!-- Main Content -->
-  <main class="flex-1 flex flex-col min-w-0">
+  <main class="dashboard-main flex-1 flex flex-col min-w-0">
     <!-- Topbar -->
-    <header class="h-14 bg-surface border-b border-border flex items-center justify-between px-6 flex-shrink-0">
+    <header class="dashboard-topbar flex items-center justify-between px-8 flex-shrink-0">
       <div class="flex items-center gap-4">
-        <h1 class="text-base font-semibold text-text-primary" id="page-title">招募總覽</h1>
+        <div>
+          <div class="text-[11px] uppercase tracking-[0.12em] text-slate-400 font-bold">Dashboard</div>
+          <h1 class="text-[24px] leading-none font-extrabold text-text-primary mt-1" id="page-title">招募總覽</h1>
+        </div>
       </div>
       <div class="flex items-center gap-5">
         <div class="relative">
-          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2 text-gray-400"></i>
-          <input id="global-search" type="text" placeholder="搜尋候選人、職缺..." class="pl-9 pr-4 py-1.5 bg-gray-100 border-none rounded text-xs w-64 focus:outline-none focus:ring-1 focus:ring-brand">
+          <i data-lucide="search" class="w-4 h-4 absolute left-4 top-[14px] text-gray-400"></i>
+          <input id="global-search" type="text" placeholder="???鈭箝蝻?.." class="dashboard-top-search pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20">
           <div id="global-results" class="hidden absolute top-9 left-0 w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-30"></div>
         </div>
-        <div class="text-right">
-          <div class="text-xs text-gray-500" id="hdr-date">載入中...</div>
-          <div class="text-[10px] text-gray-400 mt-0.5" id="last-updated">等待更新</div>
+        <div class="text-right min-w-[180px]">
+          <div class="text-sm text-gray-600 font-semibold tracking-[0.02em]" id="hdr-date">讀取中...</div>
+          <div class="text-[10px] text-gray-400 mt-0.5" id="last-updated">蝑??湔</div>
         </div>
-        <button id="refresh-btn" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="refreshDashboard()">重新整理</button>
-        <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="logoutDashboard()">登出</button>
+        <button id="refresh-btn" class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="refreshDashboard()">??渡?</button>
+        <button class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="logoutDashboard()">?餃</button>
       </div>
     </header>
 
     <!-- Pages Container -->
-    <div class="flex-1 overflow-y-auto p-6 relative">
+    <div class="dashboard-content flex-1 overflow-y-auto relative">
       
-      <!-- ===== TAB: 招募總覽 (Dashboard) ===== -->
-      <div id="tab-overview" class="page block">
+      <!-- ===== TAB: ??蝮質汗 (Dashboard) ===== -->
+      <div id="tab-overview" class="page page-shell block">
         <!-- KPI Row -->
-        <div class="grid grid-cols-4 gap-4 mb-5">
-          <div class="bg-surface border border-border p-4 rounded-lg">
+        <div class="kpi-grid">
+          <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-gray-500 uppercase">今日面試</span>
+              <span class="kpi-label">隞?Ｚ岫</span>
               <i data-lucide="users" class="w-4 h-4 text-brand"></i>
             </div>
             <div class="flex items-end gap-2">
-              <span class="text-2xl font-bold text-gray-900" id="kpi-today-intv">3</span>
+              <span class="kpi-value" id="kpi-today-intv">3</span>
               <span class="text-xs text-green-600 font-medium mb-1 flex items-center"><i data-lucide="trending-up" class="w-3 h-3 mr-0.5"></i> 2</span>
             </div>
           </div>
-          <div class="bg-surface border border-border p-4 rounded-lg">
+          <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-gray-500 uppercase">待主管回覆</span>
+              <span class="kpi-label">敺蜓蝞∪?閬?/span>
               <i data-lucide="clock" class="w-4 h-4 text-purple-600"></i>
             </div>
             <div class="flex items-end gap-2">
-              <span class="text-2xl font-bold text-gray-900" id="kpi-pending-review">8</span>
-              <span class="text-xs text-red-500 font-medium mb-1 flex items-center">3 筆逾期</span>
+              <span class="kpi-value" id="kpi-pending-review">8</span>
+              <span class="text-xs text-red-500 font-medium mb-1 flex items-center">3 蝑暹?</span>
             </div>
           </div>
-          <div class="bg-surface border border-border p-4 rounded-lg">
+          <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-gray-500 uppercase">待安排 / 邀約面試</span>
+              <span class="kpi-label">敺???/ ?蝝閰?/span>
               <i data-lucide="calendar-plus" class="w-4 h-4 text-amber-500"></i>
             </div>
             <div class="flex items-end gap-2">
-              <span class="text-2xl font-bold text-gray-900" id="kpi-pending-invite">5</span>
+              <span class="kpi-value" id="kpi-pending-invite">5</span>
             </div>
           </div>
-          <div class="bg-surface border border-border p-4 rounded-lg">
+          <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-gray-500 uppercase" id="kpi-next-onboard-label">近期預計到職</span>
+              <span class="kpi-label" id="kpi-next-onboard-label">餈????啗</span>
               <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
             </div>
             <div class="flex items-end gap-2">
-              <span class="text-2xl font-bold text-gray-900" id="kpi-week-onboard">4</span>
+              <span class="kpi-value" id="kpi-week-onboard">4</span>
             </div>
           </div>
         </div>
 
         <!-- Layout Grid -->
-        <div class="grid grid-cols-12 gap-5">
+        <div class="grid grid-cols-12 gap-6">
           <!-- Left Column (Span 8) -->
-          <div class="col-span-8 flex flex-col gap-5">
-            <!-- 今日面試排程 -->
-            <div class="bg-surface border border-border rounded-lg flex flex-col">
-              <div class="px-5 py-3 border-b border-border flex justify-between items-center">
-                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i>今日面試排程</h2>
-                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule', document.querySelectorAll('.menu-item')[1])">查看全部</button>
+          <div class="col-span-8 flex flex-col gap-6">
+            <!-- 隞?Ｚ岫?? -->
+            <div class="surface-panel-strong flex flex-col">
+              <div class="section-head">
+                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i>隞?Ｚ岫??</h2>
+                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule', document.querySelectorAll('.menu-item')[1])">?亦??券</button>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full tbl-compact">
-                  <thead><tr><th>時間</th><th>候選人</th><th>應徵職缺</th><th>階段</th><th>負責HR</th><th>狀態</th></tr></thead>
+                  <thead><tr><th>??</th><th>?鈭?/th><th>?噩?瑞撩</th><th>?挾</th><th>鞎痊HR</th><th>???/th></tr></thead>
                   <tbody id="overview-today-tbody"></tbody>
                 </table>
               </div>
             </div>
 
-            <!-- 招募漏斗 & 近期動態 -->
+            <!-- ??瞍? & 餈??? -->
             <div class="grid grid-cols-2 gap-5">
-              <div class="bg-surface border border-border rounded-lg p-5">
+              <div class="surface-panel-strong p-6">
                 <div class="flex items-center justify-between mb-4">
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-gray-500"></i>招募漏斗 (每月 KPI)</h2>
+                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-gray-500"></i>??瞍? (瘥? KPI)</h2>
                   <select id="funnel-month-select" class="text-xs border border-gray-200 rounded px-2 py-1 bg-gray-50 text-gray-600 focus:outline-none focus:border-brand cursor-pointer" onchange="updateFunnel()">
-                    <option value="all">累計全部</option>
-                    <option value="2026-05" selected>2026年 5月</option>
-                    <option value="2026-04">2026年 4月</option>
+                    <option value="all">蝝航??券</option>
+                    <option value="2026-05" selected>2026撟?5??/option>
+                    <option value="2026-04">2026撟?4??/option>
                   </select>
                 </div>
                 <div class="flex items-center justify-between mt-2 px-4">
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-total">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">HR 推薦</div></div>
+                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-total">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">HR ?刻</div></div>
                   <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-interview">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">面試安排</div></div>
+                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-interview">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">?Ｚ岫摰?</div></div>
                   <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-brand" id="funnel-offer">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">錄用</div></div>
+                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-brand" id="funnel-offer">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">?</div></div>
                 </div>
                 <div class="mt-5 pt-3 border-t border-gray-100 flex justify-between text-[11px] text-gray-500">
-                  <span id="rate-recommend-interview">推薦→面試: 0%</span>
-                  <span id="rate-interview-offer">面試→錄用: 0%</span>
+                  <span id="rate-recommend-interview">?刻?閰? 0%</span>
+                  <span id="rate-interview-offer">?Ｚ岫???? 0%</span>
                 </div>
               </div>
-              <div class="bg-surface border border-border rounded-lg flex flex-col">
-                <div class="px-5 py-3 border-b border-border">
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-gray-500"></i>近期狀態變更</h2>
+              <div class="surface-panel-strong flex flex-col">
+                <div class="section-head">
+                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-gray-500"></i>餈??????/h2>
                 </div>
                 <div class="p-3 flex-1 flex flex-col gap-2" id="overview-recent-cands">
                   <!-- JS Render -->
@@ -256,50 +516,50 @@
           </div>
 
           <!-- Right Column (Span 4) -->
-          <div class="col-span-4 flex flex-col gap-5">
+          <div class="col-span-4 flex flex-col gap-6">
             <!-- Calendar -->
-            <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="surface-panel-strong p-5">
               <div class="flex justify-between items-center mb-3">
                 <button class="p-1 hover:bg-gray-100 rounded border border-gray-200" onclick="calPrev()"><i data-lucide="chevron-left" class="w-4 h-4 text-gray-600"></i></button>
                 <div class="text-[13px] font-semibold text-gray-800" id="cal-month-label"></div>
                 <button class="p-1 hover:bg-gray-100 rounded border border-gray-200" onclick="calNext()"><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600"></i></button>
               </div>
               <div class="grid grid-cols-7 gap-1 text-center mb-1">
-                <div class="text-[10px] font-semibold text-gray-400 py-1">日</div><div class="text-[10px] font-semibold text-gray-400 py-1">一</div><div class="text-[10px] font-semibold text-gray-400 py-1">二</div><div class="text-[10px] font-semibold text-gray-400 py-1">三</div><div class="text-[10px] font-semibold text-gray-400 py-1">四</div><div class="text-[10px] font-semibold text-gray-400 py-1">五</div><div class="text-[10px] font-semibold text-gray-400 py-1">六</div>
+                <div class="text-[10px] font-semibold text-gray-400 py-1">??/div><div class="text-[10px] font-semibold text-gray-400 py-1">銝</div><div class="text-[10px] font-semibold text-gray-400 py-1">鈭?/div><div class="text-[10px] font-semibold text-gray-400 py-1">銝?/div><div class="text-[10px] font-semibold text-gray-400 py-1">??/div><div class="text-[10px] font-semibold text-gray-400 py-1">鈭?/div><div class="text-[10px] font-semibold text-gray-400 py-1">??/div>
               </div>
               <div class="cal-grid" id="cal-grid"></div>
               <div class="flex gap-3 justify-center mt-3">
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-blue-500"></div>面試</div>
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-green-500"></div>到職</div>
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-red-400"></div>離職</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-blue-500"></div>?Ｚ岫</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-green-500"></div>?啗</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-red-400"></div>?Ｚ</div>
               </div>
             </div>
 
             <!-- Important & Warnings -->
-            <div class="bg-surface border border-border rounded-lg p-4">
-              <h2 class="text-[13px] font-semibold text-gray-800 flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>主管提醒事項</h2>
+            <div class="surface-panel-strong p-5">
+              <h2 class="text-[13px] font-semibold text-gray-800 flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>銝餌恣??鈭?</h2>
               <div class="space-y-3">
                 <div class="p-3 bg-purple-50 border border-purple-100 rounded text-[12px] text-purple-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">待用人單位回覆</span>
-                  後端工程師 (林小華) 履歷已推薦逾 3 天，<span class="font-semibold">尚未收到單位任何回覆</span>，請協助追蹤。
+                  <span class="font-semibold block mb-0.5">敺鈭箏雿?閬?/span>
+                  敺垢撌亦?撣?(???? 撅交風撌脫?阡?3 憭抬?<span class="font-semibold">撠?嗅?桐?隞颱???</span>嚗??餈質馱??
                 </div>
                 <div class="p-3 bg-red-50 border border-red-100 rounded text-[12px] text-red-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">招募停滯警告</span>
-                  前端工程師 RD-01 缺額已開啟逾 45 天，過去 7 天無新增履歷，建議檢視招募條件。
+                  <span class="font-semibold block mb-0.5">???趙霅血?</span>
+                  ?垢撌亦?撣?RD-01 蝻粹?撌脤???45 憭抬?? 7 憭拍?啣?撅交風嚗遣霅唳炎閬???隞嗚?
                 </div>
                 <div class="p-3 bg-amber-50 border border-amber-100 rounded text-[12px] text-amber-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">待處理 Offer</span>
-                  業務專員 (吳八) 核薪簽核已卡關 3 天，請提醒部門主管確認。
+                  <span class="font-semibold block mb-0.5">敺???Offer</span>
+                  璆剖?撠 (?喳) ?貉蝪賣撌脣??3 憭抬?隢???銝餌恣蝣箄???
                 </div>
                 <div class="border-t border-gray-100 pt-3 mt-1">
-                  <div class="text-[11px] font-semibold text-gray-500 mb-2">近期重要排程</div>
+                  <div class="text-[11px] font-semibold text-gray-500 mb-2">餈?????</div>
                   <div class="flex gap-2 items-start mb-2">
                     <div class="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0"></div>
-                    <div class="text-[12px] text-gray-700">5/29 (五) 10:00 新人集體報到手續 (3人)</div>
+                    <div class="text-[12px] text-gray-700">5/29 (鈭? 10:00 ?唬犖???勗?? (3鈭?</div>
                   </div>
                   <div class="flex gap-2 items-start">
                     <div class="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0"></div>
-                    <div class="text-[12px] text-gray-700">6/01 (一) 09:00 各部門招募檢討月會</div>
+                    <div class="text-[12px] text-gray-700">6/01 (銝) 09:00 ????瑼Ｚ???</div>
                   </div>
                 </div>
               </div>
@@ -308,17 +568,17 @@
         </div>
       </div>
 
-      <!-- ===== TAB: 面試排程 ===== -->
-      <div id="tab-schedule" class="page hidden">
-        <div class="bg-surface border border-border rounded-lg flex flex-col">
-          <div class="px-5 py-4 border-b border-border flex justify-between items-center bg-gray-50/50 rounded-t-lg">
+      <!-- ===== TAB: ?Ｚ岫?? ===== -->
+      <div id="tab-schedule" class="page page-shell hidden">
+        <div class="surface-panel-strong flex flex-col">
+          <div class="section-head bg-transparent rounded-t-lg">
             <div class="flex gap-2">
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setSchedF('all', this)">全部排程</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('interview', this)">面試</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('onboard', this)">到職</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('resign', this)">離職</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setSchedF('all', this)">?券??</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('interview', this)">?Ｚ岫</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('onboard', this)">?啗</button>
+              <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setSchedF('resign', this)">?Ｚ</button>
             </div>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i>匯出</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i>?臬</button>
           </div>
           <div class="schedule-shell">
             <div class="p-5">
@@ -329,118 +589,118 @@
                   </button>
                   <div>
                     <div id="sched-month-label" class="text-base font-semibold text-gray-900"></div>
-                    <div class="text-xs text-gray-500">點日期看當天排程，點候選人看詳細資料</div>
+                    <div class="text-xs text-gray-500">暺???嗅予??嚗??鈭箇?閰喟敦鞈?</div>
                   </div>
                 </div>
                 <div class="flex items-center gap-3">
-                  <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedGoToday()">回到今天</button>
+                  <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedGoToday()">?隞予</button>
                   <button class="p-2 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="schedNextMonth()">
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
                   </button>
                 </div>
               </div>
               <div class="grid grid-cols-7 gap-1 text-center mb-1">
-                <div class="text-[11px] font-semibold text-gray-400 py-2">日</div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">一</div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">二</div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">三</div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">四</div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">五</div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">六</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">??/div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">銝</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">鈭?/div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">銝?/div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">??/div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">鈭?/div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">??/div>
               </div>
               <div id="sched-cal-grid" class="schedule-calendar-grid"></div>
             </div>
             <div class="schedule-pane">
-              <div class="px-5 py-4 border-b border-border bg-white sticky top-0 z-10">
+              <div class="section-head bg-white/80 sticky top-0 z-10">
                 <div id="sched-selected-date" class="text-sm font-semibold text-gray-900"></div>
                 <div id="sched-selected-summary" class="text-xs text-gray-500 mt-1"></div>
               </div>
               <div id="sched-pane-list" class="schedule-pane-list">
                 <table class="w-full tbl-compact">
-                  <thead><tr><th class="w-[92px]">時間</th><th class="w-[78px]">類型</th><th>人員姓名 / 內容</th></tr></thead>
+                  <thead><tr><th class="w-[92px]">??</th><th class="w-[78px]">憿?</th><th>鈭箏憪? / ?批捆</th></tr></thead>
                   <tbody id="sched-list"></tbody>
                 </table>
-                <div id="sched-pane-empty" class="schedule-pane-empty hidden">當天沒有排程</div>
+                <div id="sched-pane-empty" class="schedule-pane-empty hidden">?嗅予瘝???</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ===== TAB: 人事動態 ===== -->
-      <div id="tab-hr-events" class="page hidden">
+      <!-- ===== TAB: 鈭箔??? ===== -->
+      <div id="tab-hr-events" class="page page-shell hidden">
         <div class="grid grid-cols-2 gap-5">
-          <div class="bg-surface border border-border rounded-lg flex flex-col h-fit">
-             <div class="px-5 py-3 border-b border-border flex items-center gap-2 bg-gray-50/50">
-                <i data-lucide="user-check" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">近期到職追蹤</h2>
+          <div class="surface-panel-strong flex flex-col h-fit">
+             <div class="section-head bg-transparent">
+                <i data-lucide="user-check" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">餈??啗餈質馱</h2>
              </div>
              <table class="w-full tbl-compact">
-               <thead><tr><th>姓名</th><th>部門/職位</th><th>預計到職日</th><th>狀態</th></tr></thead>
+               <thead><tr><th>憪?</th><th>?券?/?瑚?</th><th>???啗??/th><th>???/th></tr></thead>
                <tbody id="onboard-list"></tbody>
              </table>
           </div>
-          <div class="bg-surface border border-border rounded-lg flex flex-col h-fit">
-             <div class="px-5 py-3 border-b border-border flex items-center gap-2 bg-gray-50/50">
-                <i data-lucide="user-minus" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">近期離職追蹤</h2>
+          <div class="surface-panel-strong flex flex-col h-fit">
+             <div class="section-head bg-transparent">
+                <i data-lucide="user-minus" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">餈??Ｚ餈質馱</h2>
              </div>
              <table class="w-full tbl-compact">
-               <thead><tr><th>姓名</th><th>部門/職位</th><th>最後工作日</th><th>狀態</th></tr></thead>
+               <thead><tr><th>憪?</th><th>?券?/?瑚?</th><th>?敺極雿</th><th>???/th></tr></thead>
                <tbody id="resign-list"></tbody>
              </table>
           </div>
         </div>
       </div>
 
-      <!-- ===== TAB: 職缺狀況 ===== -->
-      <div id="tab-jobs" class="page hidden">
-        <div class="bg-surface border border-border rounded-lg flex flex-col">
-          <div class="px-5 py-4 border-b border-border flex gap-2 bg-gray-50/50 rounded-t-lg">
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setJobF('all', this)">全部</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">招募中</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">已補齊</button>
+      <!-- ===== TAB: ?瑞撩?瘜?===== -->
+      <div id="tab-jobs" class="page page-shell hidden">
+        <div class="surface-panel-strong flex flex-col">
+          <div class="section-head bg-transparent rounded-t-lg">
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setJobF('all', this)">?券</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">??銝?/button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">撌脰?朣?/button>
           </div>
           <table class="w-full tbl-compact">
-            <thead><tr><th>職位名稱</th><th>所屬部門</th><th>急迫度</th><th>開缺日</th><th>開缺天數</th><th>履歷數</th><th>錄取率</th><th>狀態</th></tr></thead>
+            <thead><tr><th>單位</th><th>職缺名稱</th><th>缺額</th><th>已補數</th><th>開缺日期</th><th>目標日期</th><th>急迫度</th><th>狀態</th></tr></thead>
             <tbody id="job-tbody"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- ===== TAB: 人選狀況 ===== -->
-      <div id="tab-candidates" class="page hidden">
-        <div class="bg-surface border border-border rounded-lg flex flex-col">
-          <div class="px-5 py-4 border-b border-border flex flex-wrap gap-2 bg-gray-50/50 rounded-t-lg">
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待主管回覆</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">錄取中</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">已到職</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">已撤回</button>
+      <!-- ===== TAB: 鈭粹?瘜?===== -->
+      <div id="tab-candidates" class="page page-shell hidden">
+        <div class="surface-panel-strong flex flex-col">
+          <div class="section-head bg-transparent rounded-t-lg flex-wrap">
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">?券</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">敺蜓蝞∪?閬?/button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">?Ｚ岫銝?/button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">??銝?/button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">撌脣??/button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">撌脫??/button>
             <div class="ml-auto flex items-center gap-3">
-              <input id="candidate-search" type="text" placeholder="搜尋候選人..." class="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand">
-              <span id="cand-count" class="text-xs text-gray-500">0 / 0 人</span>
+              <input id="candidate-search" type="text" placeholder="???鈭?.." class="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand">
+              <span id="cand-count" class="text-xs text-gray-500">0 / 0 鈭?/span>
             </div>
           </div>
           <table class="w-full tbl-compact">
-            <thead><tr><th>姓名</th><th>應徵職位</th><th>部門</th><th>負責HR</th><th>狀態</th><th>最後更新</th><th>備註</th></tr></thead>
+            <thead><tr><th>憪?</th><th>?噩?瑚?</th><th>?券?</th><th>鞎痊HR</th><th>???/th><th>?敺??/th><th>?酉</th></tr></thead>
             <tbody id="cand-tbody"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- ===== TAB: 趨勢分析 ===== -->
-      <div id="tab-analytics" class="page hidden">
+      <!-- ===== TAB: 頞典?? ===== -->
+      <div id="tab-analytics" class="page page-shell hidden">
         <div class="grid grid-cols-2 gap-5">
-          <div class="bg-surface border border-border rounded-lg p-5">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="line-chart" class="w-4 h-4"></i>月度招募/到職趨勢</h2>
+          <div class="surface-panel-strong p-6">
+            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="line-chart" class="w-4 h-4"></i>?漲??/?啗頞典</h2>
             <div class="relative h-64"><canvas id="trendChart"></canvas></div>
           </div>
-          <div class="bg-surface border border-border rounded-lg p-5">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="bar-chart" class="w-4 h-4"></i>各部門招募進度</h2>
+          <div class="surface-panel-strong p-6">
+            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="bar-chart" class="w-4 h-4"></i>?????脣漲</h2>
             <div class="relative h-64"><canvas id="deptChart"></canvas></div>
           </div>
-          <div class="bg-surface border border-border rounded-lg p-5 col-span-2">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i>HR 面試場次統計</h2>
+          <div class="surface-panel-strong p-6 col-span-2">
+            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i>HR ?Ｚ岫?湔活蝯梯?</h2>
             <div class="relative h-64"><canvas id="hrWorkChart"></canvas></div>
           </div>
         </div>
@@ -456,8 +716,8 @@
   <div class="drawer-panel" id="drawer">
     <div class="px-6 py-5 border-b border-border bg-gray-50 flex justify-between items-start shrink-0">
       <div>
-        <div class="text-xl font-bold text-gray-900 mb-1" id="dr-name">—</div>
-        <div class="text-[12px] text-gray-500 flex items-center gap-2" id="dr-pos">—</div>
+        <div class="text-xl font-bold text-gray-900 mb-1" id="dr-name">??/div>
+        <div class="text-[12px] text-gray-500 flex items-center gap-2" id="dr-pos">??/div>
       </div>
       <button class="p-1.5 border border-gray-300 rounded bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-800" onclick="closeDrawer()">
         <i data-lucide="x" class="w-4 h-4"></i>
@@ -467,20 +727,20 @@
     <div class="flex-1 overflow-y-auto p-6 space-y-6">
       <!-- Quick links -->
       <section>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">外部連結</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">憭???</h3>
         <div class="flex gap-3">
           <a class="flex-1 flex items-center justify-center gap-2 py-2 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition" id="dr-email-btn" href="#" target="_blank">
-            <i data-lucide="mail" class="w-4 h-4"></i> Outlook 信件
+            <i data-lucide="mail" class="w-4 h-4"></i> Outlook 靽∩辣
           </a>
           <a class="flex-1 flex items-center justify-center gap-2 py-2 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition" id="dr-resume-btn" href="#" target="_blank">
-            <i data-lucide="file-text" class="w-4 h-4"></i> 履歷檔案
+            <i data-lucide="file-text" class="w-4 h-4"></i> 撅交風瑼?
           </a>
         </div>
       </section>
 
       <!-- Basic info -->
       <section>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">基本資料</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">?箸鞈?</h3>
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3" id="dr-info">
           <!-- JS Render -->
         </div>
@@ -488,13 +748,13 @@
 
       <!-- HR Notes -->
       <section id="dr-notes-section">
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">HR 備註</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">HR ?酉</h3>
         <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-[12px] leading-relaxed" id="dr-notes"></div>
       </section>
 
       <!-- Timeline -->
       <section>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">歷程記錄</h3>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">甇瑞?閮?</h3>
         <div class="relative pl-3 border-l-2 border-gray-200 ml-2 space-y-4" id="dr-timeline">
           <!-- JS Render -->
         </div>
@@ -530,7 +790,7 @@
       try { data = await res.json(); } catch (_) {}
       return { ok: res.ok, status: res.status, data };
     } catch (error) {
-      return { ok: false, status: 0, data: { error: error.name === 'AbortError' ? '連線逾時，請稍後重試' : '網路異常，請確認連線後再試' } };
+      return { ok: false, status: 0, data: { error: error.name === 'AbortError' ? '請求逾時，請稍後再試' : '連線失敗，請稍後重新整理' } };
     }
   }
 
@@ -557,10 +817,10 @@
 
       overlay.innerHTML = `
         <div style="background:white;border-radius:16px;padding:40px 36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center">
-          <div style="font-size:28px;margin-bottom:12px">🏢</div>
+          <div style="font-size:28px;margin-bottom:12px">🔐</div>
           <div style="font-size:18px;font-weight:700;color:#1e3a5f;margin-bottom:4px">SPORTON HRIS</div>
-          <div style="font-size:12px;color:#64748b;margin-bottom:28px">招募戰略面板</div>
-          <input id="pw-input" type="password" placeholder="請輸入密碼"
+          <div style="font-size:12px;color:#64748b;margin-bottom:28px">HR 儀表板登入</div>
+          <input id="pw-input" type="password" placeholder="請輸入登入密碼"
             style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box"
             autocomplete="current-password"/>
           <div id="pw-err" style="color:#f43f5e;font-size:12px;min-height:18px;margin-bottom:8px"></div>
@@ -578,12 +838,12 @@
         const button = document.getElementById('pw-btn');
         const error = document.getElementById('pw-err');
         if (!input.value.trim()) {
-          error.textContent = '請輸入密碼';
+          error.textContent = '請輸入登入密碼';
           input.focus();
           return;
         }
         button.disabled = true;
-        button.textContent = '驗證中...';
+        button.textContent = '登入中...';
         error.textContent = '';
 
         try {
@@ -599,7 +859,7 @@
             resolve(true);
           } else {
             sessionStorage.removeItem(KEY);
-            error.textContent = result.data.error || '密碼錯誤，請重新輸入';
+            error.textContent = result.data.error || '登入失敗，請重新輸入';
             input.value = '';
             input.focus();
           }
@@ -730,9 +990,9 @@ function sortByPrimaryDate(items, getDateValue) {
 
 function dateDiff(a,b){return Math.round((new Date(b)-new Date(a))/86400000)}
 function daysOpen(d){return dateDiff(d,TODAY)}
-function fmtDate(d){if(!d||d==='null')return'—';const p=d.split('-');return`${+p[1]}/${+p[2]}`}
+function fmtDate(d){if(!d||d==='null')return'--';const p=d.split('-');return`${+p[1]}/${+p[2]}`}
 function fmtDateWeek(d){
-  if(!d||d==='null')return'—';
+  if(!d||d==='null')return'--';
   const dt=new Date(d+'T00:00:00');
   const DOW=['日','一','二','三','四','五','六'];
   return`${+d.split('-')[1]}/${+d.split('-')[2]} (${DOW[dt.getDay()]})`;
@@ -751,7 +1011,7 @@ const stLabelMap={
   onboarded:'已到職',
   withdrawn:'已撤回',
   open:'招募中',
-  filled:'已補齊',
+  filled:'已補滿',
   on_hold:'暫停'
 };
 const badgeClassMap={
@@ -766,7 +1026,7 @@ const badgeClassMap={
 };
 
 function getBadge(status) {
-  const lbl = stLabelMap[status] || status || '—';
+  const lbl = stLabelMap[status] || status || '--';
   const cls = badgeClassMap[status] || 'badge-gray';
   return `<span class="badge ${cls}">${escHtml(lbl)}</span>`;
 }
@@ -782,7 +1042,7 @@ function updateHeaderStatus(text, subText) {
 async function loadData() {
   const refreshBtn = document.getElementById('refresh-btn');
   if (refreshBtn) refreshBtn.disabled = true;
-  updateHeaderStatus('載入中...', '請稍候');
+  updateHeaderStatus('讀取中...', '同步資料中');
 
   try {
     await window.hrAuthReady;
@@ -813,7 +1073,7 @@ async function loadData() {
     );
   } catch (err) {
     console.error('API Error:', err);
-    updateHeaderStatus('資料載入失敗', err.name === 'AbortError' ? '連線逾時，請重試' : '請確認後端與 n8n 狀態');
+    updateHeaderStatus('資料載入失敗', err.name === 'AbortError' ? '連線逾時，請稍後再試' : '請檢查 n8n 或 API 狀態');
   } finally {
     if (refreshBtn) refreshBtn.disabled = false;
   }
@@ -860,8 +1120,8 @@ function initOverview() {
   document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
   document.getElementById('kpi-week-onboard').textContent = overviewKpis.nextOnboardCount;
   document.getElementById('kpi-next-onboard-label').textContent = overviewKpis.nextOnboardDate
-    ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))}預計到職`
-    : '近期預計到職';
+    ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))}???啗`
+    : '餈????啗';
 
   // Today Interviews Table
   const todayList = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
@@ -870,7 +1130,7 @@ function initOverview() {
     const st = cand ? cand.status : 'interviewing';
     return `
     <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
-      <td class="font-medium text-gray-900">${e.time||'—'}</td>
+      <td class="font-medium text-gray-900">${e.time||'--'}</td>
       <td class="font-semibold text-brand">${e.name}</td>
       <td>${e.pos} <span class="text-gray-400 text-[11px] ml-1">${e.dept}</span></td>
       <td>第 ${e.round||1} 輪</td>
@@ -890,12 +1150,12 @@ function initOverview() {
         <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">${c.name[0]}</div>
         <div>
           <div class="text-[13px] font-semibold text-gray-800">${c.name}</div>
-          <div class="text-[11px] text-gray-500">${c.pos} · ${c.dept}</div>
+          <div class="text-[11px] text-gray-500">${c.pos} 繚 ${c.dept}</div>
         </div>
       </div>
       <div class="text-right">
         ${getBadge(c.status)}
-        <div class="text-[10px] text-gray-400 mt-1">${fmtDate(c.date)} 更新</div>
+        <div class="text-[10px] text-gray-400 mt-1">${fmtDate(c.date)} ?湔</div>
       </div>
     </div>
   `).join('');
@@ -905,27 +1165,27 @@ function updateFunnel() {
   const month = document.getElementById('funnel-month-select').value;
   let data = candidatesData;
   
-  // 依據選取的月份篩選資料
+  // 靘??詨???隞賜祟?貉???
   if (month !== 'all') {
     data = candidatesData.filter(c => c.date.startsWith(month));
   }
 
   const totalRecommended = data.length;
   const totalInterviewed = data.filter(c => ['interviewing', 'offer', 'onboarded'].includes(c.status)).length;
-  // 錄用的人（錄取中與已到職）
+  // ??犖嚗??葉?歇?啗嚗?
   const totalOffered = data.filter(c => ['offer', 'onboarded'].includes(c.status)).length;
 
-  // 更新數字
+  // ?湔?詨?
   document.getElementById('funnel-total').textContent = totalRecommended;
   document.getElementById('funnel-interview').textContent = totalInterviewed;
   document.getElementById('funnel-offer').textContent = totalOffered;
 
-  // 更新轉換率
+  // ?湔頧???
   const rateIntv = totalRecommended > 0 ? Math.round((totalInterviewed / totalRecommended) * 100) : 0;
   const rateOff = totalInterviewed > 0 ? Math.round((totalOffered / totalInterviewed) * 100) : 0;
 
-  document.getElementById('rate-recommend-interview').textContent = `推薦→面試: ${rateIntv}%`;
-  document.getElementById('rate-interview-offer').textContent = `面試→錄用: ${rateOff}%`;
+  document.getElementById('rate-recommend-interview').textContent = `?刻?閰? ${rateIntv}%`;
+  document.getElementById('rate-interview-offer').textContent = `?Ｚ岫???? ${rateOff}%`;
 }
 
 // ============================================================
@@ -945,7 +1205,7 @@ function getFilteredScheduleItems(){
   return schedFilter==='all' ? schedEvents : schedEvents.filter(e=>e.type===schedFilter);
 }
 function getScheduleTypeLabel(type){
-  return {interview:'面試', onboard:'到職', resign:'離職', 'interview-changed':'面試改期'}[type] || '事件';
+  return {interview:'面試', onboard:'到職', resign:'離職', 'interview-changed':'面試異動'}[type] || '事件';
 }
 function getScheduleTypeClass(type){
   return {interview:'schedule-type-interview', onboard:'schedule-type-onboard', resign:'schedule-type-resign', 'interview-changed':'schedule-type-interview'}[type] || 'schedule-type-interview';
@@ -963,7 +1223,7 @@ function renderSchedule(){
     schedSelectedDate = fallback;
   }
 
-  document.getElementById('sched-month-label').textContent = `${monthStart.getFullYear()}年 ${monthStart.getMonth()+1}月`;
+  document.getElementById('sched-month-label').textContent = `${monthStart.getFullYear()} 年 ${monthStart.getMonth()+1} 月`;
   renderScheduleCalendar(items, monthStart, monthEnd);
 
   const dayItems = items.filter(item => item.date === schedSelectedDate);
@@ -971,7 +1231,7 @@ function renderSchedule(){
   const selectedSummary = document.getElementById('sched-selected-summary');
   const empty = document.getElementById('sched-pane-empty');
   selectedLabel.textContent = fmtDateWeek(schedSelectedDate);
-  selectedSummary.textContent = dayItems.length ? `共 ${dayItems.length} 筆排程` : '當天沒有排程';
+  selectedSummary.textContent = dayItems.length ? `共 ${dayItems.length} 筆事件` : '當天沒有排程';
 
   if(!dayItems.length){
     tbody.innerHTML = '';
@@ -982,12 +1242,12 @@ function renderSchedule(){
   empty.classList.add('hidden');
   tbody.innerHTML = dayItems.map(e=>`
     <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
-      <td><div class="font-medium text-gray-900">${e.time||'—'}</div><div class="text-xs text-gray-500">${fmtDateWeek(e.date)}</div></td>
+      <td><div class="font-medium text-gray-900">${e.time||'--'}</div><div class="text-xs text-gray-500">${fmtDateWeek(e.date)}</div></td>
       <td><span class="badge ${e.type==='interview' || e.type==='interview-changed' ? 'badge-blue' : e.type==='onboard' ? 'badge-green' : 'badge-red'}">${getScheduleTypeLabel(e.type)}</span></td>
       <td>
         <div class="font-semibold text-brand">${e.name}</div>
-        <div class="text-xs text-gray-500 mt-1">${e.pos||'—'} <span class="ml-1">${e.dept||''}</span></div>
-        <div class="text-xs text-gray-400 mt-1">${e.hr||'—'}${e.note ? ` · ${escHtml(e.note)}` : ''}</div>
+        <div class="text-xs text-gray-500 mt-1">${e.pos||'--'} <span class="ml-1">${e.dept||''}</span></div>
+        <div class="text-xs text-gray-400 mt-1">${e.hr||'--'}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
       </td>
     </tr>
   `).join('');
@@ -1036,7 +1296,7 @@ function renderScheduleCalendar(items, monthStart){
       <div class="${classes}" onclick="selectScheduleDate('${cell.ds}')">
         <div class="schedule-day-head">
           <div class="schedule-day-num">${cell.day}</div>
-          ${dayItems.length ? `<div class="schedule-count">${dayItems.length} 筆</div>` : ''}
+          ${dayItems.length ? `<div class="schedule-count">${dayItems.length} 蝑?/div>` : ''}
         </div>
         <div class="schedule-items">
           ${visible.map(item => `
@@ -1080,7 +1340,7 @@ function isSameMonthString(dateString, refDate){
 let calDate=new Date(TODAY+'T00:00:00');
 function renderCalendar(){
   const yr=calDate.getFullYear(), mo=calDate.getMonth();
-  document.getElementById('cal-month-label').textContent=`${yr}年 ${mo+1}月`;
+  document.getElementById('cal-month-label').textContent=`${yr} 年 ${mo+1} 月`;
   const firstDow=new Date(yr,mo,1).getDay();
   const daysInMo=new Date(yr,mo+1,0).getDate();
 
@@ -1126,7 +1386,7 @@ function renderOnboardResign(){
       <td>${fmtDateWeek(o.date)}</td>
       <td>${getBadge(o.status)}</td>
     </tr>
-  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">無資料</td></tr>`;
+  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">?∟???/td></tr>`;
 
   const rBody=document.getElementById('resign-list');
   const orderedResigns = sortByPrimaryDate(resignData, item => item.lastDay);
@@ -1135,9 +1395,9 @@ function renderOnboardResign(){
       <td class="font-semibold text-gray-900">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
-      <td><span class="badge ${r.status==='done'?'badge-gray':'badge-red'}">${r.status==='done'?'已離職':'離職中'}</span></td>
+      <td><span class="badge ${r.status==='done'?'badge-gray':'badge-red'}">${r.status==='done'?'已完成':'待離職'}</span></td>
     </tr>
-  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">無資料</td></tr>`;
+  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有離職資料</td></tr>`;
 }
 
 // ============================================================
@@ -1156,17 +1416,17 @@ function renderCandidates(){
   const tbody=document.getElementById('cand-tbody');
   const q = String(document.getElementById('candidate-search')?.value || '').trim().toLowerCase();
   const filtered = q ? items.filter(c => [c.name,c.pos,c.dept,c.hr,c.note,c.source].some(v => String(v || '').toLowerCase().includes(q))) : items;
-  document.getElementById('cand-count').textContent = `${filtered.length} / ${candidatesData.length} 人`;
-  if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-gray-400">無資料</td></tr>';return;}
+  document.getElementById('cand-count').textContent = `${filtered.length} / ${candidatesData.length} 筆`;
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-gray-400">沒有符合條件的候選人</td></tr>';return;}
   tbody.innerHTML=filtered.map(c=>`
     <tr class="cursor-pointer" onclick="openDrawer('${c.name}')">
       <td class="font-semibold text-brand">${c.name}</td>
-      <td>${c.pos||'—'}</td>
-      <td class="text-gray-500">${c.dept||'—'}</td>
-      <td class="text-gray-500">${c.hr||'—'}</td>
+      <td>${c.pos||'--'}</td>
+      <td class="text-gray-500">${c.dept||'--'}</td>
+      <td class="text-gray-500">${c.hr||'--'}</td>
       <td>${getBadge(c.status)}</td>
       <td class="text-gray-400 text-xs">${fmtDate(c.date)}</td>
-      <td class="text-gray-400 text-xs" title="${escHtml(c.note||'')}">${escHtml(c.note||'—')}</td>
+      <td class="text-gray-400 text-xs" title="${escHtml(c.note||'')}">${escHtml(c.note||'--')}</td>
     </tr>
   `).join('');
 }
@@ -1182,13 +1442,13 @@ function setJobF(f,btn){
 function renderJobs(){
   const items=jobFilter==='all'?jobsData:jobsData.filter(j=>j.status===jobFilter);
   const tbody=document.getElementById('job-tbody');
-  if(!items.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-gray-400">無職缺資料</td></tr>';return;}
+  if(!items.length){tbody.innerHTML='<tr><td colspan="8" class="text-center py-8 text-gray-400">目前沒有職缺資料</td></tr>';return;}
   tbody.innerHTML=items.map(j=>{
     const rate=j.cands>0?Math.round(100*j.hired/j.cands):0;
     return`<tr>
       <td class="font-semibold text-gray-900">${j.pos}</td>
       <td>${j.dept}</td>
-      <td>${j.open||'—'}</td>
+      <td>${j.open||'--'}</td>
       <td>${j.open?daysOpen(j.open):0} 天</td>
       <td>${j.cands}</td>
       <td>${rate}%</td>
@@ -1218,9 +1478,9 @@ function renderCharts(){
     data:{
       labels:trend6.map(m=>m.month),
       datasets:[
-        {label:'面試',data:trend6.map(m=>m.interviews),borderColor:'#1E3A5F',backgroundColor:'#1E3A5F',tension:0.3,borderWidth:2,pointRadius:3},
-        {label:'錄用',data:trend6.map(m=>m.offers),borderColor:'#D97706',backgroundColor:'#D97706',tension:0.3,borderWidth:2,pointRadius:3},
-        {label:'到職',data:trend6.map(m=>m.onboarded),borderColor:'#16A34A',backgroundColor:'#16A34A',tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'?Ｚ岫',data:trend6.map(m=>m.interviews),borderColor:'#1E3A5F',backgroundColor:'#1E3A5F',tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'?',data:trend6.map(m=>m.offers),borderColor:'#D97706',backgroundColor:'#D97706',tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'?啗',data:trend6.map(m=>m.onboarded),borderColor:'#16A34A',backgroundColor:'#16A34A',tension:0.3,borderWidth:2,pointRadius:3},
       ]
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:6}}}}
@@ -1237,8 +1497,8 @@ function renderCharts(){
     data:{
       labels:Object.keys(deptMap),
       datasets:[
-        {label:'總人選',data:Object.values(deptMap).map(v=>v.t),backgroundColor:'#E5E7EB'},
-        {label:'錄取/到職',data:Object.values(deptMap).map(v=>v.h),backgroundColor:'#1E3A5F'},
+        {label:'總候選人',data:Object.values(deptMap).map(v=>v.t),backgroundColor:'#D9E2EC'},
+        {label:'錄取 / 到職',data:Object.values(deptMap).map(v=>v.h),backgroundColor:'#163A63'},
       ]
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:6}}},scales:{x:{grid:{display:false}},y:{border:{display:false}}}}
@@ -1250,7 +1510,7 @@ function renderCharts(){
     type:'bar',
     data:{
       labels:Object.keys(hrMap),
-      datasets:[{label:'面試場次',data:Object.values(hrMap),backgroundColor:'#2B5282',borderRadius:2}]
+      datasets:[{label:'面試安排數',data:Object.values(hrMap),backgroundColor:'#2B5282',borderRadius:2}]
     },
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{border:{display:false}},y:{grid:{display:false}}}}
   });
@@ -1269,11 +1529,11 @@ function renderGlobalSearch(){
   const rows = [];
   for (const c of candidatesData) {
     const hay = [c.name,c.pos,c.dept,c.hr,c.note,c.source].join(' ').toLowerCase();
-    if (hay.includes(q)) rows.push({ type: '人選', title: c.name, sub: `${c.pos||'—'} · ${c.dept||'—'}`, action: `openDrawer('${jsArg(c.name)}')` });
+    if (hay.includes(q)) rows.push({ type: '候選人', title: c.name, sub: `${c.pos||'--'} · ${c.dept||'--'}`, action: `openDrawer('${jsArg(c.name)}')` });
   }
   for (const j of jobsData) {
     const hay = [j.pos,j.dept,j.status,j.urgency].join(' ').toLowerCase();
-    if (hay.includes(q)) rows.push({ type: '職缺', title: j.pos, sub: `${j.dept||'—'} · ${j.status||'—'}`, action: `showTab('jobs', document.querySelectorAll('.menu-item')[3])` });
+    if (hay.includes(q)) rows.push({ type: '職缺', title: j.pos, sub: `${j.dept||'--'} · ${j.status||'--'}`, action: `showTab('jobs', document.querySelectorAll('.menu-item')[3])` });
   }
 
   box.innerHTML = rows.slice(0, 8).length ? rows.slice(0, 8).map(row => `
@@ -1281,7 +1541,7 @@ function renderGlobalSearch(){
       <div class="text-xs font-semibold text-gray-800">${escHtml(row.title)}</div>
       <div class="text-[11px] text-gray-500">${escHtml(row.type)} · ${escHtml(row.sub)}</div>
     </div>
-  `).join('') : '<div class="p-3 text-xs text-gray-400">找不到符合資料</div>';
+  `).join('') : '<div class="p-3 text-xs text-gray-400">找不到符合的資料</div>';
   box.classList.remove('hidden');
 }
 
@@ -1297,7 +1557,7 @@ function showTab(name, btn){
   document.getElementById('tab-'+name).classList.add('block');
   btn.classList.add('active');
   
-  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'人事動態', jobs:'職缺管理', candidates:'候選人管理', analytics:'趨勢分析'};
+  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'異動作業', jobs:'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
   document.getElementById('page-title').textContent = titleMap[name] || '';
 
   if(name==='analytics') setTimeout(renderCharts, 50); // slight delay to ensure container is visible
@@ -1312,7 +1572,7 @@ function openDrawer(name){
   if(!c)return;
 
   document.getElementById('dr-name').textContent=c.name;
-  document.getElementById('dr-pos').innerHTML=`${c.pos||'—'} <span class="mx-2 text-gray-300">|</span> ${c.dept||'—'} <span class="mx-2 text-gray-300">|</span> ${c.status?getBadge(c.status):''}`;
+  document.getElementById('dr-pos').innerHTML=`${c.pos||'--'} <span class="mx-2 text-gray-300">|</span> ${c.dept||'--'} <span class="mx-2 text-gray-300">|</span> ${c.status?getBadge(c.status):''}`;
 
   const emailBtn=document.getElementById('dr-email-btn');
   if(c.emailLink&&c.emailLink!=='null'){emailBtn.href=c.emailLink; emailBtn.classList.remove('opacity-50','pointer-events-none');}
@@ -1323,10 +1583,10 @@ function openDrawer(name){
   else{resumeBtn.href='#'; resumeBtn.classList.add('opacity-50','pointer-events-none');}
 
   document.getElementById('dr-info').innerHTML=`
-    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">部門</span><span class="font-medium text-gray-900">${c.dept||'—'}</span></div>
-    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">職位</span><span class="font-medium text-gray-900">${c.pos||'—'}</span></div>
-    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">負責 HR</span><span class="font-medium text-gray-900">${c.hr||'—'}</span></div>
-    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">最近排程</span><span class="font-medium text-gray-900">${fmtDate(c.date)}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">部門</span><span class="font-medium text-gray-900">${c.dept||'--'}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">職位</span><span class="font-medium text-gray-900">${c.pos||'--'}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">負責 HR</span><span class="font-medium text-gray-900">${c.hr||'--'}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">最近日期</span><span class="font-medium text-gray-900">${fmtDate(c.date)}</span></div>
   `;
 
   const tlDiv=document.getElementById('dr-timeline');
@@ -1339,9 +1599,9 @@ function openDrawer(name){
         <div class="text-[12px] font-semibold text-gray-800">${h.title||''}</div>
         ${h.note?`<div class="text-[11px] text-gray-500 mt-0.5">${h.note}</div>`:''}
       </div>`).join('')
-    :'<div class="text-xs text-gray-400">暫無歷程記錄</div>';
+    :'<div class="text-xs text-gray-400">尚無歷程記錄</div>';
 
-  document.getElementById('dr-notes').textContent=c.note||'無備註';
+  document.getElementById('dr-notes').textContent=c.note||'尚無備註';
   document.getElementById('dr-notes-section').style.display=c.note?'block':'none';
   
   document.getElementById('overlay').classList.add('open');
@@ -1372,3 +1632,6 @@ if (location.hash) {
 <script type="module" src="js/jobsEditor.js"></script>
 </body>
 </html>
+
+
+
