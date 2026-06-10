@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HR ???啁?Ｘ - 隡平??/title>
+<title>HR 招募儀表板 - Sporton</title>
 
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -369,18 +369,18 @@
       </div>
     </div>
     <div class="p-4 flex-1 overflow-y-auto">
-      <div class="text-[10px] text-gray-500 font-semibold mb-2 px-3 uppercase tracking-wider">??蝞∠?</div>
-      <div class="menu-item active" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> ??蝮質汗</div>
-      <div class="menu-item" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> ?Ｚ岫??</div>
-      <div class="menu-item" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> ?鈭箇恣??/div>
-      <div class="menu-item" onclick="showTab('jobs', this)"><i data-lucide="briefcase" class="w-4 h-4"></i> ?瑞撩蝞∠?</div>
+      <div class="text-[10px] text-gray-500 font-semibold mb-2 px-3 uppercase tracking-wider">總覽</div>
+      <div class="menu-item active" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> 招募總覽</div>
+      <div class="menu-item" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
+      <div class="menu-item" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人資料</div>
+      <div class="menu-item" onclick="showTab('jobs', this)"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
       
-      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">?啣?雿平</div>
-      <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 鈭箔??? (????</div>
+      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">流程作業</div>
+      <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 異動作業（到職 / 離職）</div>
       
-      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">?梯”?身摰?/div>
-      <div class="menu-item" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 頞典??</div>
-      <div class="menu-item"><i data-lucide="settings" class="w-4 h-4"></i> 蝟餌絞閮剖?</div>
+      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">分析設定</div>
+      <div class="menu-item" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 分析報表</div>
+      <div class="menu-item"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
     </div>
     <div class="p-5 border-t border-white/10 flex items-center gap-3">
       <div class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white font-semibold text-xs border border-white/10">HR</div>
@@ -409,10 +409,10 @@
         </div>
         <div class="text-right min-w-[180px]">
           <div class="text-sm text-gray-600 font-semibold tracking-[0.02em]" id="hdr-date">讀取中...</div>
-          <div class="text-[10px] text-gray-400 mt-0.5" id="last-updated">蝑??湔</div>
+          <div class="text-[10px] text-gray-400 mt-0.5" id="last-updated">最後更新中...</div>
         </div>
-        <button id="refresh-btn" class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="refreshDashboard()">??渡?</button>
-        <button class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="logoutDashboard()">?餃</button>
+        <button id="refresh-btn" class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="refreshDashboard()">重新整理</button>
+        <button class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="logoutDashboard()">登出</button>
       </div>
     </header>
 
@@ -435,7 +435,7 @@
           </div>
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">敺蜓蝞∪?閬?/span>
+              <span class="kpi-label">待主管回覆</span>
               <i data-lucide="clock" class="w-4 h-4 text-purple-600"></i>
             </div>
             <div class="flex items-end gap-2">
@@ -445,7 +445,7 @@
           </div>
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">敺???/ ?蝝閰?/span>
+              <span class="kpi-label">待安排 / 邀約面試</span>
               <i data-lucide="calendar-plus" class="w-4 h-4 text-amber-500"></i>
             </div>
             <div class="flex items-end gap-2">
@@ -487,9 +487,9 @@
                 <div class="flex items-center justify-between mb-4">
                   <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-gray-500"></i>??瞍? (瘥? KPI)</h2>
                   <select id="funnel-month-select" class="text-xs border border-gray-200 rounded px-2 py-1 bg-gray-50 text-gray-600 focus:outline-none focus:border-brand cursor-pointer" onchange="updateFunnel()">
-                    <option value="all">蝝航??券</option>
-                    <option value="2026-05" selected>2026撟?5??/option>
-                    <option value="2026-04">2026撟?4??/option>
+                    <option value="all">全部月份</option>
+                    <option value="2026-05" selected>2026 年 5 月</option>
+                    <option value="2026-04">2026 年 4 月</option>
                   </select>
                 </div>
                 <div class="flex items-center justify-between mt-2 px-4">
@@ -506,7 +506,7 @@
               </div>
               <div class="surface-panel-strong flex flex-col">
                 <div class="section-head">
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-gray-500"></i>餈??????/h2>
+                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-gray-500"></i>近期狀態變更</h2>
                 </div>
                 <div class="p-3 flex-1 flex flex-col gap-2" id="overview-recent-cands">
                   <!-- JS Render -->
@@ -540,7 +540,7 @@
               <h2 class="text-[13px] font-semibold text-gray-800 flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>銝餌恣??鈭?</h2>
               <div class="space-y-3">
                 <div class="p-3 bg-purple-50 border border-purple-100 rounded text-[12px] text-purple-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">敺鈭箏雿?閬?/span>
+                  <span class="font-semibold block mb-0.5">錄取職缺核定待確認</span>
                   敺垢撌亦?撣?(???? 撅交風撌脫?阡?3 憭抬?<span class="font-semibold">撠?嗅?桐?隞颱???</span>嚗??餈質馱??
                 </div>
                 <div class="p-3 bg-red-50 border border-red-100 rounded text-[12px] text-red-800 leading-tight">
@@ -600,13 +600,13 @@
                 </div>
               </div>
               <div class="grid grid-cols-7 gap-1 text-center mb-1">
-                <div class="text-[11px] font-semibold text-gray-400 py-2">??/div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">銝</div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">鈭?/div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">銝?/div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">??/div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">鈭?/div>
-                <div class="text-[11px] font-semibold text-gray-400 py-2">??/div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">日</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">一</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">二</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">三</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">四</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">五</div>
+                <div class="text-[11px] font-semibold text-gray-400 py-2">六</div>
               </div>
               <div id="sched-cal-grid" class="schedule-calendar-grid"></div>
             </div>
@@ -678,7 +678,7 @@
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">撌脫??/button>
             <div class="ml-auto flex items-center gap-3">
               <input id="candidate-search" type="text" placeholder="???鈭?.." class="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand">
-              <span id="cand-count" class="text-xs text-gray-500">0 / 0 鈭?/span>
+              <span id="cand-count" class="text-xs text-gray-500">0 / 0 筆</span>
             </div>
           </div>
           <table class="w-full tbl-compact">
@@ -716,8 +716,8 @@
   <div class="drawer-panel" id="drawer">
     <div class="px-6 py-5 border-b border-border bg-gray-50 flex justify-between items-start shrink-0">
       <div>
-        <div class="text-xl font-bold text-gray-900 mb-1" id="dr-name">??/div>
-        <div class="text-[12px] text-gray-500 flex items-center gap-2" id="dr-pos">??/div>
+        <div class="text-xl font-bold text-gray-900 mb-1" id="dr-name">--</div>
+        <div class="text-[12px] text-gray-500 flex items-center gap-2" id="dr-pos">--</div>
       </div>
       <button class="p-1.5 border border-gray-300 rounded bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-800" onclick="closeDrawer()">
         <i data-lucide="x" class="w-4 h-4"></i>
@@ -1296,7 +1296,7 @@ function renderScheduleCalendar(items, monthStart){
       <div class="${classes}" onclick="selectScheduleDate('${cell.ds}')">
         <div class="schedule-day-head">
           <div class="schedule-day-num">${cell.day}</div>
-          ${dayItems.length ? `<div class="schedule-count">${dayItems.length} 蝑?/div>` : ''}
+          ${dayItems.length ? `<div class="schedule-count">${dayItems.length} 筆</div>` : ''}
         </div>
         <div class="schedule-items">
           ${visible.map(item => `
@@ -1386,7 +1386,7 @@ function renderOnboardResign(){
       <td>${fmtDateWeek(o.date)}</td>
       <td>${getBadge(o.status)}</td>
     </tr>
-  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">?∟???/td></tr>`;
+  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有到職資料</td></tr>`;
 
   const rBody=document.getElementById('resign-list');
   const orderedResigns = sortByPrimaryDate(resignData, item => item.lastDay);
