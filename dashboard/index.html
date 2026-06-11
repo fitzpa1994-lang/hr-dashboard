@@ -435,12 +435,12 @@
           </div>
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">已安排待確認</span>
+              <span class="kpi-label">待主管回覆</span>
               <i data-lucide="clock" class="w-4 h-4 text-purple-600"></i>
             </div>
             <div class="flex items-end gap-2">
               <span class="kpi-value" id="kpi-pending-review">8</span>
-              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-pending-review-subtext">已安排時間</span>
+              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-pending-review-subtext">等待主管決策</span>
             </div>
           </div>
           <div class="kpi-card">
@@ -672,7 +672,8 @@
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg flex-wrap">
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待安排 / 待確認</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待主管回覆</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('approved_to_invite', this)">待安排面試</button>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">錄取中</button>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">已到職</button>
@@ -938,12 +939,10 @@ function getWeekBounds(dateString) {
 
 function getOverviewKpis() {
   const week = getWeekBounds(TODAY);
-  const pendingReviewPool = candidatesData.filter(candidate => candidate.status === 'pending_review');
-
-  const pendingReview = pendingReviewPool.filter(candidate => !!candidate.date);
-  const pendingInvite = pendingReviewPool.filter(candidate => !candidate.date);
-  const pendingScheduledReviewCount = Number.isFinite(Number(stats.pendingScheduledReviewCount))
-    ? Number(stats.pendingScheduledReviewCount)
+  const pendingReview = candidatesData.filter(candidate => candidate.status === 'pending_review');
+  const pendingInvite = candidatesData.filter(candidate => candidate.status === 'approved_to_invite');
+  const pendingReviewCount = Number.isFinite(Number(stats.pendingReviewCount))
+    ? Number(stats.pendingReviewCount)
     : pendingReview.length;
   const pendingInviteOpenCount = Number.isFinite(Number(stats.pendingInviteOpenCount))
     ? Number(stats.pendingInviteOpenCount)
@@ -967,7 +966,7 @@ function getOverviewKpis() {
     : 0;
 
   return {
-    pendingReviewCount: pendingScheduledReviewCount,
+    pendingReviewCount,
     pendingInviteCount: pendingInviteOpenCount,
     pendingInviteOverdueCount,
     weekOnboardCount: weekOnboard.length,
@@ -1016,7 +1015,8 @@ function jsArg(v){
 }
 
 const stLabelMap={
-  pending_review:'待安排 / 待確認',
+  pending_review:'待主管回覆',
+  approved_to_invite:'待安排面試',
   interviewing:'面試中',
   offer:'錄取中',
   onboarded:'已到職',
@@ -1027,6 +1027,7 @@ const stLabelMap={
 };
 const badgeClassMap={
   pending_review:'badge-purple',
+  approved_to_invite:'badge-orange',
   interviewing:'badge-blue',
   offer:'badge-orange',
   onboarded:'badge-green',
@@ -1040,6 +1041,31 @@ function getBadge(status) {
   const lbl = stLabelMap[status] || status || '--';
   const cls = badgeClassMap[status] || 'badge-gray';
   return `<span class="badge ${cls}">${escHtml(lbl)}</span>`;
+}
+
+function getCandidateProgressText(candidate) {
+  if (!candidate) return '--';
+  const hr = String(candidate.hr || '').trim();
+  const date = String(candidate.date || '').trim();
+  const time = String(candidate.time || '').trim();
+  const when = [date ? fmtDateWeek(date) : '', time || ''].filter(Boolean).join(' ');
+
+  if (candidate.status === 'pending_review') {
+    return '待主管回覆';
+  }
+  if (candidate.status === 'approved_to_invite') {
+    return hr ? `已由${hr}安排面試` : '待安排面試';
+  }
+  if (candidate.status === 'interviewing') {
+    if (hr && when) return `已由${hr}安排面試 ${when}`;
+    if (hr) return `已由${hr}安排面試`;
+    if (when) return `面試時間 ${when}`;
+    return '面試中';
+  }
+  if (candidate.status === 'offer') return '錄取流程中';
+  if (candidate.status === 'onboarded') return '已到職';
+  if (candidate.status === 'withdrawn') return '已撤回';
+  return stLabelMap[candidate.status] || '--';
 }
 
 function updateHeaderStatus(text, subText) {
@@ -1129,7 +1155,7 @@ function initOverview() {
   document.getElementById('kpi-today-intv').textContent = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview').length;
   document.getElementById('kpi-pending-review').textContent = overviewKpis.pendingReviewCount;
   document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
-  document.getElementById('kpi-pending-review-subtext').textContent = overviewKpis.pendingReviewCount ? '已安排時間' : '目前無待確認';
+  document.getElementById('kpi-pending-review-subtext').textContent = overviewKpis.pendingReviewCount ? '等待主管決策' : '目前無待回覆';
   document.getElementById('kpi-pending-invite-subtext').textContent = overviewKpis.pendingInviteOverdueCount
     ? `${overviewKpis.pendingInviteOverdueCount} 筆超過 3 天`
     : (overviewKpis.pendingInviteCount ? '近 21 天新進' : '');
@@ -1437,7 +1463,7 @@ function renderCandidates(){
       <td class="text-gray-500">${c.hr||'--'}</td>
       <td>${getBadge(c.status)}</td>
       <td class="text-gray-400 text-xs">${fmtDate(c.date)}</td>
-      <td class="text-gray-400 text-xs" title="${escHtml(c.note||'')}">${escHtml(c.note||'--')}</td>
+      <td class="text-gray-400 text-xs" title="${escHtml(c.note||'')}">${escHtml(getCandidateProgressText(c))}</td>
     </tr>
   `).join('');
 }
@@ -1597,6 +1623,7 @@ function openDrawer(name){
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">部門</span><span class="font-medium text-gray-900">${c.dept||'--'}</span></div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">職位</span><span class="font-medium text-gray-900">${c.pos||'--'}</span></div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">負責 HR</span><span class="font-medium text-gray-900">${c.hr||'--'}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">安排進度</span><span class="font-medium text-gray-900 text-right">${getCandidateProgressText(c)}</span></div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">最近日期</span><span class="font-medium text-gray-900">${fmtDate(c.date)}</span></div>
   `;
 
