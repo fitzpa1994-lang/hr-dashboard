@@ -435,21 +435,22 @@
           </div>
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">待主管回覆</span>
+              <span class="kpi-label">已安排待確認</span>
               <i data-lucide="clock" class="w-4 h-4 text-purple-600"></i>
             </div>
             <div class="flex items-end gap-2">
               <span class="kpi-value" id="kpi-pending-review">8</span>
-              <span class="text-xs text-red-500 font-medium mb-1 flex items-center">3 筆逾期</span>
+              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-pending-review-subtext">已安排時間</span>
             </div>
           </div>
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">待安排 / 邀約面試</span>
+              <span class="kpi-label">待安排面試</span>
               <i data-lucide="calendar-plus" class="w-4 h-4 text-amber-500"></i>
             </div>
             <div class="flex items-end gap-2">
               <span class="kpi-value" id="kpi-pending-invite">5</span>
+              <span class="text-xs text-amber-600 font-medium mb-1 flex items-center" id="kpi-pending-invite-subtext"></span>
             </div>
           </div>
           <div class="kpi-card">
@@ -671,7 +672,7 @@
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg flex-wrap">
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待主管回覆</button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待安排 / 待確認</button>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">錄取中</button>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">已到職</button>
@@ -941,6 +942,15 @@ function getOverviewKpis() {
 
   const pendingReview = pendingReviewPool.filter(candidate => !!candidate.date);
   const pendingInvite = pendingReviewPool.filter(candidate => !candidate.date);
+  const pendingScheduledReviewCount = Number.isFinite(Number(stats.pendingScheduledReviewCount))
+    ? Number(stats.pendingScheduledReviewCount)
+    : pendingReview.length;
+  const pendingInviteOpenCount = Number.isFinite(Number(stats.pendingInviteOpenCount))
+    ? Number(stats.pendingInviteOpenCount)
+    : pendingInvite.length;
+  const pendingInviteOverdueCount = Number.isFinite(Number(stats.pendingInviteOverdueCount))
+    ? Number(stats.pendingInviteOverdueCount)
+    : 0;
 
   const weekOnboard = onboardData.filter(item =>
     item.status === 'pending' &&
@@ -957,8 +967,9 @@ function getOverviewKpis() {
     : 0;
 
   return {
-    pendingReviewCount: pendingReview.length,
-    pendingInviteCount: pendingInvite.length,
+    pendingReviewCount: pendingScheduledReviewCount,
+    pendingInviteCount: pendingInviteOpenCount,
+    pendingInviteOverdueCount,
     weekOnboardCount: weekOnboard.length,
     nextOnboardDate,
     nextOnboardCount,
@@ -1005,7 +1016,7 @@ function jsArg(v){
 }
 
 const stLabelMap={
-  pending_review:'待主管回覆',
+  pending_review:'待安排 / 待確認',
   interviewing:'面試中',
   offer:'錄取中',
   onboarded:'已到職',
@@ -1118,6 +1129,10 @@ function initOverview() {
   document.getElementById('kpi-today-intv').textContent = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview').length;
   document.getElementById('kpi-pending-review').textContent = overviewKpis.pendingReviewCount;
   document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
+  document.getElementById('kpi-pending-review-subtext').textContent = overviewKpis.pendingReviewCount ? '已安排時間' : '目前無待確認';
+  document.getElementById('kpi-pending-invite-subtext').textContent = overviewKpis.pendingInviteOverdueCount
+    ? `${overviewKpis.pendingInviteOverdueCount} 筆超過 3 天`
+    : (overviewKpis.pendingInviteCount ? '近 21 天新進' : '');
   document.getElementById('kpi-week-onboard').textContent = overviewKpis.nextOnboardCount;
   document.getElementById('kpi-next-onboard-label').textContent = overviewKpis.nextOnboardDate
     ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))} 預計到職`
