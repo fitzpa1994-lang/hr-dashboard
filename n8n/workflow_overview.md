@@ -55,7 +55,7 @@ PostgreSQL constrained values must be respected by every workflow:
 
 | Table field | Allowed values |
 | --- | --- |
-| `candidates.status` | `in_progress`, `pending_review`, `hired`, `rejected`, `withdrawn` |
+| `candidates.status` | `in_progress`, `pending_review`, `approved_to_invite`, `hired`, `rejected`, `withdrawn` |
 | `interviews.status` | `scheduled`, `completed`, `cancelled`, `rescheduled` |
 | `interviews.result` | `pending`, `passed`, `failed`, `no_show` |
 | `offers.status` | `pending`, `accepted`, `rejected`, `withdrawn`, `onboarded` |

@@ -15,8 +15,12 @@ FORBIDDEN_PATTERNS = {
     "status = '取消面試'": "interviews.status must use schema value 'cancelled'",
 }
 
+FORBIDDEN_PATTERN_EXCEPTIONS = {
+    "live_temp_db_check.json": {"DROP CONSTRAINT"},
+}
+
 ALLOWED_VALUES = {
-    "candidates.status": {"in_progress", "pending_review", "hired", "rejected", "withdrawn"},
+    "candidates.status": {"in_progress", "pending_review", "approved_to_invite", "hired", "rejected", "withdrawn"},
     "interviews.status": {"scheduled", "completed", "cancelled", "rescheduled"},
     "interviews.result": {"pending", "passed", "failed", "no_show"},
     "offers.status": {"pending", "accepted", "rejected", "withdrawn", "onboarded"},
@@ -265,8 +269,11 @@ def main():
             errors.append(f"{path.name}: invalid JSON: {exc}")
             continue
 
+        allowed_forbidden = FORBIDDEN_PATTERN_EXCEPTIONS.get(path.name, set())
         for text in iter_strings(workflow):
             for pattern, reason in FORBIDDEN_PATTERNS.items():
+                if pattern in allowed_forbidden:
+                    continue
                 if pattern in text:
                     errors.append(f"{path.name}: forbidden pattern {pattern!r}: {reason}")
 

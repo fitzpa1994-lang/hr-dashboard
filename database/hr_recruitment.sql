@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     department      TEXT NOT NULL,
     source          TEXT DEFAULT '其他',
     status          TEXT DEFAULT 'in_progress'
-        CHECK(status IN ('in_progress','hired','rejected','withdrawn')),
+        CHECK(status IN ('in_progress','pending_review','approved_to_invite','hired','rejected','withdrawn')),
     notes           TEXT,
     created_at      TEXT DEFAULT (datetime('now','localtime')),
     updated_at      TEXT DEFAULT (datetime('now','localtime'))

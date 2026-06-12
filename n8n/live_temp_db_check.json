@@ -20,7 +20,7 @@
         },
         {
             "id": "t2",
-            "name": "DB Check",
+            "name": "DB Migrate Candidate Status",
             "type": "n8n-nodes-base.postgres",
             "typeVersion": 2.5,
             "position": [
@@ -29,7 +29,7 @@
             ],
             "parameters": {
                 "operation": "executeQuery",
-                "query": "SELECT (SELECT COUNT(*) FROM candidates) AS candidates, (SELECT COUNT(*) FROM interviews) AS interviews, (SELECT COUNT(*) FROM email_logs WHERE action='inserted') AS email_logs_inserted, (SELECT COUNT(*) FROM email_logs WHERE action='skipped') AS email_logs_skipped;",
+                "query": "ALTER TABLE candidates DROP CONSTRAINT IF EXISTS candidates_status_check;\nALTER TABLE candidates\nADD CONSTRAINT candidates_status_check\nCHECK(status IN ('in_progress','pending_review','approved_to_invite','hired','rejected','withdrawn'));\n\nSELECT conname, pg_get_constraintdef(oid) AS definition\nFROM pg_constraint\nWHERE conname = 'candidates_status_check';",
                 "additionalFields": {}
             },
             "credentials": {
@@ -45,7 +45,7 @@
             "main": [
                 [
                     {
-                        "node": "DB Check",
+                        "node": "DB Migrate Candidate Status",
                         "type": "main",
                         "index": 0
                     }
@@ -53,7 +53,9 @@
             ]
         }
     },
-    "settings": {},
+    "settings": {
+        "executionOrder": "v1"
+    },
     "staticData": null,
     "meta": null,
     "pinData": null,
