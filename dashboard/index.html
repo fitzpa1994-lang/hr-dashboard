@@ -944,6 +944,9 @@ function getOverviewKpis() {
   const pendingReviewCount = Number.isFinite(Number(stats.pendingReviewCount))
     ? Number(stats.pendingReviewCount)
     : pendingReview.length;
+  const pendingReviewOverdueCount = Number.isFinite(Number(stats.pendingReviewOverdueCount))
+    ? Number(stats.pendingReviewOverdueCount)
+    : 0;
   const pendingInviteOpenCount = Number.isFinite(Number(stats.pendingInviteOpenCount))
     ? Number(stats.pendingInviteOpenCount)
     : pendingInvite.length;
@@ -967,6 +970,7 @@ function getOverviewKpis() {
 
   return {
     pendingReviewCount,
+    pendingReviewOverdueCount,
     pendingInviteCount: pendingInviteOpenCount,
     pendingInviteOverdueCount,
     weekOnboardCount: weekOnboard.length,
@@ -1155,7 +1159,9 @@ function initOverview() {
   document.getElementById('kpi-today-intv').textContent = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview').length;
   document.getElementById('kpi-pending-review').textContent = overviewKpis.pendingReviewCount;
   document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
-  document.getElementById('kpi-pending-review-subtext').textContent = overviewKpis.pendingReviewCount ? '等待主管決策' : '目前無待回覆';
+  document.getElementById('kpi-pending-review-subtext').textContent = overviewKpis.pendingReviewOverdueCount
+    ? `${overviewKpis.pendingReviewOverdueCount} 筆超過 2 天`
+    : (overviewKpis.pendingReviewCount ? '等待主管決策' : '目前無待回覆');
   document.getElementById('kpi-pending-invite-subtext').textContent = overviewKpis.pendingInviteOverdueCount
     ? `${overviewKpis.pendingInviteOverdueCount} 筆超過 3 天`
     : (overviewKpis.pendingInviteCount ? '近 21 天新進' : '');

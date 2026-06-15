@@ -1,842 +1,842 @@
 {
-    "updatedAt": "2026-05-22T09:18:00.199Z",
-    "createdAt": "2026-05-15T10:08:31.212Z",
-    "id": "pqnpr72wTiOE2m8I",
-    "name": "HR Workflow 1：面試信件解析",
-    "description": null,
-    "active": true,
-    "isArchived": false,
-    "nodes": [
-        {
-            "parameters": {
-                "operation": "executeQuery",
-                "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, error_msg)\nVALUES (\n  '{{ $json.email_msg_id }}',\n  '{{ $json.email_subject }}',\n  NULLIF('{{ $json.sender }}', 'null'),\n  NOW(),\n  'skipped',\n  '非面試類信件'\n)\nON CONFLICT (email_msg_id) DO NOTHING;",
-                "options": {}
-            },
-            "id": "eb3a1b5f-0e75-402f-b07c-92498977603e",
-            "name": "PG：記錄略過信件",
-            "type": "n8n-nodes-base.postgres",
-            "typeVersion": 2.5,
-            "position": [
-                2048,
-                560
-            ],
-            "credentials": {
-                "postgres": {
-                    "id": "NGdDfE2F1YFXGcmn",
-                    "name": "Postgres account"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "mode": "runOnceForEachItem",
-                "jsCode": "const item = $input.item.json;\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  action: 'skipped',\n  error_msg: '非面試信件略過，略過',\n};"
-            },
-            "id": "587396cf-8857-46b7-af56-46ebad296a42",
-            "name": "Code：非面試信件略過",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                1824,
-                560
-            ]
-        },
-        {
-            "parameters": {
-                "operation": "executeQuery",
-                "query": "INSERT INTO email_logs (\n  email_msg_id, email_subject, sender, received_at, action, candidate_id\n)\nVALUES (\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  {{ $json.candidate_id }}\n)\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated',\n  processed_at = NOW();\n\nSELECT \n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  'inserted/updated' AS log_action;",
-                "options": {}
-            },
-            "id": "b6402442-fddf-4724-abd5-59e7044c691d",
-            "name": "PG：寫入 email_logs",
-            "type": "n8n-nodes-base.postgres",
-            "typeVersion": 2.5,
-            "position": [
-                3168,
-                320
-            ],
-            "credentials": {
-                "postgres": {
-                    "id": "NGdDfE2F1YFXGcmn",
-                    "name": "Postgres account"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "operation": "executeQuery",
-                "query": "INSERT INTO interviews (\n  candidate_id, interview_date, interview_time, round,\n  location, hr_owner, status, email_subject, email_msg_id, email_web_link\n)\nSELECT\n  {{ $json.candidate_id }},\n  NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null'),\n  {{ $json.round || 1 }},\n  NULLIF(NULLIF('{{ ($json.location || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  NULLIF(NULLIF('{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  '{{ $json.status || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF(NULLIF('{{ $json.email_web_link || '' }}', ''), 'null')\nWHERE '{{ $json.intent || '' }}' NOT IN ('update_time', 'cancel', 'recommend', 'request_invite')\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  status = EXCLUDED.status;\n\nUPDATE interviews SET\n  interview_date = NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  interview_time = NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null')\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'update_time'\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL;\n\nUPDATE interviews SET\n  status = 'cancelled'\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'cancel';\n\nSELECT\n  {{ $json.candidate_id }} AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', 'null') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at,\n  '{{ $json.status || '' }}' AS status;",
-                "options": {}
-            },
-            "id": "5c73b5bf-0b4b-47bc-95b1-a51cbbd1c70d",
-            "name": "PG：寫入 interviews",
-            "type": "n8n-nodes-base.postgres",
-            "typeVersion": 2.5,
-            "position": [
-                2944,
-                320
-            ],
-            "credentials": {
-                "postgres": {
-                    "id": "NGdDfE2F1YFXGcmn",
-                    "name": "Postgres account"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "operation": "executeQuery",
-                "query": "INSERT INTO candidates (name, applied_position, department, source, status, notes)\nSELECT\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.applied_position || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  'Outlook即時',\n  '{{ $json.db_status || '' }}',\n  NULLIF('{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}', '')\nWHERE NOT EXISTS (\n  SELECT 1 FROM candidates WHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\n);\n\nUPDATE candidates\nSET\n  status = '{{ $json.db_status || '' }}',\n  notes = CASE\n    WHEN '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}' <> '' THEN\n      TRIM(BOTH ' ' FROM CONCAT(\n        NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), ''),\n        CASE\n          WHEN NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '') IS NOT NULL\n            THEN ' '\n          ELSE ''\n        END,\n        '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}'\n      ))\n    ELSE NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '')\n  END\nWHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}';\n\nSELECT\n  c.id AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.interview_date || '' }}' AS interview_date,\n  '{{ $json.interview_time || '' }}' AS interview_time,\n  {{ $json.round || 1 }} AS round,\n  '{{ ($json.location || '').replace(/'/g, \"''\") }}' AS location,\n  '{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}' AS hr_owner,\n  '{{ $json.interview_status || 'scheduled' }}' AS status,\n  '{{ $json.intent || '' }}' AS intent,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ $json.email_web_link || '' }}' AS email_web_link,\n  '{{ $json.sender || '' }}' AS sender,\n  '{{ $json.received_at || '' }}' AS received_at\nFROM candidates c\nWHERE c.name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\nORDER BY c.created_at DESC LIMIT 1;",
-                "options": {}
-            },
-            "id": "cba3f36b-e5f5-44fb-afc5-044fb48f95fb",
-            "name": "PG：寫入 candidates",
-            "type": "n8n-nodes-base.postgres",
-            "typeVersion": 2.5,
-            "position": [
-                2720,
-                320
-            ],
-            "credentials": {
-                "postgres": {
-                    "id": "NGdDfE2F1YFXGcmn",
-                    "name": "Postgres account"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "mode": "runOnceForEachItem",
-                "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\n// 修正後的安全防呆轉換\nconst ns = v => {\n  if (v === null || v === undefined) return 'null';\n  const str = String(v).trim();\n  if (str === '' || str === 'null' || str === 'undefined') return 'null';\n  return str;\n};\n\nconst intent = aiResult.intent || 'recommend';\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? `[SYS_STAGE:approved_to_invite|HR:${hrOwner === 'null' ? '' : hrOwner}]`\n  : '';\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time' ? 'rescheduled' : 'scheduled');\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: base.received_at,\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: ns(aiResult.applied_position) !== 'null' ? aiResult.applied_position : '未知職位',\n  department: ns(aiResult.department) !== 'null' ? aiResult.department : '未分類',\n  interview_date: ns(base.interview_date || aiResult.interview_date),\n  interview_time: ns(base.interview_time || aiResult.interview_time),\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
-            },
-            "id": "cb35b346-7ff3-42c8-b1ae-80a15dbd35cd",
-            "name": "Code：整合輸出",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                2496,
-                320
-            ]
-        },
-        {
-            "parameters": {
-                "method": "POST",
-                "url": "https://api.anthropic.com/v1/messages",
-                "authentication": "predefinedCredentialType",
-                "nodeCredentialType": "anthropicApi",
-                "sendHeaders": true,
-                "headerParameters": {
-                    "parameters": [
-                        {
-                            "name": "anthropic-version",
-                            "value": "2023-06-01"
-                        }
-                    ]
-                },
-                "sendBody": true,
-                "specifyBody": "json",
-                "jsonBody": "={{ $json }}",
-                "options": {
-                    "batching": {
-                        "batch": {
-                            "batchSize": 1,
-                            "batchInterval": 1500
-                        }
-                    }
-                }
-            },
-            "id": "25c4c840-44f9-4970-a775-f506acade7f0",
-            "name": "Claude：AI 解析意圖",
-            "type": "n8n-nodes-base.httpRequest",
-            "typeVersion": 4.2,
-            "position": [
-                2272,
-                320
-            ],
-            "credentials": {
-                "anthropicApi": {
-                    "id": "y6zxdCqqBzmwq5bi",
-                    "name": "Anthropic account"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "mode": "runOnceForEachItem",
-                "jsCode": "const item = $input.item.json;\nconst subject = item.subject || '';\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst SKIP = new Set(['\\u901a\\u77e5','\\u5b89\\u6392','\\u78ba\\u8a8d','\\u9762\\u8a66','\\u9080\\u8acb','\\u6642\\u9593','\\u5730\\u9ede','\\u66f4\\u6539','\\u66f4\\u65b0','\\u63a8\\u85a6','\\u53d6\\u6d88','\\u5c65\\u6b77','\\u56de\\u8986']);\nlet candidateName = null;\n\nconst tailPatterns = [\n  /?[^?]*?\\s*[-???_~?:?]\\s*([^\\n]+?)\\s*$/,\n  /[-???_~?:?]\\s*([^\\n]+?)\\s*$/,\n  /?\\s*([^\\n]+?)\\s*(?:\\u5148\\u751f|\\u5973\\u58eb|\\u5c0f\\u59d0)?\\s*$/,\n];\n\nfor (const pattern of tailPatterns) {\n  const match = subject.match(pattern);\n  if (!match || !match[1]) continue;\n  const rawCandidate = match[1].trim().replace(/^(?:\\u5148\\u751f|\\u5973\\u58eb|\\u5c0f\\u59d0)\\s*/, '');\n  const compactCandidate = rawCandidate.replace(/\\s+/g, '');\n  if (!compactCandidate || compactCandidate.length > 30 || SKIP.has(compactCandidate)) continue;\n  candidateName = compactCandidate;\n  break;\n}\n\nlet interviewDate = null;\nconst searchText = subject + ' ' + body.substring(0, 800);\nconst datePatterns = [\n  { re: /(\\d{4})?(\\d{1,2})?(\\d{1,2})?/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{1,2})?(\\d{1,2})?/, fn: m => `${new Date().getFullYear()}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` },\n];\nfor (const { re, fn } of datePatterns) {\n  const m = searchText.match(re);\n  if (m) { interviewDate = fn(m); break; }\n}\n\nlet interviewTime = null;\nconst timeMatch = searchText.match(/(\\d{1,2})[:?](\\d{2})/);\nif (timeMatch) {\n  interviewTime = `${timeMatch[1].padStart(2,'0')}:${timeMatch[2]}`;\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  candidate_name: candidateName,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  body_text: body.substring(0, 2000),\n};"
-            },
-            "id": "d265f169-59ed-42a6-a38c-ef5bca944e69",
-            "name": "Code：萃取基本資訊",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                1824,
-                320
-            ]
-        },
-        {
-            "parameters": {
-                "mode": "runOnceForEachItem",
-                "jsCode": "const item = $input.item.json;\nreturn {\n  model: \"claude-haiku-4-5-20251001\",\n  max_tokens: 500,\n  system: \"你是 HR 信件解析助手，從面試信件中萃取結構化資訊，輸出純 JSON 不含多餘文字。\\nHR 人員：李沛晴（Peggy）、陳清彥（Yen）、黃友為（Evan）\\n\\n輸出欄位：\\n- candidate_name: 候選人姓名（優先從主旨取，主旨無法確定才從內文找）\\n- applied_position: 應徵職位（找不到填「未知職位」）\\n- department: 部門（找不到填「未分類」）\\n- interview_date: YYYY-MM-DD（主管「建議約在...」代表未確認填 null；只有已確認才填）\\n- interview_time: HH:MM（同上規則）\\n- round: 第幾輪（數字，預設 1）\\n- location: 面試地點\\n- hr_owner: 負責 HR 姓名\\n- status: 狀態描述（待HR邀約 / 面試已安排 / 已推薦 等）\\n- intent: recommend|request_invite|schedule|update_time|cancel|second_schedule|other\n- ??????????XXX???????? request_invite?? hr_owner = XXX?????????????????? schedule ? update_time\\n- ai_action_item: HR 待辦一句話（無則 null）\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"主旨：\" + item.email_subject + \"\\n\\n\" + item.body_text\n    }\n  ]\n};"
-            },
-            "id": "code-assemble-claude-body-001",
-            "name": "Code：組裝 Claude Request Body",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                2048,
-                320
-            ]
-        },
-        {
-            "parameters": {
-                "conditions": {
-                    "options": {
-                        "caseSensitive": true,
-                        "leftValue": "",
-                        "typeValidation": "strict",
-                        "version": 1
-                    },
-                    "conditions": [
-                        {
-                            "id": "kw-filter",
-                            "leftValue": "={{ $json.subject }}",
-                            "rightValue": ".*(面試|面談|初試|複試|面試通知|面談通知|interview|履歷推薦).*",
-                            "operator": {
-                                "type": "string",
-                                "operation": "regex"
-                            }
-                        }
-                    ],
-                    "combinator": "and"
-                },
-                "options": {}
-            },
-            "id": "210917e7-a74c-49e3-8d4d-afb1c05e6ca7",
-            "name": "IF：主旨過濾",
-            "type": "n8n-nodes-base.if",
-            "typeVersion": 2,
-            "position": [
-                1600,
-                448
-            ]
-        },
-        {
-            "parameters": {
-                "pollTimes": {
-                    "item": [
-                        {
-                            "mode": "everyMinute"
-                        }
-                    ]
-                },
-                "filters": {
-                    "foldersToInclude": [
-                        "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMBAAA=",
-                        "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyLAAA=",
-                        "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyMAAA=",
-                        "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMDAAA="
-                    ]
-                },
-                "options": {
-                    "downloadAttachments": false
-                }
-            },
-            "id": "a327ac36-b64c-4c1a-9329-748724ede566",
-            "name": "Outlook 收信觸發",
-            "type": "n8n-nodes-base.microsoftOutlookTrigger",
-            "typeVersion": 1,
-            "position": [
-                1376,
-                448
-            ],
-            "credentials": {
-                "microsoftOutlookOAuth2Api": {
-                    "id": "gRnSdH5u4gDyDZzB",
-                    "name": "Microsoft Outlook account"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "mode": "runOnceForEachItem",
-                "jsCode": "const item = $input.item.json;\n\nfunction splitCandidateNames(rawValue) {\n  const value = String(rawValue || '').trim();\n  if (!value || value === '\\u672a\\u77e5\\u59d3\\u540d') return [value || '\\u672a\\u77e5\\u59d3\\u540d'];\n\n  const cleaned = value\n    .replace(/[()??]/g, ' ')\n    .replace(/(?:\\u5148\\u751f|\\u5973\\u58eb|\\u5c0f\\u59d0|\\u540c\\u5b78)/g, '')\n    .replace(/\\s+/g, '');\n\n  const parts = cleaned\n    .split(/[\\/??,?;?]+/)\n    .map(part => part.trim())\n    .filter(Boolean);\n\n  const names = (parts.length ? parts : [cleaned]).filter(name => name.length >= 2 && name.length <= 12);\n  return [...new Set(names)];\n}\n\nconst candidateNames = splitCandidateNames(item.candidate_name);\nconst originalEmailMsgId = String(item.email_msg_id || '');\n\nreturn candidateNames.map((candidateName, index) => ({\n  ...item,\n  candidate_name: candidateName,\n  original_email_msg_id: originalEmailMsgId,\n  email_msg_id: candidateNames.length > 1 && originalEmailMsgId ? `${originalEmailMsgId}#${index + 1}` : originalEmailMsgId,\n  multi_candidate_total: candidateNames.length,\n  multi_candidate_index: index + 1,\n  multi_candidate_names: candidateNames,\n}));"
-            },
-            "id": "code-split-multi-candidates-001",
-            "name": "Code：拆分多人推薦",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                2608,
-                320
-            ]
+  "updatedAt": "2026-05-22T09:18:00.199Z",
+  "createdAt": "2026-05-15T10:08:31.212Z",
+  "id": "pqnpr72wTiOE2m8I",
+  "name": "HR Workflow 1：面試信件解析",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, error_msg)\nVALUES (\n  '{{ $json.email_msg_id }}',\n  '{{ $json.email_subject }}',\n  NULLIF('{{ $json.sender }}', 'null'),\n  NOW(),\n  'skipped',\n  '非面試類信件'\n)\nON CONFLICT (email_msg_id) DO NOTHING;",
+        "options": {}
+      },
+      "id": "eb3a1b5f-0e75-402f-b07c-92498977603e",
+      "name": "PG：記錄略過信件",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2048,
+        560
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
         }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  action: 'skipped',\n  error_msg: '非面試信件略過，略過',\n};"
+      },
+      "id": "587396cf-8857-46b7-af56-46ebad296a42",
+      "name": "Code：非面試信件略過",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO email_logs (\n  email_msg_id, email_subject, sender, received_at, action, candidate_id\n)\nVALUES (\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  {{ $json.candidate_id }}\n)\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated',\n  processed_at = NOW();\n\nSELECT \n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  'inserted/updated' AS log_action;",
+        "options": {}
+      },
+      "id": "b6402442-fddf-4724-abd5-59e7044c691d",
+      "name": "PG：寫入 email_logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3168,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO interviews (\n  candidate_id, interview_date, interview_time, round,\n  location, hr_owner, status, email_subject, email_msg_id, email_web_link\n)\nSELECT\n  {{ $json.candidate_id }},\n  NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null'),\n  {{ $json.round || 1 }},\n  NULLIF(NULLIF('{{ ($json.location || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  NULLIF(NULLIF('{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  '{{ $json.status || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF(NULLIF('{{ $json.email_web_link || '' }}', ''), 'null')\nWHERE '{{ $json.intent || '' }}' NOT IN ('update_time', 'cancel', 'recommend', 'request_invite')\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  status = EXCLUDED.status;\n\nUPDATE interviews SET\n  interview_date = NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  interview_time = NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null')\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'update_time'\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL;\n\nUPDATE interviews SET\n  status = 'cancelled'\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'cancel';\n\nSELECT\n  {{ $json.candidate_id }} AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', 'null') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at,\n  '{{ $json.status || '' }}' AS status;",
+        "options": {}
+      },
+      "id": "5c73b5bf-0b4b-47bc-95b1-a51cbbd1c70d",
+      "name": "PG：寫入 interviews",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2944,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO candidates (name, applied_position, department, source, status, notes)\nSELECT\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.applied_position || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  'Outlook即時',\n  '{{ $json.db_status || '' }}',\n  NULLIF('{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}', '')\nWHERE NOT EXISTS (\n  SELECT 1 FROM candidates WHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\n);\n\nUPDATE candidates\nSET\n  status = '{{ $json.db_status || '' }}',\n  notes = CASE\n    WHEN '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}' <> '' THEN\n      TRIM(BOTH ' ' FROM CONCAT(\n        NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), ''),\n        CASE\n          WHEN NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '') IS NOT NULL\n            THEN ' '\n          ELSE ''\n        END,\n        '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}'\n      ))\n    ELSE NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '')\n  END\nWHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}';\n\nSELECT\n  c.id AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.interview_date || '' }}' AS interview_date,\n  '{{ $json.interview_time || '' }}' AS interview_time,\n  {{ $json.round || 1 }} AS round,\n  '{{ ($json.location || '').replace(/'/g, \"''\") }}' AS location,\n  '{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}' AS hr_owner,\n  '{{ $json.interview_status || 'scheduled' }}' AS status,\n  '{{ $json.intent || '' }}' AS intent,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ $json.email_web_link || '' }}' AS email_web_link,\n  '{{ $json.sender || '' }}' AS sender,\n  '{{ $json.received_at || '' }}' AS received_at\nFROM candidates c\nWHERE c.name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\nORDER BY c.created_at DESC LIMIT 1;",
+        "options": {}
+      },
+      "id": "cba3f36b-e5f5-44fb-afc5-044fb48f95fb",
+      "name": "PG：寫入 candidates",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2720,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\n// 修正後的安全防呆轉換\nconst ns = v => {\n  if (v === null || v === undefined) return 'null';\n  const str = String(v).trim();\n  if (str === '' || str === 'null' || str === 'undefined') return 'null';\n  return str;\n};\n\nconst intent = aiResult.intent || 'recommend';\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? `[SYS_STAGE:approved_to_invite|HR:${hrOwner === 'null' ? '' : hrOwner}]`\n  : '';\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time' ? 'rescheduled' : 'scheduled');\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: base.received_at,\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: ns(aiResult.applied_position) !== 'null' ? aiResult.applied_position : '未知職位',\n  department: ns(aiResult.department) !== 'null' ? aiResult.department : '未分類',\n  interview_date: ns(base.interview_date || aiResult.interview_date),\n  interview_time: ns(base.interview_time || aiResult.interview_time),\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
+      },
+      "id": "cb35b346-7ff3-42c8-b1ae-80a15dbd35cd",
+      "name": "Code：整合輸出",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2496,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "id": "25c4c840-44f9-4970-a775-f506acade7f0",
+      "name": "Claude：AI 解析意圖",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2272,
+        320
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "y6zxdCqqBzmwq5bi",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nconst subject = String(item.subject || '').trim();\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = String(rawBody)\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst SKIP = new Set(['??','??','??','??','??','??','??','??','??','??','??','??','??','re','fw','fwd']);\nconst normalizeCandidate = value => String(value || '')\n  .replace(/^(?:RE|FW|FWD)\\s*:\\s*/i, '')\n  .replace(/[()]/g, ' ')\n  .replace(/(?:??|??|??|??)$/g, '')\n  .replace(/\\s+/g, '')\n  .trim();\nconst isLikelyCandidate = value => {\n  if (!value) return false;\n  if (value.length < 2 || value.length > 16) return false;\n  if (SKIP.has(value.toLowerCase()) || SKIP.has(value)) return false;\n  if (/^(?:????|????|????|????|????|??????)$/i.test(value)) return false;\n  return /[\\u4e00-\\u9fa5A-Za-z]/.test(value);\n};\n\nlet candidateName = null;\nconst subjectPatterns = [\n  /[?\\[][^?\\]]+[?\\]]\\s*[\\-???:?]\\s*([^\\n]+?)\\s*$/,\n  /[?\\[][^?\\]]+[?\\]]\\s*([^\\n]+?)\\s*$/,\n  /[\\-???:?]\\s*([^\\n]+?)\\s*$/,\n  /([^\\n]+?)\\s*(?:??|??|??)\\s*$/,\n];\nfor (const pattern of subjectPatterns) {\n  const match = subject.match(pattern);\n  if (!match || !match[1]) continue;\n  const normalized = normalizeCandidate(match[1]);\n  if (isLikelyCandidate(normalized)) {\n    candidateName = normalized;\n    break;\n  }\n}\n\nif (!candidateName) {\n  const bodyNamePatterns = [\n    /???[?: ]*([\\u4e00-\\u9fa5A-Za-z]{2,16})/,\n    /??[?: ]*([\\u4e00-\\u9fa5A-Za-z]{2,16})/,\n    /([\\u4e00-\\u9fa5]{2,4})\\s*(?:??|??|??)\\s*??/,\n  ];\n  for (const pattern of bodyNamePatterns) {\n    const match = body.match(pattern);\n    if (!match || !match[1]) continue;\n    const normalized = normalizeCandidate(match[1]);\n    if (isLikelyCandidate(normalized)) {\n      candidateName = normalized;\n      break;\n    }\n  }\n}\n\nconst searchText = `${subject} ${body.substring(0, 800)}`;\nlet interviewDate = null;\nconst currentYear = new Date(item.receivedDateTime || Date.now()).getFullYear();\nconst datePatterns = [\n  { re: /(\\d{4})?(\\d{1,2})?(\\d{1,2})?/, fn: m => `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` },\n  { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: m => `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` },\n  { re: /(\\d{1,2})?(\\d{1,2})?/, fn: m => `${currentYear}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` },\n];\nfor (const { re, fn } of datePatterns) {\n  const match = searchText.match(re);\n  if (match) {\n    interviewDate = fn(match);\n    break;\n  }\n}\n\nlet interviewTime = null;\nconst timeMatch = searchText.match(/(?:??|??|AM|PM|am|pm)?\\s*(\\d{1,2})[:?](\\d{2})/);\nif (timeMatch) {\n  let hour = Number(timeMatch[1]);\n  const marker = timeMatch[0];\n  if (/(??|PM|pm)/.test(marker) && hour < 12) hour += 12;\n  if (/(??|AM|am)/.test(marker) && hour === 12) hour = 0;\n  interviewTime = `${String(hour).padStart(2, '0')}:${timeMatch[2]}`;\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  candidate_name: candidateName,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  body_text: body.substring(0, 2000),\n};"
+      },
+      "id": "d265f169-59ed-42a6-a38c-ef5bca944e69",
+      "name": "Code：萃取基本資訊",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nconst subject = String(item.subject || '').trim();\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = String(rawBody)\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst SKIP = new Set(['??','??','??','??','??','??','??','??','??','??','??','??','??','re','fw','fwd']);\nconst normalizeCandidate = value => String(value || '')\n  .replace(/^(?:RE|FW|FWD)\\s*:\\s*/i, '')\n  .replace(/[()]/g, ' ')\n  .replace(/(?:??|??|??|??)$/g, '')\n  .replace(/\\s+/g, '')\n  .trim();\nconst isLikelyCandidate = value => {\n  if (!value) return false;\n  if (value.length < 2 || value.length > 16) return false;\n  if (SKIP.has(value.toLowerCase()) || SKIP.has(value)) return false;\n  if (/^(?:????|????|????|????|????|??????)$/i.test(value)) return false;\n  return /[\\u4e00-\\u9fa5A-Za-z]/.test(value);\n};\n\nlet candidateName = null;\nconst subjectPatterns = [\n  /[?\\[][^?\\]]+[?\\]]\\s*[\\-???:?]\\s*([^\\n]+?)\\s*$/,\n  /[?\\[][^?\\]]+[?\\]]\\s*([^\\n]+?)\\s*$/,\n  /[\\-???:?]\\s*([^\\n]+?)\\s*$/,\n  /([^\\n]+?)\\s*(?:??|??|??)\\s*$/,\n];\nfor (const pattern of subjectPatterns) {\n  const match = subject.match(pattern);\n  if (!match || !match[1]) continue;\n  const normalized = normalizeCandidate(match[1]);\n  if (isLikelyCandidate(normalized)) {\n    candidateName = normalized;\n    break;\n  }\n}\n\nif (!candidateName) {\n  const bodyNamePatterns = [\n    /???[?: ]*([\\u4e00-\\u9fa5A-Za-z]{2,16})/,\n    /??[?: ]*([\\u4e00-\\u9fa5A-Za-z]{2,16})/,\n    /([\\u4e00-\\u9fa5]{2,4})\\s*(?:??|??|??)\\s*??/,\n  ];\n  for (const pattern of bodyNamePatterns) {\n    const match = body.match(pattern);\n    if (!match || !match[1]) continue;\n    const normalized = normalizeCandidate(match[1]);\n    if (isLikelyCandidate(normalized)) {\n      candidateName = normalized;\n      break;\n    }\n  }\n}\n\nconst searchText = `${subject} ${body.substring(0, 800)}`;\nlet interviewDate = null;\nconst currentYear = new Date(item.receivedDateTime || Date.now()).getFullYear();\nconst datePatterns = [\n  { re: /(\\d{4})?(\\d{1,2})?(\\d{1,2})?/, fn: m => `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` },\n  { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: m => `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` },\n  { re: /(\\d{1,2})?(\\d{1,2})?/, fn: m => `${currentYear}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` },\n];\nfor (const { re, fn } of datePatterns) {\n  const match = searchText.match(re);\n  if (match) {\n    interviewDate = fn(match);\n    break;\n  }\n}\n\nlet interviewTime = null;\nconst timeMatch = searchText.match(/(?:??|??|AM|PM|am|pm)?\\s*(\\d{1,2})[:?](\\d{2})/);\nif (timeMatch) {\n  let hour = Number(timeMatch[1]);\n  const marker = timeMatch[0];\n  if (/(??|PM|pm)/.test(marker) && hour < 12) hour += 12;\n  if (/(??|AM|am)/.test(marker) && hour === 12) hour = 0;\n  interviewTime = `${String(hour).padStart(2, '0')}:${timeMatch[2]}`;\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  candidate_name: candidateName,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  body_text: body.substring(0, 2000),\n};"
+      },
+      "id": "code-assemble-claude-body-001",
+      "name": "Code：組裝 Claude Request Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "kw-filter",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": ".*(面試|面談|初試|複試|面試通知|面談通知|interview|履歷推薦).*",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "210917e7-a74c-49e3-8d4d-afb1c05e6ca7",
+      "name": "IF：主旨過濾",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "foldersToInclude": [
+            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMBAAA=",
+            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyLAAA=",
+            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyMAAA=",
+            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMDAAA="
+          ]
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "id": "a327ac36-b64c-4c1a-9329-748724ede566",
+      "name": "Outlook 收信觸發",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        448
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "gRnSdH5u4gDyDZzB",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\n\nfunction splitCandidateNames(rawValue) {\n  const value = String(rawValue || '').trim();\n  if (!value || value === '\\u672a\\u77e5\\u59d3\\u540d') return [value || '\\u672a\\u77e5\\u59d3\\u540d'];\n\n  const cleaned = value\n    .replace(/[()??]/g, ' ')\n    .replace(/(?:\\u5148\\u751f|\\u5973\\u58eb|\\u5c0f\\u59d0|\\u540c\\u5b78)/g, '')\n    .replace(/\\s+/g, '');\n\n  const parts = cleaned\n    .split(/[\\/??,?;?]+/)\n    .map(part => part.trim())\n    .filter(Boolean);\n\n  const names = (parts.length ? parts : [cleaned]).filter(name => name.length >= 2 && name.length <= 12);\n  return [...new Set(names)];\n}\n\nconst candidateNames = splitCandidateNames(item.candidate_name);\nconst originalEmailMsgId = String(item.email_msg_id || '');\n\nreturn candidateNames.map((candidateName, index) => ({\n  ...item,\n  candidate_name: candidateName,\n  original_email_msg_id: originalEmailMsgId,\n  email_msg_id: candidateNames.length > 1 && originalEmailMsgId ? `${originalEmailMsgId}#${index + 1}` : originalEmailMsgId,\n  multi_candidate_total: candidateNames.length,\n  multi_candidate_index: index + 1,\n  multi_candidate_names: candidateNames,\n}));"
+      },
+      "id": "code-split-multi-candidates-001",
+      "name": "Code：拆分多人推薦",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Code：非面試信件略過": {
+      "main": [
+        [
+          {
+            "node": "PG：記錄略過信件",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG：寫入 interviews": {
+      "main": [
+        [
+          {
+            "node": "PG：寫入 email_logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG：寫入 candidates": {
+      "main": [
+        [
+          {
+            "node": "PG：寫入 interviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code：整合輸出": {
+      "main": [
+        [
+          {
+            "node": "Code：拆分多人推薦",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude：AI 解析意圖": {
+      "main": [
+        [
+          {
+            "node": "Code：整合輸出",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code：萃取基本資訊": {
+      "main": [
+        [
+          {
+            "node": "Code：組裝 Claude Request Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF：主旨過濾": {
+      "main": [
+        [
+          {
+            "node": "Code：萃取基本資訊",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code：非面試信件略過",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outlook 收信觸發": {
+      "main": [
+        [
+          {
+            "node": "IF：主旨過濾",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code：組裝 Claude Request Body": {
+      "main": [
+        [
+          {
+            "node": "Claude：AI 解析意圖",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Codeï¼æåå¤äººæ¨è¦": {
+      "main": [
+        [
+          {
+            "node": "PGï¼å¯«å¥ candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Codeï¼æ´åè¼¸åº": {
+      "main": [
+        [
+          {
+            "node": "Codeï¼æåå¤äººæ¨è¦",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code：拆分多人推薦": {
+      "main": [
+        [
+          {
+            "node": "PG：寫入 candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Outlook 收信觸發": {
+      "lastTimeChecked": "2026-05-25T11:29:20.002+08:00"
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
+  "activeVersionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
+  "versionCounter": 392,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-15T10:08:31.212Z",
+      "createdAt": "2026-05-15T10:08:31.212Z",
+      "role": "workflow:owner",
+      "workflowId": "pqnpr72wTiOE2m8I",
+      "projectId": "NvjFEev0823h2STF",
+      "project": {
+        "updatedAt": "2026-05-15T07:57:49.399Z",
+        "createdAt": "2026-05-15T07:52:05.149Z",
+        "id": "NvjFEev0823h2STF",
+        "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+      }
+    }
+  ],
+  "tags": [
+    {
+      "updatedAt": "2026-05-15T10:18:59.545Z",
+      "createdAt": "2026-05-15T10:18:59.545Z",
+      "id": "yP9PPTGVL9VqZ3jM",
+      "name": "HR"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-22T09:18:27.169Z",
+    "createdAt": "2026-05-22T09:18:00.200Z",
+    "versionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
+    "workflowId": "pqnpr72wTiOE2m8I",
+    "nodes": [
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, error_msg)\nVALUES (\n  '{{ $json.email_msg_id }}',\n  '{{ $json.email_subject }}',\n  NULLIF('{{ $json.sender }}', 'null'),\n  NOW(),\n  'skipped',\n  '非面試類信件'\n)\nON CONFLICT (email_msg_id) DO NOTHING;",
+          "options": {}
+        },
+        "id": "eb3a1b5f-0e75-402f-b07c-92498977603e",
+        "name": "PG：記錄略過信件",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          2048,
+          560
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NGdDfE2F1YFXGcmn",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const item = $input.item.json;\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  action: 'skipped',\n  error_msg: '非面試信件略過，略過',\n};"
+        },
+        "id": "587396cf-8857-46b7-af56-46ebad296a42",
+        "name": "Code：非面試信件略過",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1824,
+          560
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO email_logs (\n  email_msg_id, email_subject, sender, received_at, action, candidate_id\n)\nVALUES (\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  {{ $json.candidate_id }}\n)\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated',\n  processed_at = NOW();\n\nSELECT \n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  'inserted/updated' AS log_action;",
+          "options": {}
+        },
+        "id": "b6402442-fddf-4724-abd5-59e7044c691d",
+        "name": "PG：寫入 email_logs",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          3168,
+          320
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NGdDfE2F1YFXGcmn",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO interviews (\n  candidate_id, interview_date, interview_time, round,\n  location, hr_owner, status, email_subject, email_msg_id, email_web_link\n)\nSELECT\n  {{ $json.candidate_id }},\n  NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null'),\n  {{ $json.round || 1 }},\n  NULLIF(NULLIF('{{ ($json.location || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  NULLIF(NULLIF('{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  '{{ $json.status || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF(NULLIF('{{ $json.email_web_link || '' }}', ''), 'null')\nWHERE '{{ $json.intent || '' }}' NOT IN ('update_time', 'cancel', 'recommend', 'request_invite')\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  status = EXCLUDED.status;\n\nUPDATE interviews SET\n  interview_date = NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  interview_time = NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null')\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'update_time'\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL;\n\nUPDATE interviews SET\n  status = 'cancelled'\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'cancel';\n\nSELECT\n  {{ $json.candidate_id }} AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', 'null') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at,\n  '{{ $json.status || '' }}' AS status;",
+          "options": {}
+        },
+        "id": "5c73b5bf-0b4b-47bc-95b1-a51cbbd1c70d",
+        "name": "PG：寫入 interviews",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          2944,
+          320
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NGdDfE2F1YFXGcmn",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO candidates (name, applied_position, department, source, status, notes)\nSELECT\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.applied_position || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  'Outlook即時',\n  '{{ $json.db_status || '' }}',\n  NULLIF('{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}', '')\nWHERE NOT EXISTS (\n  SELECT 1 FROM candidates WHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\n);\n\nUPDATE candidates\nSET\n  status = '{{ $json.db_status || '' }}',\n  notes = CASE\n    WHEN '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}' <> '' THEN\n      TRIM(BOTH ' ' FROM CONCAT(\n        NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), ''),\n        CASE\n          WHEN NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '') IS NOT NULL\n            THEN ' '\n          ELSE ''\n        END,\n        '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}'\n      ))\n    ELSE NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '')\n  END\nWHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}';\n\nSELECT\n  c.id AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.interview_date || '' }}' AS interview_date,\n  '{{ $json.interview_time || '' }}' AS interview_time,\n  {{ $json.round || 1 }} AS round,\n  '{{ ($json.location || '').replace(/'/g, \"''\") }}' AS location,\n  '{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}' AS hr_owner,\n  '{{ $json.interview_status || 'scheduled' }}' AS status,\n  '{{ $json.intent || '' }}' AS intent,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ $json.email_web_link || '' }}' AS email_web_link,\n  '{{ $json.sender || '' }}' AS sender,\n  '{{ $json.received_at || '' }}' AS received_at\nFROM candidates c\nWHERE c.name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\nORDER BY c.created_at DESC LIMIT 1;",
+          "options": {}
+        },
+        "id": "cba3f36b-e5f5-44fb-afc5-044fb48f95fb",
+        "name": "PG：寫入 candidates",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          2720,
+          320
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NGdDfE2F1YFXGcmn",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\n// 修正後的安全防呆轉換\nconst ns = v => {\n  if (v === null || v === undefined) return 'null';\n  const str = String(v).trim();\n  if (str === '' || str === 'null' || str === 'undefined') return 'null';\n  return str;\n};\n\nconst intent = aiResult.intent || 'recommend';\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? `[SYS_STAGE:approved_to_invite|HR:${hrOwner === 'null' ? '' : hrOwner}]`\n  : '';\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time' ? 'rescheduled' : 'scheduled');\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: base.received_at,\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: ns(aiResult.applied_position) !== 'null' ? aiResult.applied_position : '未知職位',\n  department: ns(aiResult.department) !== 'null' ? aiResult.department : '未分類',\n  interview_date: ns(base.interview_date || aiResult.interview_date),\n  interview_time: ns(base.interview_time || aiResult.interview_time),\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
+        },
+        "id": "cb35b346-7ff3-42c8-b1ae-80a15dbd35cd",
+        "name": "Code：整合輸出",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2496,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.anthropic.com/v1/messages",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "anthropicApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "anthropic-version",
+                "value": "2023-06-01"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json }}",
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 1500
+              }
+            }
+          }
+        },
+        "id": "25c4c840-44f9-4970-a775-f506acade7f0",
+        "name": "Claude：AI 解析意圖",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2272,
+          320
+        ],
+        "credentials": {
+          "anthropicApi": {
+            "id": "y6zxdCqqBzmwq5bi",
+            "name": "Anthropic account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const item = $input.item.json;\nconst subject = item.subject || '';\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\n// 🌟 強化版：從主旨萃取候選人姓名\nlet candidateName = null;\nconst SKIP = new Set(['通知','安排','確認','面試','邀請','時間','地點','更改','更新','推薦','取消','履歷','回覆']);\n\n// 涵蓋更多台灣職場常用的分隔符號與格式\nconst namePatterns = [\n  /\\u3010[^\\u3011]*\\u3011\\s*[-\\uFF0D\\u2014\\u2013_~\\uFF5E:\\uFF1A]\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})/, // bracketed title + dash + name\n  /\\u3010[^\\u3011]*\\u3011\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})\\s*$/,             // bracketed title + name\n  /[-\\uFF0D\\u2014\\u2013_~\\uFF5E]\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})\\s*$/,   // dash + name\n  /\\u3011\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})\\s*(?:\\u5148\\u751f|\\u5973\\u58eb|\\u5c0f\\u59d0)/ // suffix title\n];\n\nfor (const p of namePatterns) {\n  const m = subject.match(p);\n  if (m && m[1]) {\n    // 把抓到的字串去頭去尾空白\n    const matchStr = m[1].trim(); \n    if (!SKIP.has(matchStr) && matchStr.length >= 2) {\n      candidateName = matchStr;\n      break;\n    }\n  }\n}\n\n// 如果正規表達式真的抓不到，做最後一道暴力防線：擷取主旨最後一個 \"-\" 後面的文字\nif (!candidateName && subject.includes('-')) {\n    const parts = subject.split(/[-－—–]/);\n    const possibleName = parts[parts.length - 1].trim();\n    if (possibleName.length >= 2 && possibleName.length <= 5 && !SKIP.has(possibleName)) {\n        candidateName = possibleName;\n    }\n}\n\n// 萃取日期（主旨 + body 前段）\nlet interviewDate = null;\nconst searchText = subject + ' ' + body.substring(0, 800);\nconst datePatterns = [\n  { re: /(\\d{4})年(\\d{1,2})月(\\d{1,2})日/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{1,2})月(\\d{1,2})日/, fn: m => `${new Date().getFullYear()}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` },\n];\nfor (const { re, fn } of datePatterns) {\n  const m = searchText.match(re);\n  if (m) { interviewDate = fn(m); break; }\n}\n\n// 萃取時間\nlet interviewTime = null;\nconst timeMatch = searchText.match(/(\\d{1,2})[:：](\\d{2})/);\nif (timeMatch) {\n  interviewTime = `${timeMatch[1].padStart(2,'0')}:${timeMatch[2]}`;\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  candidate_name: candidateName,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  body_text: body.substring(0, 2000),\n};"
+        },
+        "id": "d265f169-59ed-42a6-a38c-ef5bca944e69",
+        "name": "Code：萃取基本資訊",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1824,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const item = $input.item.json;\nreturn {\n  model: \"claude-haiku-4-5-20251001\",\n  max_tokens: 500,\n  system: \"你是 HR 信件解析助手，從面試信件中萃取結構化資訊，輸出純 JSON 不含多餘文字。\\nHR 人員：李沛晴（Peggy）、陳清彥（Yen）、黃友為（Evan）\\n\\n輸出欄位：\\n- candidate_name: 候選人姓名（優先從主旨取，主旨無法確定才從內文找）\\n- applied_position: 應徵職位（找不到填「未知職位」）\\n- department: 部門（找不到填「未分類」）\\n- interview_date: YYYY-MM-DD（主管「建議約在...」代表未確認填 null；只有已確認才填）\\n- interview_time: HH:MM（同上規則）\\n- round: 第幾輪（數字，預設 1）\\n- location: 面試地點\\n- hr_owner: 負責 HR 姓名\\n- status: 狀態描述（待HR邀約 / 面試已安排 / 已推薦 等）\\n- intent: recommend|request_invite|schedule|update_time|cancel|second_schedule|other\n- ??????????XXX???????? request_invite?? hr_owner = XXX?????????????????? schedule ? update_time\\n- ai_action_item: HR 待辦一句話（無則 null）\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"主旨：\" + item.email_subject + \"\\n\\n\" + item.body_text\n    }\n  ]\n};"
+        },
+        "id": "code-assemble-claude-body-001",
+        "name": "Code：組裝 Claude Request Body",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2048,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "kw-filter",
+                "leftValue": "={{ $json.subject }}",
+                "rightValue": ".*(面試|面談|初試|複試|面試通知|面談通知|interview|履歷推薦).*",
+                "operator": {
+                  "type": "string",
+                  "operation": "regex"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "210917e7-a74c-49e3-8d4d-afb1c05e6ca7",
+        "name": "IF：主旨過濾",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1600,
+          448
+        ]
+      },
+      {
+        "parameters": {
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "filters": {
+            "foldersToInclude": [
+              "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMBAAA=",
+              "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyLAAA=",
+              "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyMAAA=",
+              "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMDAAA="
+            ]
+          },
+          "options": {
+            "downloadAttachments": false
+          }
+        },
+        "id": "a327ac36-b64c-4c1a-9329-748724ede566",
+        "name": "Outlook 收信觸發",
+        "type": "n8n-nodes-base.microsoftOutlookTrigger",
+        "typeVersion": 1,
+        "position": [
+          1376,
+          448
+        ],
+        "credentials": {
+          "microsoftOutlookOAuth2Api": {
+            "id": "gRnSdH5u4gDyDZzB",
+            "name": "Microsoft Outlook account"
+          }
+        }
+      }
     ],
     "connections": {
-        "Code：非面試信件略過": {
-            "main": [
-                [
-                    {
-                        "node": "PG：記錄略過信件",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "PG：寫入 interviews": {
-            "main": [
-                [
-                    {
-                        "node": "PG：寫入 email_logs",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "PG：寫入 candidates": {
-            "main": [
-                [
-                    {
-                        "node": "PG：寫入 interviews",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Code：整合輸出": {
-            "main": [
-                [
-                    {
-                        "node": "Code：拆分多人推薦",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Claude：AI 解析意圖": {
-            "main": [
-                [
-                    {
-                        "node": "Code：整合輸出",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Code：萃取基本資訊": {
-            "main": [
-                [
-                    {
-                        "node": "Code：組裝 Claude Request Body",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "IF：主旨過濾": {
-            "main": [
-                [
-                    {
-                        "node": "Code：萃取基本資訊",
-                        "type": "main",
-                        "index": 0
-                    }
-                ],
-                [
-                    {
-                        "node": "Code：非面試信件略過",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Outlook 收信觸發": {
-            "main": [
-                [
-                    {
-                        "node": "IF：主旨過濾",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Code：組裝 Claude Request Body": {
-            "main": [
-                [
-                    {
-                        "node": "Claude：AI 解析意圖",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Codeï¼æåå¤äººæ¨è¦": {
-            "main": [
-                [
-                    {
-                        "node": "PGï¼å¯«å¥ candidates",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Codeï¼æ´åè¼¸åº": {
-            "main": [
-                [
-                    {
-                        "node": "Codeï¼æåå¤äººæ¨è¦",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Code：拆分多人推薦": {
-            "main": [
-                [
-                    {
-                        "node": "PG：寫入 candidates",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        }
-    },
-    "settings": {
-        "executionOrder": "v1",
-        "binaryMode": "separate"
-    },
-    "staticData": {
-        "node:Outlook 收信觸發": {
-            "lastTimeChecked": "2026-05-25T11:29:20.002+08:00"
-        }
-    },
-    "meta": {
-        "templateCredsSetupCompleted": true
-    },
-    "pinData": {},
-    "versionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
-    "activeVersionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
-    "versionCounter": 392,
-    "triggerCount": 1,
-    "shared": [
-        {
-            "updatedAt": "2026-05-15T10:08:31.212Z",
-            "createdAt": "2026-05-15T10:08:31.212Z",
-            "role": "workflow:owner",
-            "workflowId": "pqnpr72wTiOE2m8I",
-            "projectId": "NvjFEev0823h2STF",
-            "project": {
-                "updatedAt": "2026-05-15T07:57:49.399Z",
-                "createdAt": "2026-05-15T07:52:05.149Z",
-                "id": "NvjFEev0823h2STF",
-                "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
-                "type": "personal",
-                "icon": null,
-                "description": null,
-                "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+      "Code：非面試信件略過": {
+        "main": [
+          [
+            {
+              "node": "PG：記錄略過信件",
+              "type": "main",
+              "index": 0
             }
-        }
-    ],
-    "tags": [
-        {
-            "updatedAt": "2026-05-15T10:18:59.545Z",
-            "createdAt": "2026-05-15T10:18:59.545Z",
-            "id": "yP9PPTGVL9VqZ3jM",
-            "name": "HR"
-        }
-    ],
-    "activeVersion": {
-        "updatedAt": "2026-05-22T09:18:27.169Z",
-        "createdAt": "2026-05-22T09:18:00.200Z",
-        "versionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
-        "workflowId": "pqnpr72wTiOE2m8I",
-        "nodes": [
-            {
-                "parameters": {
-                    "operation": "executeQuery",
-                    "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, error_msg)\nVALUES (\n  '{{ $json.email_msg_id }}',\n  '{{ $json.email_subject }}',\n  NULLIF('{{ $json.sender }}', 'null'),\n  NOW(),\n  'skipped',\n  '非面試類信件'\n)\nON CONFLICT (email_msg_id) DO NOTHING;",
-                    "options": {}
-                },
-                "id": "eb3a1b5f-0e75-402f-b07c-92498977603e",
-                "name": "PG：記錄略過信件",
-                "type": "n8n-nodes-base.postgres",
-                "typeVersion": 2.5,
-                "position": [
-                    2048,
-                    560
-                ],
-                "credentials": {
-                    "postgres": {
-                        "id": "NGdDfE2F1YFXGcmn",
-                        "name": "Postgres account"
-                    }
-                }
-            },
-            {
-                "parameters": {
-                    "mode": "runOnceForEachItem",
-                    "jsCode": "const item = $input.item.json;\nreturn {\n  email_msg_id: item.id,\n  email_subject: item.subject,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  action: 'skipped',\n  error_msg: '非面試信件略過，略過',\n};"
-                },
-                "id": "587396cf-8857-46b7-af56-46ebad296a42",
-                "name": "Code：非面試信件略過",
-                "type": "n8n-nodes-base.code",
-                "typeVersion": 2,
-                "position": [
-                    1824,
-                    560
-                ]
-            },
-            {
-                "parameters": {
-                    "operation": "executeQuery",
-                    "query": "INSERT INTO email_logs (\n  email_msg_id, email_subject, sender, received_at, action, candidate_id\n)\nVALUES (\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  'inserted',\n  {{ $json.candidate_id }}\n)\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = 'updated',\n  processed_at = NOW();\n\nSELECT \n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  'inserted/updated' AS log_action;",
-                    "options": {}
-                },
-                "id": "b6402442-fddf-4724-abd5-59e7044c691d",
-                "name": "PG：寫入 email_logs",
-                "type": "n8n-nodes-base.postgres",
-                "typeVersion": 2.5,
-                "position": [
-                    3168,
-                    320
-                ],
-                "credentials": {
-                    "postgres": {
-                        "id": "NGdDfE2F1YFXGcmn",
-                        "name": "Postgres account"
-                    }
-                }
-            },
-            {
-                "parameters": {
-                    "operation": "executeQuery",
-                    "query": "INSERT INTO interviews (\n  candidate_id, interview_date, interview_time, round,\n  location, hr_owner, status, email_subject, email_msg_id, email_web_link\n)\nSELECT\n  {{ $json.candidate_id }},\n  NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null'),\n  {{ $json.round || 1 }},\n  NULLIF(NULLIF('{{ ($json.location || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  NULLIF(NULLIF('{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}', ''), 'null'),\n  '{{ $json.status || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF(NULLIF('{{ $json.email_web_link || '' }}', ''), 'null')\nWHERE '{{ $json.intent || '' }}' NOT IN ('update_time', 'cancel', 'recommend', 'request_invite')\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  status = EXCLUDED.status;\n\nUPDATE interviews SET\n  interview_date = NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null')::DATE,\n  interview_time = NULLIF(NULLIF('{{ $json.interview_time || '' }}', ''), 'null')\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'update_time'\n  AND NULLIF(NULLIF('{{ $json.interview_date || '' }}', ''), 'null') IS NOT NULL;\n\nUPDATE interviews SET\n  status = 'cancelled'\nWHERE candidate_id = {{ $json.candidate_id }}\n  AND round = {{ $json.round || 1 }}\n  AND '{{ $json.intent || '' }}' = 'cancel';\n\nSELECT\n  {{ $json.candidate_id }} AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', 'null') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at,\n  '{{ $json.status || '' }}' AS status;",
-                    "options": {}
-                },
-                "id": "5c73b5bf-0b4b-47bc-95b1-a51cbbd1c70d",
-                "name": "PG：寫入 interviews",
-                "type": "n8n-nodes-base.postgres",
-                "typeVersion": 2.5,
-                "position": [
-                    2944,
-                    320
-                ],
-                "credentials": {
-                    "postgres": {
-                        "id": "NGdDfE2F1YFXGcmn",
-                        "name": "Postgres account"
-                    }
-                }
-            },
-            {
-                "parameters": {
-                    "operation": "executeQuery",
-                    "query": "INSERT INTO candidates (name, applied_position, department, source, status, notes)\nSELECT\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.applied_position || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  'Outlook即時',\n  '{{ $json.db_status || '' }}',\n  NULLIF('{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}', '')\nWHERE NOT EXISTS (\n  SELECT 1 FROM candidates WHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\n);\n\nUPDATE candidates\nSET\n  status = '{{ $json.db_status || '' }}',\n  notes = CASE\n    WHEN '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}' <> '' THEN\n      TRIM(BOTH ' ' FROM CONCAT(\n        NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), ''),\n        CASE\n          WHEN NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '') IS NOT NULL\n            THEN ' '\n          ELSE ''\n        END,\n        '{{ ($json.system_stage_note || '').replace(/'/g, \"''\") }}'\n      ))\n    ELSE NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '')\n  END\nWHERE name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}';\n\nSELECT\n  c.id AS candidate_id,\n  '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}' AS candidate_name,\n  '{{ $json.interview_date || '' }}' AS interview_date,\n  '{{ $json.interview_time || '' }}' AS interview_time,\n  {{ $json.round || 1 }} AS round,\n  '{{ ($json.location || '').replace(/'/g, \"''\") }}' AS location,\n  '{{ ($json.hr_owner || '').replace(/'/g, \"''\") }}' AS hr_owner,\n  '{{ $json.interview_status || 'scheduled' }}' AS status,\n  '{{ $json.intent || '' }}' AS intent,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  '{{ $json.email_msg_id || '' }}' AS email_msg_id,\n  '{{ $json.email_web_link || '' }}' AS email_web_link,\n  '{{ $json.sender || '' }}' AS sender,\n  '{{ $json.received_at || '' }}' AS received_at\nFROM candidates c\nWHERE c.name = '{{ ($json.candidate_name || '').replace(/'/g, \"''\") }}'\nORDER BY c.created_at DESC LIMIT 1;",
-                    "options": {}
-                },
-                "id": "cba3f36b-e5f5-44fb-afc5-044fb48f95fb",
-                "name": "PG：寫入 candidates",
-                "type": "n8n-nodes-base.postgres",
-                "typeVersion": 2.5,
-                "position": [
-                    2720,
-                    320
-                ],
-                "credentials": {
-                    "postgres": {
-                        "id": "NGdDfE2F1YFXGcmn",
-                        "name": "Postgres account"
-                    }
-                }
-            },
-            {
-                "parameters": {
-                    "mode": "runOnceForEachItem",
-                    "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch(e) {}\n\n// 修正後的安全防呆轉換\nconst ns = v => {\n  if (v === null || v === undefined) return 'null';\n  const str = String(v).trim();\n  if (str === '' || str === 'null' || str === 'undefined') return 'null';\n  return str;\n};\n\nconst intent = aiResult.intent || 'recommend';\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? `[SYS_STAGE:approved_to_invite|HR:${hrOwner === 'null' ? '' : hrOwner}]`\n  : '';\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time' ? 'rescheduled' : 'scheduled');\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: base.received_at,\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: ns(aiResult.applied_position) !== 'null' ? aiResult.applied_position : '未知職位',\n  department: ns(aiResult.department) !== 'null' ? aiResult.department : '未分類',\n  interview_date: ns(base.interview_date || aiResult.interview_date),\n  interview_time: ns(base.interview_time || aiResult.interview_time),\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
-                },
-                "id": "cb35b346-7ff3-42c8-b1ae-80a15dbd35cd",
-                "name": "Code：整合輸出",
-                "type": "n8n-nodes-base.code",
-                "typeVersion": 2,
-                "position": [
-                    2496,
-                    320
-                ]
-            },
-            {
-                "parameters": {
-                    "method": "POST",
-                    "url": "https://api.anthropic.com/v1/messages",
-                    "authentication": "predefinedCredentialType",
-                    "nodeCredentialType": "anthropicApi",
-                    "sendHeaders": true,
-                    "headerParameters": {
-                        "parameters": [
-                            {
-                                "name": "anthropic-version",
-                                "value": "2023-06-01"
-                            }
-                        ]
-                    },
-                    "sendBody": true,
-                    "specifyBody": "json",
-                    "jsonBody": "={{ $json }}",
-                    "options": {
-                        "batching": {
-                            "batch": {
-                                "batchSize": 1,
-                                "batchInterval": 1500
-                            }
-                        }
-                    }
-                },
-                "id": "25c4c840-44f9-4970-a775-f506acade7f0",
-                "name": "Claude：AI 解析意圖",
-                "type": "n8n-nodes-base.httpRequest",
-                "typeVersion": 4.2,
-                "position": [
-                    2272,
-                    320
-                ],
-                "credentials": {
-                    "anthropicApi": {
-                        "id": "y6zxdCqqBzmwq5bi",
-                        "name": "Anthropic account"
-                    }
-                }
-            },
-            {
-                "parameters": {
-                    "mode": "runOnceForEachItem",
-                    "jsCode": "const item = $input.item.json;\nconst subject = item.subject || '';\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\n// 🌟 強化版：從主旨萃取候選人姓名\nlet candidateName = null;\nconst SKIP = new Set(['通知','安排','確認','面試','邀請','時間','地點','更改','更新','推薦','取消','履歷','回覆']);\n\n// 涵蓋更多台灣職場常用的分隔符號與格式\nconst namePatterns = [\n  /\\u3010[^\\u3011]*\\u3011\\s*[-\\uFF0D\\u2014\\u2013_~\\uFF5E:\\uFF1A]\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})/, // bracketed title + dash + name\n  /\\u3010[^\\u3011]*\\u3011\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})\\s*$/,             // bracketed title + name\n  /[-\\uFF0D\\u2014\\u2013_~\\uFF5E]\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})\\s*$/,   // dash + name\n  /\\u3011\\s*([a-zA-Z\\u4e00-\\u9fa5]{2,10})\\s*(?:\\u5148\\u751f|\\u5973\\u58eb|\\u5c0f\\u59d0)/ // suffix title\n];\n\nfor (const p of namePatterns) {\n  const m = subject.match(p);\n  if (m && m[1]) {\n    // 把抓到的字串去頭去尾空白\n    const matchStr = m[1].trim(); \n    if (!SKIP.has(matchStr) && matchStr.length >= 2) {\n      candidateName = matchStr;\n      break;\n    }\n  }\n}\n\n// 如果正規表達式真的抓不到，做最後一道暴力防線：擷取主旨最後一個 \"-\" 後面的文字\nif (!candidateName && subject.includes('-')) {\n    const parts = subject.split(/[-－—–]/);\n    const possibleName = parts[parts.length - 1].trim();\n    if (possibleName.length >= 2 && possibleName.length <= 5 && !SKIP.has(possibleName)) {\n        candidateName = possibleName;\n    }\n}\n\n// 萃取日期（主旨 + body 前段）\nlet interviewDate = null;\nconst searchText = subject + ' ' + body.substring(0, 800);\nconst datePatterns = [\n  { re: /(\\d{4})年(\\d{1,2})月(\\d{1,2})日/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: m => `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` },\n  { re: /(\\d{1,2})月(\\d{1,2})日/, fn: m => `${new Date().getFullYear()}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` },\n];\nfor (const { re, fn } of datePatterns) {\n  const m = searchText.match(re);\n  if (m) { interviewDate = fn(m); break; }\n}\n\n// 萃取時間\nlet interviewTime = null;\nconst timeMatch = searchText.match(/(\\d{1,2})[:：](\\d{2})/);\nif (timeMatch) {\n  interviewTime = `${timeMatch[1].padStart(2,'0')}:${timeMatch[2]}`;\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: item.receivedDateTime,\n  candidate_name: candidateName,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  body_text: body.substring(0, 2000),\n};"
-                },
-                "id": "d265f169-59ed-42a6-a38c-ef5bca944e69",
-                "name": "Code：萃取基本資訊",
-                "type": "n8n-nodes-base.code",
-                "typeVersion": 2,
-                "position": [
-                    1824,
-                    320
-                ]
-            },
-            {
-                "parameters": {
-                    "mode": "runOnceForEachItem",
-                    "jsCode": "const item = $input.item.json;\nreturn {\n  model: \"claude-haiku-4-5-20251001\",\n  max_tokens: 500,\n  system: \"你是 HR 信件解析助手，從面試信件中萃取結構化資訊，輸出純 JSON 不含多餘文字。\\nHR 人員：李沛晴（Peggy）、陳清彥（Yen）、黃友為（Evan）\\n\\n輸出欄位：\\n- candidate_name: 候選人姓名（優先從主旨取，主旨無法確定才從內文找）\\n- applied_position: 應徵職位（找不到填「未知職位」）\\n- department: 部門（找不到填「未分類」）\\n- interview_date: YYYY-MM-DD（主管「建議約在...」代表未確認填 null；只有已確認才填）\\n- interview_time: HH:MM（同上規則）\\n- round: 第幾輪（數字，預設 1）\\n- location: 面試地點\\n- hr_owner: 負責 HR 姓名\\n- status: 狀態描述（待HR邀約 / 面試已安排 / 已推薦 等）\\n- intent: recommend|request_invite|schedule|update_time|cancel|second_schedule|other\n- ??????????XXX???????? request_invite?? hr_owner = XXX?????????????????? schedule ? update_time\\n- ai_action_item: HR 待辦一句話（無則 null）\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"主旨：\" + item.email_subject + \"\\n\\n\" + item.body_text\n    }\n  ]\n};"
-                },
-                "id": "code-assemble-claude-body-001",
-                "name": "Code：組裝 Claude Request Body",
-                "type": "n8n-nodes-base.code",
-                "typeVersion": 2,
-                "position": [
-                    2048,
-                    320
-                ]
-            },
-            {
-                "parameters": {
-                    "conditions": {
-                        "options": {
-                            "caseSensitive": true,
-                            "leftValue": "",
-                            "typeValidation": "strict",
-                            "version": 1
-                        },
-                        "conditions": [
-                            {
-                                "id": "kw-filter",
-                                "leftValue": "={{ $json.subject }}",
-                                "rightValue": ".*(面試|面談|初試|複試|面試通知|面談通知|interview|履歷推薦).*",
-                                "operator": {
-                                    "type": "string",
-                                    "operation": "regex"
-                                }
-                            }
-                        ],
-                        "combinator": "and"
-                    },
-                    "options": {}
-                },
-                "id": "210917e7-a74c-49e3-8d4d-afb1c05e6ca7",
-                "name": "IF：主旨過濾",
-                "type": "n8n-nodes-base.if",
-                "typeVersion": 2,
-                "position": [
-                    1600,
-                    448
-                ]
-            },
-            {
-                "parameters": {
-                    "pollTimes": {
-                        "item": [
-                            {
-                                "mode": "everyMinute"
-                            }
-                        ]
-                    },
-                    "filters": {
-                        "foldersToInclude": [
-                            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMBAAA=",
-                            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyLAAA=",
-                            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQDrOyTdalCqR4oTn0wwCObdAEg2qZyMAAA=",
-                            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMDAAA="
-                        ]
-                    },
-                    "options": {
-                        "downloadAttachments": false
-                    }
-                },
-                "id": "a327ac36-b64c-4c1a-9329-748724ede566",
-                "name": "Outlook 收信觸發",
-                "type": "n8n-nodes-base.microsoftOutlookTrigger",
-                "typeVersion": 1,
-                "position": [
-                    1376,
-                    448
-                ],
-                "credentials": {
-                    "microsoftOutlookOAuth2Api": {
-                        "id": "gRnSdH5u4gDyDZzB",
-                        "name": "Microsoft Outlook account"
-                    }
-                }
-            }
-        ],
-        "connections": {
-            "Code：非面試信件略過": {
-                "main": [
-                    [
-                        {
-                            "node": "PG：記錄略過信件",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "PG：寫入 interviews": {
-                "main": [
-                    [
-                        {
-                            "node": "PG：寫入 email_logs",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "PG：寫入 candidates": {
-                "main": [
-                    [
-                        {
-                            "node": "PG：寫入 interviews",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "Code：整合輸出": {
-                "main": [
-                    [
-                        {
-                            "node": "PG：寫入 candidates",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "Claude：AI 解析意圖": {
-                "main": [
-                    [
-                        {
-                            "node": "Code：整合輸出",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "Code：萃取基本資訊": {
-                "main": [
-                    [
-                        {
-                            "node": "Code：組裝 Claude Request Body",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "IF：主旨過濾": {
-                "main": [
-                    [
-                        {
-                            "node": "Code：萃取基本資訊",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ],
-                    [
-                        {
-                            "node": "Code：非面試信件略過",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "Outlook 收信觸發": {
-                "main": [
-                    [
-                        {
-                            "node": "IF：主旨過濾",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            },
-            "Code：組裝 Claude Request Body": {
-                "main": [
-                    [
-                        {
-                            "node": "Claude：AI 解析意圖",
-                            "type": "main",
-                            "index": 0
-                        }
-                    ]
-                ]
-            }
-        },
-        "authors": "Huang yu-Wei",
-        "name": "Version df4da08d",
-        "description": "",
-        "autosaved": true,
-        "workflowPublishHistory": [
-            {
-                "createdAt": "2026-05-22T09:18:27.168Z",
-                "id": 15,
-                "workflowId": "pqnpr72wTiOE2m8I",
-                "versionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
-                "event": "activated",
-                "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
-            }
+          ]
         ]
-    }
+      },
+      "PG：寫入 interviews": {
+        "main": [
+          [
+            {
+              "node": "PG：寫入 email_logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "PG：寫入 candidates": {
+        "main": [
+          [
+            {
+              "node": "PG：寫入 interviews",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code：整合輸出": {
+        "main": [
+          [
+            {
+              "node": "PG：寫入 candidates",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude：AI 解析意圖": {
+        "main": [
+          [
+            {
+              "node": "Code：整合輸出",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code：萃取基本資訊": {
+        "main": [
+          [
+            {
+              "node": "Code：組裝 Claude Request Body",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF：主旨過濾": {
+        "main": [
+          [
+            {
+              "node": "Code：萃取基本資訊",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Code：非面試信件略過",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Outlook 收信觸發": {
+        "main": [
+          [
+            {
+              "node": "IF：主旨過濾",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code：組裝 Claude Request Body": {
+        "main": [
+          [
+            {
+              "node": "Claude：AI 解析意圖",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Huang yu-Wei",
+    "name": "Version df4da08d",
+    "description": "",
+    "autosaved": true,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-22T09:18:27.168Z",
+        "id": 15,
+        "workflowId": "pqnpr72wTiOE2m8I",
+        "versionId": "df4da08d-6604-4a20-beb8-1e25a74c1409",
+        "event": "activated",
+        "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+      }
+    ]
+  }
 }
