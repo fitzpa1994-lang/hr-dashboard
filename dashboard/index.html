@@ -462,6 +462,16 @@
               <span class="kpi-value" id="kpi-week-onboard">4</span>
             </div>
           </div>
+          <div class="kpi-card cursor-pointer" onclick="showUnmappedCandidates()">
+            <div class="flex items-center justify-between mb-2">
+              <span class="kpi-label">待補職缺</span>
+              <i data-lucide="link-2-off" class="w-4 h-4 text-rose-500"></i>
+            </div>
+            <div class="flex items-end gap-2">
+              <span class="kpi-value" id="kpi-unmapped-candidates">0</span>
+              <span class="text-xs text-rose-600 font-medium mb-1 flex items-center" id="kpi-unmapped-candidates-subtext"></span>
+            </div>
+          </div>
         </div>
 
         <!-- Layout Grid -->
@@ -671,13 +681,14 @@
       <div id="tab-candidates" class="page page-shell hidden">
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg flex-wrap">
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待主管回覆</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('approved_to_invite', this)">待安排面試</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">錄取中</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">已到職</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">已撤回</button>
+            <button id="cand-filter-all" class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
+            <button id="cand-filter-pending-review" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待主管回覆</button>
+            <button id="cand-filter-pending-invite" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('approved_to_invite', this)">待安排面試</button>
+            <button id="cand-filter-interviewing" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
+            <button id="cand-filter-offer" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">錄取中</button>
+            <button id="cand-filter-onboarded" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">已到職</button>
+            <button id="cand-filter-withdrawn" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">已撤回</button>
+            <button id="cand-filter-unmapped" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('unmapped', this)">待補職缺</button>
             <div class="ml-auto flex items-center gap-3">
               <input id="candidate-search" type="text" placeholder="搜尋候選人..." class="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand">
               <span id="cand-count" class="text-xs text-gray-500">0 / 0 筆</span>
@@ -894,7 +905,7 @@
 // ============================================================
 const API_URL = '/api/hr-dashboard';
 let TODAY = new Date().toISOString().split('T')[0];
-let schedEvents = [], onboardData = [], resignData  = [], candidatesData = [], jobsData = [], monthlyTrend = [], departmentStats = [], stats = {};
+let schedEvents = [], onboardData = [], resignData  = [], candidatesData = [], unmappedCandidates = [], jobsData = [], monthlyTrend = [], departmentStats = [], stats = {};
 let lastGeneratedAt = null;
 window.hrDashboardBridge = {
   getJobs: () => jobsData,
@@ -976,6 +987,9 @@ function getOverviewKpis() {
     weekOnboardCount: weekOnboard.length,
     nextOnboardDate,
     nextOnboardCount,
+    unmappedCandidateCount: Number.isFinite(Number(stats.unmappedCandidateCount))
+      ? Number(stats.unmappedCandidateCount)
+      : unmappedCandidates.length,
   };
 }
 
@@ -1101,6 +1115,7 @@ async function loadData() {
     onboardData = d.onboardData || [];
     resignData = d.resignData || [];
     candidatesData = d.candidatesData || [];
+    unmappedCandidates = d.unmappedCandidates || [];
     jobsData = d.jobsData || [];
     monthlyTrend = d.monthlyTrend || [];
     departmentStats = d.departmentStats || [];
@@ -1169,6 +1184,10 @@ function initOverview() {
   document.getElementById('kpi-next-onboard-label').textContent = overviewKpis.nextOnboardDate
     ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))} 預計到職`
     : '近期預計到職';
+  document.getElementById('kpi-unmapped-candidates').textContent = overviewKpis.unmappedCandidateCount;
+  document.getElementById('kpi-unmapped-candidates-subtext').textContent = overviewKpis.unmappedCandidateCount
+    ? '需人工確認正式職缺'
+    : '目前都已綁定';
 
   // Today Interviews Table
   const todayList = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
@@ -1454,8 +1473,18 @@ function setCandF(f,btn){
   btn.className = 'px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white';
   renderCandidates();
 }
+function showUnmappedCandidates(){
+  const menu = document.querySelectorAll('.menu-item')[4];
+  if (menu) showTab('candidates', menu);
+  const btn = document.getElementById('cand-filter-unmapped');
+  if (btn) setCandF('unmapped', btn);
+}
 function renderCandidates(){
-  const items=candFilter==='all'?candidatesData:candidatesData.filter(c=>c.status===candFilter);
+  const items = candFilter === 'all'
+    ? candidatesData
+    : (candFilter === 'unmapped'
+        ? candidatesData.filter(c => !c.jobRequisitionId)
+        : candidatesData.filter(c => c.status === candFilter));
   const tbody=document.getElementById('cand-tbody');
   const q = String(document.getElementById('candidate-search')?.value || '').trim().toLowerCase();
   const filtered = q ? items.filter(c => [c.name,c.pos,c.dept,c.hr,c.note,c.source].some(v => String(v || '').toLowerCase().includes(q))) : items;

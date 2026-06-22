@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     phone            TEXT,
     applied_position TEXT        NOT NULL,
     department       TEXT        NOT NULL,
+    job_requisition_id INTEGER   REFERENCES job_requisitions(id) ON DELETE SET NULL,
     source           TEXT        DEFAULT '其他',
     status           TEXT        DEFAULT 'in_progress'
                      CHECK(status IN ('in_progress','pending_review','approved_to_invite','hired','rejected','withdrawn')),
@@ -154,6 +155,7 @@ CREATE INDEX IF NOT EXISTS idx_interviews_date       ON interviews(interview_dat
 CREATE INDEX IF NOT EXISTS idx_interviews_status     ON interviews(status);
 CREATE INDEX IF NOT EXISTS idx_interviews_msg_id     ON interviews(email_msg_id);
 CREATE INDEX IF NOT EXISTS idx_offers_candidate      ON offers(candidate_id);
+CREATE INDEX IF NOT EXISTS idx_candidates_job_requisition ON candidates(job_requisition_id);
 CREATE INDEX IF NOT EXISTS idx_candidates_status     ON candidates(status);
 CREATE INDEX IF NOT EXISTS idx_candidates_dept       ON candidates(department);
 CREATE INDEX IF NOT EXISTS idx_email_logs_msg_id     ON email_logs(email_msg_id);

@@ -1,87 +1,154 @@
 {
-    "updatedAt": "2026-05-19T06:41:31.095Z",
-    "createdAt": "2026-05-19T06:41:31.095Z",
-    "id": "uyDXjECy9kPFaFUy",
-    "name": "_temp_db_check",
-    "description": null,
-    "active": false,
-    "isArchived": false,
-    "nodes": [
-        {
-            "id": "t1",
-            "name": "手動觸發",
-            "type": "n8n-nodes-base.manualTrigger",
-            "typeVersion": 1,
-            "position": [
-                0,
-                0
-            ],
-            "parameters": {}
-        },
-        {
-            "id": "t2",
-            "name": "DB Migrate Candidate Status",
-            "type": "n8n-nodes-base.postgres",
-            "typeVersion": 2.5,
-            "position": [
-                200,
-                0
-            ],
-            "parameters": {
-                "operation": "executeQuery",
-                "query": "ALTER TABLE candidates DROP CONSTRAINT IF EXISTS candidates_status_check;\nALTER TABLE candidates\nADD CONSTRAINT candidates_status_check\nCHECK(status IN ('in_progress','pending_review','approved_to_invite','hired','rejected','withdrawn'));\n\nSELECT conname, pg_get_constraintdef(oid) AS definition\nFROM pg_constraint\nWHERE conname = 'candidates_status_check';",
-                "additionalFields": {}
-            },
-            "credentials": {
-                "postgres": {
-                    "id": "NGdDfE2F1YFXGcmn",
-                    "name": "Postgres account"
-                }
-            }
+  "updatedAt": "2026-05-19T06:41:31.095Z",
+  "createdAt": "2026-05-19T06:41:31.095Z",
+  "id": "uyDXjECy9kPFaFUy",
+  "name": "_temp_db_check",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "t1",
+      "name": "Webhook: Backfill job requisitions",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "hr-backfill-job-requisition-links",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "hr-backfill-job-requisition-links"
+    },
+    {
+      "id": "t2",
+      "name": "DB Migrate Candidate Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "ALTER TABLE candidates\nADD COLUMN IF NOT EXISTS job_requisition_id INTEGER REFERENCES job_requisitions(id) ON DELETE SET NULL;\n\nCREATE INDEX IF NOT EXISTS idx_candidates_job_requisition\nON candidates(job_requisition_id);\n\nWITH alias_match AS (\n  SELECT\n    c.id,\n    CASE\n      WHEN c.applied_position LIKE '%' || U&'SAR\\5DE5\\7A0B\\5E2B' || '%'\n        OR c.applied_position LIKE '%' || U&'SAR\\6E2C\\8A66\\5DE5\\7A0B\\5E2B' || '%'\n        OR lower(c.applied_position) LIKE '%rfsar%'\n        THEN 23\n      WHEN c.applied_position LIKE '%' || U&'MIS\\7DB2\\7BA1\\5DE5\\7A0B\\5E2B' || '%'\n        OR c.applied_position LIKE '%' || U&'MIS\\7DB2\\7BA1' || '%'\n        THEN 17\n      WHEN c.applied_position LIKE '%' || U&'AI\\8EDF\\9AD4\\5DE5\\7A0B\\5E2B' || '%'\n        THEN 27\n      WHEN c.applied_position LIKE '%' || U&'\\4E94\\90E8\\696D\\52D9\\52A9\\7406' || '%'\n        THEN 14\n      ELSE NULL\n    END AS job_requisition_id\n  FROM candidates c\n  WHERE c.job_requisition_id IS NULL\n),\nupdated AS (\n  UPDATE candidates c\n  SET job_requisition_id = a.job_requisition_id\n  FROM alias_match a\n  WHERE c.id = a.id\n    AND a.job_requisition_id IS NOT NULL\n    AND c.job_requisition_id IS NULL\n  RETURNING c.id\n),\nunlinked AS (\n  SELECT id, name, department, applied_position\n  FROM candidates\n  WHERE job_requisition_id IS NULL\n  ORDER BY id DESC\n  LIMIT 20\n)\nSELECT\n  (SELECT COUNT(*) FROM candidates) AS total_candidates,\n  (SELECT COUNT(*) FROM candidates WHERE job_requisition_id IS NOT NULL) AS linked_candidates,\n  (SELECT COUNT(*) FROM candidates WHERE job_requisition_id IS NULL) AS unlinked_candidates,\n  (SELECT COUNT(*) FROM updated) AS updated_this_run,\n  COALESCE((\n    SELECT json_agg(json_build_object(\n      'id', u.id,\n      'name', u.name,\n      'department', u.department,\n      'applied_position', u.applied_position\n    ) ORDER BY u.id DESC)\n    FROM unlinked u\n  ), '[]'::json) AS unlinked_samples;",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
         }
-    ],
-    "connections": {
-        "手動觸發": {
-            "main": [
-                [
-                    {
-                        "node": "DB Migrate Candidate Status",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+      }
+    },
+    {
+      "id": "t3",
+      "name": "Code: Build response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map((item) => item.json);\nreturn { json_response: JSON.stringify({ ok: true, rows }) };"
+      }
+    },
+    {
+      "id": "t4",
+      "name": "Respond: Backfill result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        0
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.json_response }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
+          }
         }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Backfill job requisitions": {
+      "main": [
+        [
+          {
+            "node": "DB Migrate Candidate Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "settings": {
-        "executionOrder": "v1"
+    "DB Migrate Candidate Status": {
+      "main": [
+        [
+          {
+            "node": "Code: Build response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "staticData": null,
-    "meta": null,
-    "pinData": null,
-    "versionId": "652ecac0-095d-4e14-a4a2-f1198154e382",
-    "activeVersionId": null,
-    "versionCounter": 1,
-    "triggerCount": 0,
-    "shared": [
-        {
-            "updatedAt": "2026-05-19T06:41:31.095Z",
-            "createdAt": "2026-05-19T06:41:31.095Z",
-            "role": "workflow:owner",
-            "workflowId": "uyDXjECy9kPFaFUy",
-            "projectId": "NvjFEev0823h2STF",
-            "project": {
-                "updatedAt": "2026-05-15T07:57:49.399Z",
-                "createdAt": "2026-05-15T07:52:05.149Z",
-                "id": "NvjFEev0823h2STF",
-                "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
-                "type": "personal",
-                "icon": null,
-                "description": null,
-                "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
-            }
-        }
-    ],
-    "tags": [],
-    "activeVersion": null
+    "Code: Build response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Backfill result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "652ecac0-095d-4e14-a4a2-f1198154e382",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-05-19T06:41:31.095Z",
+      "createdAt": "2026-05-19T06:41:31.095Z",
+      "role": "workflow:owner",
+      "workflowId": "uyDXjECy9kPFaFUy",
+      "projectId": "NvjFEev0823h2STF",
+      "project": {
+        "updatedAt": "2026-05-15T07:57:49.399Z",
+        "createdAt": "2026-05-15T07:52:05.149Z",
+        "id": "NvjFEev0823h2STF",
+        "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
 }
