@@ -57,6 +57,19 @@ interview_flags AS (
   FROM interviews i
   GROUP BY i.candidate_id
 ),
+email_activity AS (
+  SELECT
+    e.candidate_id,
+    MAX(e.received_at) FILTER (
+      WHERE e.received_at IS NOT NULL
+    ) AS latest_email_received_at,
+    MIN(e.received_at) FILTER (
+      WHERE e.received_at IS NOT NULL
+    ) AS first_email_received_at
+  FROM email_logs e
+  WHERE e.candidate_id IS NOT NULL
+  GROUP BY e.candidate_id
+),
 candidate_state AS (
   SELECT
     c.*,
@@ -65,6 +78,17 @@ candidate_state AS (
     COALESCE(f.latest_email_link, '') AS latest_email_link,
     COALESCE(f.has_active_interview, FALSE) AS has_active_interview,
     COALESCE(f.has_upcoming_interview, FALSE) AS has_upcoming_interview,
+    a.latest_email_received_at,
+    a.first_email_received_at,
+    GREATEST(
+      COALESCE(a.latest_email_received_at, '-infinity'::timestamptz),
+      COALESCE(f.latest_interview_date::timestamptz, '-infinity'::timestamptz),
+      COALESCE(c.created_at, '-infinity'::timestamptz)
+    ) AS latest_signal_at,
+    COALESCE(
+      a.first_email_received_at,
+      c.created_at
+    ) AS first_signal_at,
     CASE
       WHEN c.status = 'hired' THEN 'offer'
       WHEN c.status IN ('rejected', 'withdrawn') THEN 'withdrawn'
@@ -78,6 +102,7 @@ candidate_state AS (
     END AS derived_status
   FROM candidate_enriched c
   LEFT JOIN interview_flags f ON f.candidate_id = c.id
+  LEFT JOIN email_activity a ON a.candidate_id = c.id
 )
 SELECT json_build_object(
   'today', TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD'),
@@ -182,7 +207,7 @@ SELECT json_build_object(
       'dept', c.department,
       'jobRequisitionId', c.job_requisition_id,
       'date', COALESCE(TO_CHAR(c.latest_interview_date, 'YYYY-MM-DD'), ''),
-      'latestDate', COALESCE(TO_CHAR(c.latest_interview_date, 'YYYY-MM-DD'), TO_CHAR(COALESCE(c.updated_at, c.created_at), 'YYYY-MM-DD')),
+      'latestDate', TO_CHAR(COALESCE(c.latest_signal_at, c.created_at), 'YYYY-MM-DD'),
       'status', c.derived_status,
       'onboard', NULL,
       'hr', COALESCE(c.latest_hr_owner, c.marker_hr, ''),
@@ -211,7 +236,7 @@ SELECT json_build_object(
         WHERE ih.candidate_id = c.id
           AND ih.interview_date IS NOT NULL
       ), '[]'::json)
-    ) ORDER BY COALESCE(c.latest_interview_date, COALESCE(c.updated_at, c.created_at)::date) DESC, c.name)
+    ) ORDER BY COALESCE(c.latest_signal_at, c.created_at) DESC, c.name)
     FROM candidate_state c
   ), '[]'::json),
 
@@ -221,13 +246,13 @@ SELECT json_build_object(
       'pos', c.applied_position,
       'dept', c.department,
       'jobRequisitionId', c.job_requisition_id,
-      'latestDate', COALESCE(TO_CHAR(c.latest_interview_date, 'YYYY-MM-DD'), TO_CHAR(COALESCE(c.updated_at, c.created_at), 'YYYY-MM-DD')),
+      'latestDate', TO_CHAR(COALESCE(c.latest_signal_at, c.created_at), 'YYYY-MM-DD'),
       'status', c.derived_status,
       'hr', COALESCE(c.latest_hr_owner, c.marker_hr, ''),
       'note', COALESCE(c.clean_note, ''),
       'source', COALESCE(c.source, ''),
       'emailLink', COALESCE(c.latest_email_link, '')
-    ) ORDER BY COALESCE(c.latest_interview_date, COALESCE(c.updated_at, c.created_at)::date) DESC, c.name)
+    ) ORDER BY COALESCE(c.latest_signal_at, c.created_at) DESC, c.name)
     FROM candidate_state c
     WHERE c.job_requisition_id IS NULL
   ), '[]'::json),
@@ -331,14 +356,14 @@ SELECT json_build_object(
       SELECT COUNT(*)
       FROM candidate_state c
       WHERE c.derived_status = 'pending_review'
-        AND COALESCE(c.updated_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
+        AND COALESCE(c.latest_signal_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
     ),
     'pendingReviewOverdueCount', (
       SELECT COUNT(*)
       FROM candidate_state c
       WHERE c.derived_status = 'pending_review'
-        AND COALESCE(c.updated_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
-        AND c.created_at < CURRENT_DATE - INTERVAL '2 days'
+        AND COALESCE(c.latest_signal_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
+        AND COALESCE(c.latest_signal_at, c.created_at) < CURRENT_DATE - INTERVAL '2 days'
     ),
     'pendingScheduledReviewCount', (
       SELECT COUNT(*)
@@ -350,14 +375,14 @@ SELECT json_build_object(
       SELECT COUNT(*)
       FROM candidate_state c
       WHERE c.derived_status = 'approved_to_invite'
-        AND COALESCE(c.updated_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
+        AND COALESCE(c.latest_signal_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
     ),
     'pendingInviteOverdueCount', (
       SELECT COUNT(*)
       FROM candidate_state c
       WHERE c.derived_status = 'approved_to_invite'
-        AND COALESCE(c.updated_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
-        AND c.created_at < CURRENT_DATE - INTERVAL '3 days'
+        AND COALESCE(c.latest_signal_at, c.created_at) >= CURRENT_DATE - INTERVAL '14 days'
+        AND COALESCE(c.latest_signal_at, c.created_at) < CURRENT_DATE - INTERVAL '3 days'
     ),
     'unmappedCandidateCount', (
       SELECT COUNT(*)

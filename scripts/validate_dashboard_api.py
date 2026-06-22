@@ -2,17 +2,28 @@
 import requests
 import sys
 from datetime import date
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 WEBHOOK_URL = os.environ.get("N8N_HR_WEBHOOK_URL", "https://evanhh.zeabur.app/webhook/hr-dashboard")
 TOKEN = os.environ.get("N8N_HR_TOKEN")
 
 if not TOKEN:
-    print("❌ Missing N8N_HR_TOKEN environment variable")
+    print("ERROR: Missing N8N_HR_TOKEN environment variable")
     sys.exit(1)
 
 API_URL = WEBHOOK_URL
 headers = {"Authorization": f"Bearer {TOKEN}"}
 today_str = date.today().isoformat()
+
+
+def with_token(url, token):
+    parsed = urlparse(url)
+    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    params.setdefault("token", token)
+    return urlunparse(parsed._replace(query=urlencode(params)))
+
+
+API_URL = with_token(API_URL, TOKEN)
 
 print(f"Validating Dashboard API at {API_URL}")
 print(f"Today: {today_str}\n")
@@ -20,7 +31,7 @@ print(f"Today: {today_str}\n")
 try:
     res = requests.get(API_URL, headers=headers, timeout=10)
 except Exception as e:
-    print(f"❌ 連線失敗：{e}")
+    print(f"ERROR: 連線失敗：{e}")
     sys.exit(1)
 
 assert res.status_code == 200, f"非 200 回應：{res.status_code}\n{res.text[:200]}"
@@ -28,7 +39,7 @@ assert res.status_code == 200, f"非 200 回應：{res.status_code}\n{res.text[:
 try:
     data = res.json()
 except Exception as e:
-    print(f"❌ 回應不是 JSON：{e}")
+    print(f"ERROR: 回應不是 JSON：{e}")
     sys.exit(1)
 
 errors = []
@@ -116,12 +127,12 @@ except Exception:
     pass
 
 if errors:
-    print("❌ 驗證失敗：")
+    print("ERROR: 驗證失敗：")
     for e in errors:
         print(f"  - {e}")
     sys.exit(1)
 else:
-    print("✅ Dashboard API 驗證通過")
+    print("OK: Dashboard API 驗證通過")
     print(f"  schedEvents: {len(data.get('schedEvents', []))} 筆")
     print(f"  onboardData: {len(data.get('onboardData', []))} 筆")
     print(f"  resignData: {len(data.get('resignData', []))} 筆")
