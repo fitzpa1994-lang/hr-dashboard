@@ -239,7 +239,30 @@ const ns = (value) => {
   return text;
 };
 
-const intent = aiResult.intent || 'recommend';
+const subjectText = String(base.email_subject || '');
+const bodyText = String(base.body_text || '');
+const combinedText = (subjectText + ' ' + bodyText).replace(/\\s+/g, ' ');
+
+const extractedDate = ns(base.interview_date || aiResult.interview_date);
+const extractedTime = ns(base.interview_time || aiResult.interview_time);
+const hasConcreteSchedule = extractedDate !== 'null' && extractedTime !== 'null' && !base.has_tentative_scheduling;
+
+const requestInviteCue = /(請.{0,12}(安排|邀約).{0,6}面試|請幫忙安排面試|請協助安排面試|請通知面試|請評估|可安排面試)/u.test(combinedText);
+const confirmedScheduleCue = /(已安排.{0,12}面試|面試時間|面試邀約|安排於|安排在|訂於|scheduled|schedule confirmed)/iu.test(combinedText);
+const rescheduleCue = /(更新面試時間|最新面試時間|更改面試時間|改期|延期|延後|改為)/u.test(combinedText);
+const cancelCue = /(取消面試|不安排面試|不考慮|婉拒|取消流程)/u.test(combinedText);
+
+let intent = aiResult.intent || 'recommend';
+if (cancelCue) {
+  intent = 'cancel';
+} else if (hasConcreteSchedule && rescheduleCue) {
+  intent = 'update_time';
+} else if (hasConcreteSchedule && confirmedScheduleCue) {
+  intent = 'schedule';
+} else if (requestInviteCue && !hasConcreteSchedule) {
+  intent = 'request_invite';
+}
+
 const candidateStatus = intent === 'cancel'
   ? 'withdrawn'
   : (intent === 'request_invite'
@@ -270,10 +293,10 @@ const department = (!isWeakDepartment(aiDepartment) ? aiDepartment : null)
 const forcePendingScheduling = ['request_invite', 'recommend', 'other'].includes(intent) || !!base.has_tentative_scheduling;
 const interviewDate = forcePendingScheduling
   ? 'null'
-  : ns(base.interview_date || aiResult.interview_date);
+  : extractedDate;
 const interviewTime = forcePendingScheduling
   ? 'null'
-  : ns(base.interview_time || aiResult.interview_time);
+  : extractedTime;
 
 const interviewStatus = intent === 'cancel'
   ? 'cancelled'
