@@ -66,6 +66,23 @@ JOB_WRITE_REQUIRED = (
     "'action', input.action",
 )
 
+WORKFLOW1_ALIAS_REQUIRED = (
+    "U&'MIS\\7DB2\\7BA1\\5DE5\\7A0B\\5E2B'",
+    "U&'MIS\\7DB2\\7BA1'",
+    "U&'SAR\\5DE5\\7A0B\\5E2B'",
+    "U&'AI\\8EDF\\9AD4\\5DE5\\7A0B\\5E2B'",
+    "j.id = 17",
+    "j.id = 23",
+    "j.id = 27",
+)
+
+TEMP_DB_CHECK_REQUIRED = (
+    "$json.body && $json.body.dry_run",
+    "AS dry_run",
+    "updated_this_run",
+    "would_change_count",
+)
+
 
 def iter_strings(value):
     if isinstance(value, str):
@@ -254,6 +271,40 @@ def validate_job_write_workflow(path_name, workflow, errors):
             errors.append(f"{path_name}: job write workflow missing {marker}")
 
 
+def validate_workflow1_aliases(path_name, workflow, errors):
+    if not path_name.startswith("live_Workflow1_"):
+        return
+
+    queries = [
+        text
+        for text in sql_strings(workflow)
+        if "WITH candidate_input AS" in text and "job_requisition_id" in text
+    ]
+    if not queries:
+        errors.append(f"{path_name}: workflow1 candidate linking query not found")
+        return
+
+    query = max(queries, key=len)
+    for marker in WORKFLOW1_ALIAS_REQUIRED:
+        if marker not in query:
+            errors.append(f"{path_name}: workflow1 alias rule missing {marker}")
+
+
+def validate_temp_db_check(path_name, workflow, errors):
+    if path_name != "live_temp_db_check.json":
+        return
+
+    queries = list(sql_strings(workflow))
+    if not queries:
+        errors.append(f"{path_name}: temp db check query not found")
+        return
+
+    query = max(queries, key=len)
+    for marker in TEMP_DB_CHECK_REQUIRED:
+        if marker not in query:
+            errors.append(f"{path_name}: temp db check missing {marker}")
+
+
 def main():
     errors = []
     files = sorted(N8N_DIR.glob("*.json"))
@@ -282,6 +333,8 @@ def main():
         validate_legacy_exports(path.name, workflow, errors)
         validate_onboarding_decrement(path.name, workflow, errors)
         validate_job_write_workflow(path.name, workflow, errors)
+        validate_workflow1_aliases(path.name, workflow, errors)
+        validate_temp_db_check(path.name, workflow, errors)
 
     if errors:
         print("n8n export validation failed:")

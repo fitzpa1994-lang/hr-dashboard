@@ -287,6 +287,9 @@ matched_requisition AS (
       OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core
       OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
       OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
+      OR (lower(c.applied_position) LIKE '%mis%' AND j.id = 17)
+      OR (lower(c.applied_position) LIKE '%sar%' AND j.id = 23)
+      OR (lower(c.applied_position) LIKE '%ai%' AND j.id = 27)
       OR (
         c.pos_core <> ''
         AND (
@@ -414,6 +417,7 @@ WITH candidate_norm AS (
       WHEN lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新華%' THEN 12
       WHEN lower(c.applied_position) LIKE '%五部rfpm%' OR lower(c.applied_position) LIKE '%rfpm%' THEN 13
       WHEN lower(c.applied_position) = 'pm' AND c.department = 'WBU' THEN 13
+      WHEN lower(c.applied_position) LIKE '%mis%' THEN 17
       WHEN lower(c.applied_position) LIKE '%助理業務/業務%' AND c.department LIKE '%安規%' THEN 22
       WHEN lower(c.applied_position) LIKE '%業務助理(david)%' THEN 8
       WHEN lower(c.applied_position) LIKE '%文件專員%' THEN 2
