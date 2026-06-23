@@ -148,7 +148,7 @@ if (!hasTentativeScheduling) {
   const currentYear = new Date(receivedAt || Date.now()).getFullYear();
   const datePatterns = [
     { re: /(\\d{4})年(\\d{1,2})月(\\d{1,2})日/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
-    { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
+    { re: /(\\d{4})[\\/.-](\\d{1,2})[\\/.-](\\d{1,2})/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
     { re: /(\\d{1,2})月(\\d{1,2})日/, fn: (m) => String(currentYear) + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') },
   ];
   for (const entry of datePatterns) {
