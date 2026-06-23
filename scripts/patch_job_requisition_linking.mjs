@@ -233,6 +233,12 @@ candidate_norm AS (
         WHEN lower(raw_position) LIKE '%icc%案件專員%' OR lower(raw_position) LIKE '%iccpm%' THEN 5
         WHEN lower(raw_position) LIKE '%icc%測試工程師%' THEN 1
         WHEN lower(raw_position) LIKE '%sar測試工程師%' OR lower(raw_position) LIKE '%rfsar%' THEN 23
+        WHEN (
+          lower(raw_position) LIKE '%rf測試工程師%'
+          OR lower(raw_position) LIKE '%emc測試工程師%'
+          OR lower(raw_position) LIKE '%新竹%rf%測試工程師%'
+          OR lower(raw_position) LIKE '%新竹%emc%測試工程師%'
+        ) AND raw_department LIKE '%新竹%' THEN 4
         WHEN lower(raw_position) LIKE '%rf測試工程師%' AND recipient_top_department_hint = 'WBU' THEN 25
         WHEN lower(raw_position) LIKE '%rf測試工程師%' AND raw_department LIKE '%新華%' THEN 12
         WHEN lower(raw_position) LIKE '%五部rfpm%' OR lower(raw_position) LIKE '%rfpm%' THEN 13
@@ -276,7 +282,8 @@ matched_requisition AS (
   CROSS JOIN candidate_norm c
   WHERE (j.status <> 'cancelled' OR (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id))
     AND (
-      lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm
+      (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id)
+      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm
       OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core
       OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
       OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
@@ -397,6 +404,12 @@ WITH candidate_norm AS (
       WHEN lower(c.applied_position) LIKE '%icc%案件專員%' OR lower(c.applied_position) LIKE '%iccpm%' THEN 5
       WHEN lower(c.applied_position) LIKE '%icc%測試工程師%' THEN 1
       WHEN lower(c.applied_position) LIKE '%sar測試工程師%' OR lower(c.applied_position) LIKE '%rfsar%' THEN 23
+      WHEN (
+        lower(c.applied_position) LIKE '%rf測試工程師%'
+        OR lower(c.applied_position) LIKE '%emc測試工程師%'
+        OR lower(c.applied_position) LIKE '%新竹%rf%測試工程師%'
+        OR lower(c.applied_position) LIKE '%新竹%emc%測試工程師%'
+      ) AND c.department LIKE '%新竹%' THEN 4
       WHEN lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department = 'WBU' THEN 25
       WHEN lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新華%' THEN 12
       WHEN lower(c.applied_position) LIKE '%五部rfpm%' OR lower(c.applied_position) LIKE '%rfpm%' THEN 13
@@ -454,7 +467,8 @@ matched AS (
   FROM candidate_norm c
   JOIN job_requisitions j
     ON (
-      lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm
+      (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id)
+      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm
       OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core
       OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
       OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
