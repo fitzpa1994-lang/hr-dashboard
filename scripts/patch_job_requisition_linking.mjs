@@ -170,7 +170,7 @@ if (!hasTentativeScheduling) {
   const currentYear = new Date(receivedAt || Date.now()).getFullYear();
   const datePatterns = [
     { re: /(\\d{4})年(\\d{1,2})月(\\d{1,2})日/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
-    { re: /(\\d{4})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{1,2})/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
+    { re: /(\\d{4})[\\/.-](\\d{1,2})[\\/.-](\\d{1,2})/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
     { re: /(\\d{1,2})月(\\d{1,2})日/, fn: (m) => String(currentYear) + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') }
   ];
   for (const entry of datePatterns) {
@@ -483,10 +483,8 @@ LIMIT 20;`;
 function patchWorkflow1(filePath) {
   const workflow = readJson(filePath);
   updateWorkflowNodes(workflow, (node) => {
-    if (node.type === 'n8n-nodes-base.code' && typeof node.parameters?.jsCode === 'string' && node.parameters.jsCode.includes('candidate_name')) {
-      if (node.parameters.jsCode.includes('inferred_applied_position') && node.parameters.jsCode.includes('body_text')) {
-        node.parameters.jsCode = extractJs;
-      }
+    if (node.type === 'n8n-nodes-base.code' && node.name === 'Code：萃取基本資訊' && typeof node.parameters?.jsCode === 'string') {
+      node.parameters.jsCode = extractJs;
     }
     if (typeof node.parameters?.query === 'string' && node.parameters.query.includes('INSERT INTO candidates')) {
       node.parameters.query = candidateQuery;
