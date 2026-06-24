@@ -65,7 +65,22 @@ email_activity AS (
     ) AS latest_email_received_at,
     MIN(e.received_at) FILTER (
       WHERE e.received_at IS NOT NULL
-    ) AS first_email_received_at
+    ) AS first_email_received_at,
+    (ARRAY_AGG(e.email_subject ORDER BY e.received_at DESC NULLS LAST, e.id DESC) FILTER (
+      WHERE COALESCE(e.email_subject, '') <> ''
+    ))[1] AS latest_email_subject,
+    (ARRAY_AGG(e.sender ORDER BY e.received_at DESC NULLS LAST, e.id DESC) FILTER (
+      WHERE COALESCE(e.sender, '') <> ''
+    ))[1] AS latest_email_sender,
+    BOOL_OR(
+      COALESCE(e.email_subject, '') ~ '(面試時間|面試安排|面試邀約|更新面試時間|最新面試時間|安排面試|安排於|安排在|訂於)'
+    ) AS has_schedule_subject,
+    BOOL_OR(
+      COALESCE(e.email_subject, '') ~* '^(RE|FW|FWD)\\s*:'
+    ) AS has_reply_thread_subject,
+    BOOL_OR(
+      COALESCE(e.email_subject, '') ~ '履歷推薦'
+    ) AS has_recommend_subject
   FROM email_logs e
   WHERE e.candidate_id IS NOT NULL
   GROUP BY e.candidate_id
@@ -80,6 +95,11 @@ candidate_state AS (
     COALESCE(f.has_upcoming_interview, FALSE) AS has_upcoming_interview,
     a.latest_email_received_at,
     a.first_email_received_at,
+    COALESCE(a.latest_email_subject, '') AS latest_email_subject,
+    COALESCE(a.latest_email_sender, '') AS latest_email_sender,
+    COALESCE(a.has_schedule_subject, FALSE) AS has_schedule_subject,
+    COALESCE(a.has_reply_thread_subject, FALSE) AS has_reply_thread_subject,
+    COALESCE(a.has_recommend_subject, FALSE) AS has_recommend_subject,
     GREATEST(
       COALESCE(a.latest_email_received_at, '-infinity'::timestamptz),
       COALESCE(f.latest_interview_date::timestamptz, '-infinity'::timestamptz),
@@ -94,9 +114,17 @@ candidate_state AS (
       WHEN c.status IN ('rejected', 'withdrawn') THEN 'withdrawn'
       WHEN c.status LIKE '%錄取%' THEN 'offer'
       WHEN c.status LIKE '%到職%' THEN 'onboarded'
-      WHEN COALESCE(f.has_active_interview, FALSE) THEN 'interviewing'
+      WHEN COALESCE(f.has_active_interview, FALSE) OR COALESCE(a.has_schedule_subject, FALSE) THEN 'interviewing'
       WHEN c.status = 'approved_to_invite' THEN 'approved_to_invite'
-      WHEN c.status = 'pending_review' AND c.has_invite_marker THEN 'approved_to_invite'
+      WHEN c.status = 'pending_review'
+        AND (
+          c.has_invite_marker
+          OR (
+            COALESCE(a.has_reply_thread_subject, FALSE)
+            AND COALESCE(a.has_recommend_subject, FALSE)
+          )
+        )
+        THEN 'approved_to_invite'
       WHEN c.status = 'pending_review' THEN 'pending_review'
       ELSE 'interviewing'
     END AS derived_status
@@ -213,6 +241,7 @@ SELECT json_build_object(
       'hr', COALESCE(c.latest_hr_owner, c.marker_hr, ''),
       'note', COALESCE(c.clean_note, ''),
       'source', COALESCE(c.source, ''),
+      'latestEmailSubject', COALESCE(c.latest_email_subject, ''),
       'emailLink', COALESCE(c.latest_email_link, ''),
       'resumeLink', COALESCE((
         SELECT MAX(o.resume_link)
@@ -251,6 +280,7 @@ SELECT json_build_object(
       'hr', COALESCE(c.latest_hr_owner, c.marker_hr, ''),
       'note', COALESCE(c.clean_note, ''),
       'source', COALESCE(c.source, ''),
+      'latestEmailSubject', COALESCE(c.latest_email_subject, ''),
       'emailLink', COALESCE(c.latest_email_link, '')
     ) ORDER BY COALESCE(c.latest_signal_at, c.created_at) DESC, c.name)
     FROM candidate_state c
@@ -339,10 +369,30 @@ SELECT json_build_object(
       FROM candidate_state c
       WHERE c.derived_status = 'offer'
     ),
-    'pendingOnboard', (SELECT COUNT(*) FROM onboardings WHERE status = 'pending' AND expected_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30),
-    'pendingResign', (SELECT COUNT(*) FROM resignations WHERE status = 'active' AND last_day BETWEEN CURRENT_DATE AND CURRENT_DATE + 30),
-    'monthOnboard', (SELECT COUNT(*) FROM onboardings WHERE expected_date >= DATE_TRUNC('month', CURRENT_DATE) AND status = 'onboarded'),
-    'monthResign', (SELECT COUNT(*) FROM resignations WHERE last_day >= DATE_TRUNC('month', CURRENT_DATE) AND status = 'done'),
+    'pendingOnboard', (
+      SELECT COUNT(*)
+      FROM onboardings
+      WHERE status = 'pending'
+        AND expected_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30
+    ),
+    'pendingResign', (
+      SELECT COUNT(*)
+      FROM resignations
+      WHERE status = 'active'
+        AND last_day BETWEEN CURRENT_DATE AND CURRENT_DATE + 30
+    ),
+    'monthOnboard', (
+      SELECT COUNT(*)
+      FROM onboardings
+      WHERE expected_date >= DATE_TRUNC('month', CURRENT_DATE)
+        AND status = 'onboarded'
+    ),
+    'monthResign', (
+      SELECT COUNT(*)
+      FROM resignations
+      WHERE last_day >= DATE_TRUNC('month', CURRENT_DATE)
+        AND status = 'done'
+    ),
     'hireRate', COALESCE((
       SELECT ROUND(
         100.0 * COUNT(DISTINCT CASE WHEN c.status IN ('hired', '錄取') THEN c.id END)
@@ -389,7 +439,11 @@ SELECT json_build_object(
       FROM candidate_state c
       WHERE c.job_requisition_id IS NULL
     ),
-    'avgDaysToOffer', COALESCE((SELECT ROUND(AVG(days_to_offer)::numeric, 1) FROM offers WHERE days_to_offer IS NOT NULL), 0)
+    'avgDaysToOffer', COALESCE((
+      SELECT ROUND(AVG(days_to_offer)::numeric, 1)
+      FROM offers
+      WHERE days_to_offer IS NOT NULL
+    ), 0)
   )
 ) AS data;`;
 

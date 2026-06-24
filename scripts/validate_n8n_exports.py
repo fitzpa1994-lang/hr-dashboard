@@ -39,6 +39,11 @@ DASHBOARD_API_REQUIRED = (
     "'pendingReviewCount'",
     "'resumeLink'",
     "'avgDaysToOffer'",
+    "latest_email_subject",
+    "has_schedule_subject",
+    "has_reply_thread_subject",
+    "has_recommend_subject",
+    "'latestEmailSubject'",
 )
 
 LEGACY_EXPORTS = {
