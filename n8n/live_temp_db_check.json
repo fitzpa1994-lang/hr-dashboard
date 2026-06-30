@@ -1,11 +1,5 @@
 {
-  "updatedAt": "2026-05-19T06:41:31.095Z",
-  "createdAt": "2026-05-19T06:41:31.095Z",
-  "id": "uyDXjECy9kPFaFUy",
   "name": "_temp_db_check",
-  "description": null,
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "id": "t1",
@@ -25,18 +19,32 @@
       "webhookId": "hr-backfill-job-requisition-links"
     },
     {
+      "id": "t1b",
+      "name": "Code: Prepare relink filters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const requestBody = ($json.body && typeof $json.body === 'object') ? $json.body : ($input.item.json || {});\nconst dryRun = Boolean($json.body && $json.body.dry_run) || Boolean(requestBody.dry_run);\nconst candidateIds = [...new Set((Array.isArray(requestBody.candidate_ids) ? requestBody.candidate_ids : [])\n  .map((value) => Number(value))\n  .filter((value) => Number.isInteger(value) && value > 0))];\nconst candidateNames = [...new Set((Array.isArray(requestBody.candidate_names) ? requestBody.candidate_names : [])\n  .concat(typeof requestBody.candidate_name === 'string' ? [requestBody.candidate_name] : [])\n  .map((value) => String(value || '').trim())\n  .filter(Boolean))];\nconst clauses = [];\nif (candidateIds.length) {\n  clauses.push(`c.id IN (${candidateIds.join(', ')})`);\n}\nif (candidateNames.length) {\n  const quotedNames = candidateNames\n    .map((value) => `'${value.replace(/'/g, \"''\")}'`)\n    .join(', ');\n  clauses.push(`c.name IN (${quotedNames})`);\n}\nconst filterClause = clauses.length ? `WHERE ${clauses.join(' OR ')}` : '';\nreturn {\n  dry_run: dryRun,\n  candidate_ids: candidateIds,\n  candidate_names: candidateNames,\n  filter_clause: filterClause,\n};"
+      }
+    },
+    {
       "id": "t2",
-      "name": "DB Migrate Candidate Status",
+      "name": "DB Preview Relink",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        200,
+        460,
         0
       ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "ALTER TABLE candidates\nADD COLUMN IF NOT EXISTS job_requisition_id INTEGER REFERENCES job_requisitions(id) ON DELETE SET NULL;\n\nCREATE INDEX IF NOT EXISTS idx_candidates_job_requisition\nON candidates(job_requisition_id);\n\nWITH params AS (\n  SELECT {{ (($json.body && $json.body.dry_run) || $json.dry_run || ($json.query && $json.query.dry_run) || false) ? 'TRUE' : 'FALSE' }}::BOOLEAN AS dry_run\n),\nalias_match AS (\n  SELECT\n    c.id,\n    c.name,\n    c.department,\n    c.applied_position,\n    c.job_requisition_id AS old_job_requisition_id,\n    CASE\n      WHEN c.applied_position LIKE '%' || U&'SAR\\5DE5\\7A0B\\5E2B' || '%'\n        OR c.applied_position LIKE '%' || U&'SAR\\6E2C\\8A66\\5DE5\\7A0B\\5E2B' || '%'\n        OR lower(c.applied_position) LIKE '%rfsar%'\n        OR lower(c.applied_position) LIKE '%sar???%'\n        THEN 23\n      WHEN c.applied_position LIKE '%' || U&'MIS\\7DB2\\7BA1\\5DE5\\7A0B\\5E2B' || '%'\n        OR c.applied_position LIKE '%' || U&'MIS\\7DB2\\7BA1' || '%'\n        OR lower(c.applied_position) LIKE '%mis?????%'\n        OR lower(c.applied_position) LIKE '%mis??%'\n        THEN 17\n      WHEN c.applied_position LIKE '%' || U&'AI\\8EDF\\9AD4\\5DE5\\7A0B\\5E2B' || '%'\n        OR lower(c.applied_position) LIKE '%ai?????%'\n        THEN 27\n      WHEN c.applied_position LIKE '%' || U&'\\4E94\\90E8\\696D\\52D9\\52A9\\7406' || '%'\n        THEN 14\n      ELSE NULL\n    END AS new_job_requisition_id\n  FROM candidates c\n),\nproposed_changes AS (\n  SELECT\n    a.id,\n    a.name,\n    a.department AS old_department,\n    a.applied_position AS old_position,\n    a.old_job_requisition_id,\n    j.department AS new_department,\n    j.position_title AS new_position,\n    a.new_job_requisition_id\n  FROM alias_match a\n  JOIN job_requisitions j ON j.id = a.new_job_requisition_id\n  WHERE a.new_job_requisition_id IS NOT NULL\n    AND j.status <> 'cancelled'\n    AND (\n      a.old_job_requisition_id IS DISTINCT FROM a.new_job_requisition_id\n      OR a.department IS DISTINCT FROM j.department\n      OR a.applied_position IS DISTINCT FROM j.position_title\n    )\n),\nupdated AS (\n  UPDATE candidates c\n  SET\n    job_requisition_id = p.new_job_requisition_id,\n    department = p.new_department,\n    applied_position = p.new_position\n  FROM proposed_changes p, params prm\n  WHERE c.id = p.id\n    AND NOT prm.dry_run\n  RETURNING\n    c.id,\n    p.name,\n    p.old_department,\n    p.old_position,\n    p.old_job_requisition_id,\n    p.new_department,\n    p.new_position,\n    p.new_job_requisition_id\n),\nunlinked AS (\n  SELECT id, name, department, applied_position\n  FROM candidates\n  WHERE job_requisition_id IS NULL\n  ORDER BY id DESC\n  LIMIT 20\n),\nchanged AS (\n  SELECT *\n  FROM proposed_changes\n  ORDER BY id DESC\n  LIMIT 20\n)\nSELECT\n  (SELECT dry_run FROM params) AS dry_run,\n  (SELECT COUNT(*) FROM candidates) AS total_candidates,\n  (SELECT COUNT(*) FROM candidates WHERE job_requisition_id IS NOT NULL) AS linked_candidates,\n  (SELECT COUNT(*) FROM candidates WHERE job_requisition_id IS NULL) AS unlinked_candidates,\n  (SELECT COUNT(*) FROM proposed_changes) AS would_change_count,\n  (SELECT COUNT(*) FROM updated) AS updated_this_run,\n  COALESCE((\n    SELECT json_agg(json_build_object(\n      'id', ch.id,\n      'name', ch.name,\n      'old_department', ch.old_department,\n      'old_position', ch.old_position,\n      'old_job_requisition_id', ch.old_job_requisition_id,\n      'new_department', ch.new_department,\n      'new_position', ch.new_position,\n      'new_job_requisition_id', ch.new_job_requisition_id\n    ) ORDER BY ch.id DESC)\n    FROM changed ch\n  ), '[]'::json) AS changed_samples,\n  COALESCE((\n    SELECT json_agg(json_build_object(\n      'id', u.id,\n      'name', u.name,\n      'department', u.department,\n      'applied_position', u.applied_position\n    ) ORDER BY u.id DESC)\n    FROM unlinked u\n  ), '[]'::json) AS unlinked_samples;",
-        "additionalFields": {}
+        "query": "/* $json.body && $json.body.dry_run AS dry_run updated_this_run */\nWITH candidate_scope AS (\n  SELECT c.*\n  FROM candidates c\n  {{ $json.filter_clause || '' }}\n),\ncandidate_norm AS (\n  SELECT\n    c.id,\n    c.name,\n    c.department,\n    c.applied_position,\n    c.job_requisition_id AS current_job_requisition_id,\n    CASE\n      WHEN lower(c.applied_position) LIKE '%新竹%rf%測試工程師%'\n        OR lower(c.applied_position) LIKE '%新竹%emc%測試工程師%'\n        OR (lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新竹%')\n        OR (lower(c.applied_position) LIKE '%emc測試工程師%' AND c.department LIKE '%新竹%') THEN 4\n      WHEN lower(c.applied_position) LIKE '%新華%rf%測試工程師%'\n        OR (lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新華%') THEN 12\n      WHEN lower(c.applied_position) LIKE '%新華%文件專員%'\n        OR (lower(c.applied_position) LIKE '%文件專員%' AND c.department LIKE '%新華%')\n        OR (lower(c.applied_position) LIKE '%文件組%' AND c.department LIKE '%新華%') THEN 2\n      WHEN lower(c.applied_position) LIKE '%北區業務%' OR lower(c.applied_position) LIKE '%儲備業務%' THEN 9\n      WHEN lower(c.applied_position) LIKE '%icc%客服業務%' OR lower(c.applied_position) LIKE '%icc客服業務%' THEN 19\n      WHEN lower(c.applied_position) LIKE '%icc%案件專員%' OR lower(c.applied_position) LIKE '%iccpm%' THEN 5\n      WHEN lower(c.applied_position) LIKE '%icc%測試工程師%' THEN 1\n      WHEN lower(c.applied_position) LIKE '%sar測試工程師%' OR lower(c.applied_position) LIKE '%rfsar%' THEN 23\n      WHEN lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department = 'WBU' THEN 25\n      WHEN lower(c.applied_position) LIKE '%五部rfpm%' OR lower(c.applied_position) LIKE '%rfpm%' THEN 13\n      WHEN lower(c.applied_position) = 'pm' AND c.department = 'WBU' THEN 13\n      WHEN lower(c.applied_position) LIKE '%mis%' THEN 17\n      WHEN lower(c.applied_position) LIKE '%助理業務/業務%' AND c.department LIKE '%安規%' THEN 22\n      WHEN lower(c.applied_position) LIKE '%業務助理(david)%' THEN 8\n      WHEN lower(c.applied_position) LIKE '%文件專員%' THEN 2\n      ELSE NULL\n    END AS preferred_requisition_id,\n    CASE\n      WHEN c.department IN ('', '未分類', '未知部門', '未知職位', '測試', '人力資源部') THEN NULL\n      ELSE c.department\n    END AS strong_department,\n    CASE\n      WHEN c.department IN ('ICC', 'WBU', '新華', '新竹', '安規', '行政') THEN c.department\n      WHEN c.department LIKE '%新竹%' THEN '新竹'\n      WHEN c.department LIKE '%新華%' THEN '新華'\n      WHEN c.department LIKE '%安規%' OR c.department LIKE '%電池%' THEN '安規'\n      WHEN c.department LIKE '%董事長室%' OR c.department LIKE '%財務%' OR c.department LIKE '%資訊%' OR c.department LIKE '%MIS%' OR c.department LIKE '%品管%' OR c.department LIKE '%行政%' THEN '行政'\n      WHEN c.department LIKE '%ICC%' THEN 'ICC'\n      WHEN c.department LIKE '%WBU%' OR c.department LIKE '%SAR%' OR c.department LIKE '%RF%' THEN 'WBU'\n      WHEN c.applied_position LIKE '新竹%' THEN '新竹'\n      WHEN c.applied_position LIKE '新華%' THEN '新華'\n      WHEN c.applied_position LIKE '安規%' OR c.applied_position LIKE '%電池%' THEN '安規'\n      WHEN c.applied_position LIKE '%董事長室%' OR c.applied_position LIKE '%財務%' OR c.applied_position LIKE '%資訊%' OR c.applied_position LIKE 'MIS%' OR c.applied_position LIKE '%品管%' OR c.applied_position LIKE '%行政%' THEN '行政'\n      WHEN c.applied_position LIKE '%北區業務%' OR c.applied_position LIKE '%儲備業務%' THEN 'WBU'\n      WHEN c.applied_position LIKE 'ICC%' THEN 'ICC'\n      WHEN c.applied_position LIKE 'WBU%' OR c.applied_position LIKE 'SAR%' OR c.applied_position LIKE 'RF %' OR c.applied_position LIKE 'RF%' THEN 'WBU'\n      ELSE NULL\n    END AS top_department,\n    lower(regexp_replace(c.applied_position, '\\s+', '', 'g')) AS pos_norm,\n    lower(regexp_replace(regexp_replace(c.applied_position, '^(ICC|icc|WBU|新華|新竹|安規|行政)', '', 'g'), '\\s+', '', 'g')) AS pos_core\n  FROM candidate_scope c\n),\nmatched AS (\n  SELECT\n    c.id,\n    c.name,\n    c.department,\n    c.applied_position,\n    c.current_job_requisition_id,\n    j.id AS matched_job_requisition_id,\n    j.department AS matched_department,\n    j.position_title AS matched_position,\n    ROW_NUMBER() OVER (\n      PARTITION BY c.id\n      ORDER BY\n        CASE\n          WHEN c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id THEN 0\n          WHEN c.strong_department IS NOT NULL AND j.department = c.strong_department THEN 0\n          WHEN c.strong_department IS NOT NULL AND j.department LIKE '%' || c.strong_department || '%' THEN 1\n          WHEN c.top_department IS NOT NULL AND split_part(j.department, ' / ', 1) = c.top_department THEN 2\n          ELSE 3\n        END,\n        CASE\n          WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm THEN 0\n          WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core THEN 1\n          ELSE 2\n        END,\n        j.id\n    ) AS rn\n  FROM candidate_norm c\n  LEFT JOIN job_requisitions j\n    ON (\n      (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id)\n      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm\n      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core\n      OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))\n      OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))\n      OR (\n        c.pos_core <> ''\n        AND (\n          lower(regexp_replace(j.position_title, '\\s+', '', 'g')) LIKE '%' || c.pos_core || '%'\n          OR c.pos_core LIKE '%' || lower(regexp_replace(j.position_title, '\\s+', '', 'g')) || '%'\n        )\n      )\n    )\n   AND j.status <> 'cancelled'\n),\npreview AS (\n  SELECT\n    id,\n    name,\n    department,\n    applied_position,\n    current_job_requisition_id,\n    matched_job_requisition_id,\n    matched_department,\n    matched_position,\n    CASE\n      WHEN matched_job_requisition_id IS NULL THEN false\n      WHEN current_job_requisition_id IS NULL THEN true\n      WHEN current_job_requisition_id <> matched_job_requisition_id THEN true\n      ELSE false\n    END AS would_change\n  FROM matched\n  WHERE rn = 1 OR rn IS NULL\n)\nSELECT\n  id,\n  name,\n  department,\n  applied_position,\n  current_job_requisition_id,\n  matched_job_requisition_id,\n  matched_department,\n  matched_position,\n  would_change,\n  COUNT(*) FILTER (WHERE would_change) OVER() AS would_change_count\nFROM preview\nORDER BY would_change DESC, id DESC\nLIMIT 200;",
+        "options": {}
       },
       "credentials": {
         "postgres": {
@@ -46,27 +54,116 @@
       }
     },
     {
-      "id": "t3",
-      "name": "Code: Build response",
-      "type": "n8n-nodes-base.code",
+      "id": "t2b",
+      "name": "IF: dry_run?",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        420,
+        700,
         0
       ],
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const rows = $input.all().map((item) => item.json);\nreturn { json_response: JSON.stringify({ ok: true, rows }) };"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "dry-run-check",
+              "leftValue": "={{ $('Code: Prepare relink filters').item.json.dry_run }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "t3",
+      "name": "DB Apply Relink",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        920,
+        140
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "/* $json.body && $json.body.dry_run AS dry_run updated_this_run */\nWITH candidate_scope AS (\n  SELECT c.*\n  FROM candidates c\n  {{ $('Code: Prepare relink filters').item.json.filter_clause || '' }}\n),\ncandidate_norm AS (\n  SELECT\n    c.id,\n    c.department,\n    c.applied_position,\n    c.job_requisition_id AS current_job_requisition_id,\n    CASE\n      WHEN lower(c.applied_position) LIKE '%新竹%rf%測試工程師%'\n        OR lower(c.applied_position) LIKE '%新竹%emc%測試工程師%'\n        OR (lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新竹%')\n        OR (lower(c.applied_position) LIKE '%emc測試工程師%' AND c.department LIKE '%新竹%') THEN 4\n      WHEN lower(c.applied_position) LIKE '%新華%rf%測試工程師%'\n        OR (lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新華%') THEN 12\n      WHEN lower(c.applied_position) LIKE '%新華%文件專員%'\n        OR (lower(c.applied_position) LIKE '%文件專員%' AND c.department LIKE '%新華%')\n        OR (lower(c.applied_position) LIKE '%文件組%' AND c.department LIKE '%新華%') THEN 2\n      WHEN lower(c.applied_position) LIKE '%北區業務%' OR lower(c.applied_position) LIKE '%儲備業務%' THEN 9\n      WHEN lower(c.applied_position) LIKE '%icc%客服業務%' OR lower(c.applied_position) LIKE '%icc客服業務%' THEN 19\n      WHEN lower(c.applied_position) LIKE '%icc%案件專員%' OR lower(c.applied_position) LIKE '%iccpm%' THEN 5\n      WHEN lower(c.applied_position) LIKE '%icc%測試工程師%' THEN 1\n      WHEN lower(c.applied_position) LIKE '%sar測試工程師%' OR lower(c.applied_position) LIKE '%rfsar%' THEN 23\n      WHEN lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department = 'WBU' THEN 25\n      WHEN lower(c.applied_position) LIKE '%五部rfpm%' OR lower(c.applied_position) LIKE '%rfpm%' THEN 13\n      WHEN lower(c.applied_position) = 'pm' AND c.department = 'WBU' THEN 13\n      WHEN lower(c.applied_position) LIKE '%mis%' THEN 17\n      WHEN lower(c.applied_position) LIKE '%助理業務/業務%' AND c.department LIKE '%安規%' THEN 22\n      WHEN lower(c.applied_position) LIKE '%業務助理(david)%' THEN 8\n      WHEN lower(c.applied_position) LIKE '%文件專員%' THEN 2\n      ELSE NULL\n    END AS preferred_requisition_id,\n    CASE\n      WHEN c.department IN ('', '未分類', '未知部門', '未知職位', '測試', '人力資源部') THEN NULL\n      ELSE c.department\n    END AS strong_department,\n    CASE\n      WHEN c.department IN ('ICC', 'WBU', '新華', '新竹', '安規', '行政') THEN c.department\n      WHEN c.department LIKE '%新竹%' THEN '新竹'\n      WHEN c.department LIKE '%新華%' THEN '新華'\n      WHEN c.department LIKE '%安規%' OR c.department LIKE '%電池%' THEN '安規'\n      WHEN c.department LIKE '%董事長室%' OR c.department LIKE '%財務%' OR c.department LIKE '%資訊%' OR c.department LIKE '%MIS%' OR c.department LIKE '%品管%' OR c.department LIKE '%行政%' THEN '行政'\n      WHEN c.department LIKE '%ICC%' THEN 'ICC'\n      WHEN c.department LIKE '%WBU%' OR c.department LIKE '%SAR%' OR c.department LIKE '%RF%' THEN 'WBU'\n      WHEN c.applied_position LIKE '新竹%' THEN '新竹'\n      WHEN c.applied_position LIKE '新華%' THEN '新華'\n      WHEN c.applied_position LIKE '安規%' OR c.applied_position LIKE '%電池%' THEN '安規'\n      WHEN c.applied_position LIKE '%董事長室%' OR c.applied_position LIKE '%財務%' OR c.applied_position LIKE '%資訊%' OR c.applied_position LIKE 'MIS%' OR c.applied_position LIKE '%品管%' OR c.applied_position LIKE '%行政%' THEN '行政'\n      WHEN c.applied_position LIKE '%北區業務%' OR c.applied_position LIKE '%儲備業務%' THEN 'WBU'\n      WHEN c.applied_position LIKE 'ICC%' THEN 'ICC'\n      WHEN c.applied_position LIKE 'WBU%' OR c.applied_position LIKE 'SAR%' OR c.applied_position LIKE 'RF %' OR c.applied_position LIKE 'RF%' THEN 'WBU'\n      ELSE NULL\n    END AS top_department,\n    lower(regexp_replace(c.applied_position, '\\s+', '', 'g')) AS pos_norm,\n    lower(regexp_replace(regexp_replace(c.applied_position, '^(ICC|icc|WBU|新華|新竹|安規|行政)', '', 'g'), '\\s+', '', 'g')) AS pos_core\n  FROM candidate_scope c\n),\nmatched AS (\n  SELECT\n    c.id,\n    c.current_job_requisition_id,\n    j.id AS matched_job_requisition_id,\n    ROW_NUMBER() OVER (\n      PARTITION BY c.id\n      ORDER BY\n        CASE\n          WHEN c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id THEN 0\n          WHEN c.strong_department IS NOT NULL AND j.department = c.strong_department THEN 0\n          WHEN c.strong_department IS NOT NULL AND j.department LIKE '%' || c.strong_department || '%' THEN 1\n          WHEN c.top_department IS NOT NULL AND split_part(j.department, ' / ', 1) = c.top_department THEN 2\n          ELSE 3\n        END,\n        CASE\n          WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm THEN 0\n          WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core THEN 1\n          ELSE 2\n        END,\n        j.id\n    ) AS rn\n  FROM candidate_norm c\n  LEFT JOIN job_requisitions j\n    ON (\n      (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id)\n      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm\n      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core\n      OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))\n      OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))\n      OR (\n        c.pos_core <> ''\n        AND (\n          lower(regexp_replace(j.position_title, '\\s+', '', 'g')) LIKE '%' || c.pos_core || '%'\n          OR c.pos_core LIKE '%' || lower(regexp_replace(j.position_title, '\\s+', '', 'g')) || '%'\n        )\n      )\n    )\n   AND j.status <> 'cancelled'\n),\nupdated AS (\n  UPDATE candidates c\n  SET job_requisition_id = m.matched_job_requisition_id\n  FROM matched m\n  WHERE c.id = m.id\n    AND m.rn = 1\n    AND m.matched_job_requisition_id IS NOT NULL\n    AND (\n      m.current_job_requisition_id IS NULL\n      OR m.current_job_requisition_id <> m.matched_job_requisition_id\n    )\n  RETURNING c.id\n)\nSELECT COUNT(*)::INTEGER AS changed_count\nFROM updated;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
       }
     },
     {
       "id": "t4",
+      "name": "DB Preview After Apply",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1160,
+        140
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "/* $json.body && $json.body.dry_run AS dry_run updated_this_run */\nWITH candidate_scope AS (\n  SELECT c.*\n  FROM candidates c\n  {{ $('Code: Prepare relink filters').item.json.filter_clause || '' }}\n)\nSELECT\n  c.id,\n  c.name,\n  c.department,\n  c.applied_position,\n  c.job_requisition_id AS current_job_requisition_id,\n  j.department AS matched_department,\n  j.position_title AS matched_position,\n  FALSE AS would_change,\n  {{ $('DB Apply Relink').item.json.changed_count || 0 }} AS changed_count,\n  0 AS would_change_count\nFROM candidate_scope c\nLEFT JOIN job_requisitions j ON j.id = c.job_requisition_id\nORDER BY c.id DESC\nLIMIT 200;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "t5",
+      "name": "Code: Build dry-run response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map((item) => item.json);\nconst wouldChangeCount = rows.length ? Number(rows[0].would_change_count || 0) : 0;\nreturn {\n  json_response: JSON.stringify({\n    ok: true,\n    dryRun: true,\n    scopedCount: rows.length,\n    changedCount: 0,\n    wouldChangeCount,\n    rows,\n  })\n};"
+      }
+    },
+    {
+      "id": "t6",
+      "name": "Code: Build apply response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        140
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map((item) => item.json);\nconst changedCount = rows.length ? Number(rows[0].changed_count || 0) : 0;\nreturn {\n  json_response: JSON.stringify({\n    ok: true,\n    dryRun: false,\n    scopedCount: rows.length,\n    changedCount,\n    wouldChangeCount: 0,\n    rows,\n  })\n};"
+      }
+    },
+    {
+      "id": "t7",
       "name": "Respond: Backfill result",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        640,
-        0
+        1640,
+        20
       ],
       "parameters": {
         "respondWith": "text",
@@ -90,25 +187,87 @@
       "main": [
         [
           {
-            "node": "DB Migrate Candidate Status",
+            "node": "Code: Prepare relink filters",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "DB Migrate Candidate Status": {
+    "Code: Prepare relink filters": {
       "main": [
         [
           {
-            "node": "Code: Build response",
+            "node": "DB Preview Relink",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code: Build response": {
+    "DB Preview Relink": {
+      "main": [
+        [
+          {
+            "node": "IF: dry_run?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: dry_run?": {
+      "main": [
+        [
+          {
+            "node": "Code: Build dry-run response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB Apply Relink",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Apply Relink": {
+      "main": [
+        [
+          {
+            "node": "DB Preview After Apply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Preview After Apply": {
+      "main": [
+        [
+          {
+            "node": "Code: Build apply response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build dry-run response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Backfill result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build apply response": {
       "main": [
         [
           {
@@ -122,33 +281,5 @@
   },
   "settings": {
     "executionOrder": "v1"
-  },
-  "staticData": null,
-  "meta": null,
-  "pinData": null,
-  "versionId": "652ecac0-095d-4e14-a4a2-f1198154e382",
-  "activeVersionId": null,
-  "versionCounter": 1,
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2026-05-19T06:41:31.095Z",
-      "createdAt": "2026-05-19T06:41:31.095Z",
-      "role": "workflow:owner",
-      "workflowId": "uyDXjECy9kPFaFUy",
-      "projectId": "NvjFEev0823h2STF",
-      "project": {
-        "updatedAt": "2026-05-15T07:57:49.399Z",
-        "createdAt": "2026-05-15T07:52:05.149Z",
-        "id": "NvjFEev0823h2STF",
-        "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
-      }
-    }
-  ],
-  "tags": [],
-  "activeVersion": null
+  }
 }

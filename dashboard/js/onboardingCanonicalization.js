@@ -29,7 +29,7 @@ export function canonicalizeOnboardingDepartment(rawDepartment, context = {}) {
     if (hasAny(keywordText, ['場測工程部'])) return 'WBU / 場測工程部';
     if (hasAny(keywordText, ['國際認證一部', '認證專員'])) return 'WBU / 國際認證一部';
     if (hasAny(keywordText, ['案件管理', 'RFPM', 'PM'])) return 'WBU / PM';
-    if (hasAny(keywordText, ['業務部', '業務助理', '業務專員'])) return 'WBU / 業務部';
+    if (hasAny(keywordText, ['業務部', '業務助理', '業務專員', '北區業務', '儲備業務', '客服業務'])) return 'WBU / 業務部';
     return 'WBU';
   }
 
@@ -70,6 +70,8 @@ export function canonicalizeOnboardingDepartment(rawDepartment, context = {}) {
   if (hasAny(keywordText, ['品管部', '品管人員', '品管工程師', '驗證人員'])) return '行政 / 品管部';
   if (hasAny(keywordText, ['行政'])) return '行政';
 
+  if (hasAny(keywordText, ['北區業務', '儲備業務'])) return 'WBU / 業務部';
+
   return String(rawDepartment || '').trim() || null;
 }
 
@@ -88,8 +90,9 @@ export function canonicalizeOnboardingPosition(rawPosition, context = {}) {
   if (canonicalDepartment === 'WBU / PM') return 'PM';
   if (canonicalDepartment === 'WBU / 國際認證一部') return '認證專員';
   if (canonicalDepartment === 'WBU / 業務部') {
+    if (hasAny(keywordText, ['客服業務'])) return '客服業務';
     if (hasAny(keywordText, ['業務助理'])) return '業務助理';
-    if (hasAny(keywordText, ['業務專員', '助理業務'])) return '業務專員';
+    if (hasAny(keywordText, ['業務專員', '助理業務', '北區業務', '儲備業務'])) return '業務專員';
   }
   if (canonicalDepartment === 'WBU / RF工程一部') {
     if (hasAny(keywordText, ['美國子公司外派工程師'])) return '美國子公司外派工程師';

@@ -68,3 +68,17 @@ describe('canonicalizeOnboardingMatch', () => {
     expect(result.canonicalPosition).toBe('案件專員');
   });
 });
+
+
+describe('north/reserve sales canonicalization', () => {
+  test('maps north/reserve sales aliases to WBU business requisition', () => {
+    const result = canonicalizeOnboardingMatch({
+      department: '',
+      position: '北區業務、儲備業務',
+      emailSubject: '履歷推薦【北區業務、儲備業務】－黃彥翔',
+    });
+
+    expect(result.canonicalDepartment).toBe('WBU / 業務部');
+    expect(result.canonicalPosition).toBe('業務專員');
+  });
+});
