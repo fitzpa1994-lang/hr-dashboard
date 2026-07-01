@@ -948,22 +948,87 @@ function getWeekBounds(dateString) {
   };
 }
 
+function normalizeDashboardText(value) {
+  return String(value || '').trim();
+}
+
+function getCandidatePrimaryDate(candidate) {
+  return String(
+    candidate?.latestDate ||
+    candidate?.date ||
+    candidate?.createdAt ||
+    ''
+  ).slice(0, 10);
+}
+
+function getDaysSince(dateString) {
+  if (!dateString) return Number.POSITIVE_INFINITY;
+  return dateDiff(dateString, TODAY);
+}
+
+function isRecentWithin(dateString, days) {
+  if (!dateString) return false;
+  const diff = getDaysSince(dateString);
+  return diff >= 0 && diff <= days;
+}
+
+function isNoiseName(name) {
+  const text = normalizeDashboardText(name);
+  if (!text) return true;
+  if (/^[-—]/.test(text)) return true;
+  if (/^測試/.test(text)) return true;
+  if (/--/.test(text)) return true;
+  if (/人員面試問題/.test(text)) return true;
+  return false;
+}
+
+function isDashboardNoiseCandidate(candidate) {
+  const name = normalizeDashboardText(candidate?.name);
+  const pos = normalizeDashboardText(candidate?.pos);
+  const dept = normalizeDashboardText(candidate?.dept);
+  const hr = normalizeDashboardText(candidate?.hr);
+  const note = normalizeDashboardText(candidate?.note);
+  const source = normalizeDashboardText(candidate?.source);
+  const subject = normalizeDashboardText(
+    candidate?.latestSubject || candidate?.emailSubject || candidate?.subject
+  );
+  const haystack = [name, pos, dept, hr, note, source, subject].join(' ');
+
+  if (isNoiseName(name)) return true;
+  if (/電子報|方案都有解|人員面試問題/.test(haystack)) return true;
+  return false;
+}
+
+function isDashboardNoiseSchedule(event) {
+  const name = normalizeDashboardText(event?.name);
+  const note = normalizeDashboardText(event?.note);
+  const pos = normalizeDashboardText(event?.pos);
+  const dept = normalizeDashboardText(event?.dept);
+  const haystack = [name, note, pos, dept].join(' ');
+
+  if (isNoiseName(name)) return true;
+  if (/電子報|方案都有解|人員面試問題/.test(haystack)) return true;
+  return false;
+}
+
 function getOverviewKpis() {
   const week = getWeekBounds(TODAY);
   const pendingReview = candidatesData.filter(candidate => candidate.status === 'pending_review');
   const pendingInvite = candidatesData.filter(candidate => candidate.status === 'approved_to_invite');
-  const pendingReviewCount = Number.isFinite(Number(stats.pendingReviewCount))
-    ? Number(stats.pendingReviewCount)
-    : pendingReview.length;
-  const pendingReviewOverdueCount = Number.isFinite(Number(stats.pendingReviewOverdueCount))
-    ? Number(stats.pendingReviewOverdueCount)
-    : 0;
-  const pendingInviteOpenCount = Number.isFinite(Number(stats.pendingInviteOpenCount))
-    ? Number(stats.pendingInviteOpenCount)
-    : pendingInvite.length;
-  const pendingInviteOverdueCount = Number.isFinite(Number(stats.pendingInviteOverdueCount))
-    ? Number(stats.pendingInviteOverdueCount)
-    : 0;
+  const recentPendingReview = pendingReview.filter(candidate =>
+    isRecentWithin(getCandidatePrimaryDate(candidate), 14)
+  );
+  const recentPendingInvite = pendingInvite.filter(candidate =>
+    isRecentWithin(getCandidatePrimaryDate(candidate), 21)
+  );
+  const pendingReviewCount = recentPendingReview.length;
+  const pendingReviewOverdueCount = recentPendingReview.filter(candidate =>
+    getDaysSince(getCandidatePrimaryDate(candidate)) > 2
+  ).length;
+  const pendingInviteOpenCount = recentPendingInvite.length;
+  const pendingInviteOverdueCount = recentPendingInvite.filter(candidate =>
+    getDaysSince(getCandidatePrimaryDate(candidate)) > 3
+  ).length;
 
   const weekOnboard = onboardData.filter(item =>
     item.status === 'pending' &&
@@ -987,9 +1052,7 @@ function getOverviewKpis() {
     weekOnboardCount: weekOnboard.length,
     nextOnboardDate,
     nextOnboardCount,
-    unmappedCandidateCount: Number.isFinite(Number(stats.unmappedCandidateCount))
-      ? Number(stats.unmappedCandidateCount)
-      : unmappedCandidates.length,
+    unmappedCandidateCount: unmappedCandidates.length,
   };
 }
 
@@ -1111,11 +1174,11 @@ async function loadData() {
     const d = await res.json();
 
     TODAY = d.today || TODAY;
-    schedEvents = d.schedEvents || [];
+    schedEvents = (d.schedEvents || []).filter(event => !isDashboardNoiseSchedule(event));
     onboardData = d.onboardData || [];
     resignData = d.resignData || [];
-    candidatesData = d.candidatesData || [];
-    unmappedCandidates = d.unmappedCandidates || [];
+    candidatesData = (d.candidatesData || []).filter(candidate => !isDashboardNoiseCandidate(candidate));
+    unmappedCandidates = (d.unmappedCandidates || []).filter(candidate => !isDashboardNoiseCandidate(candidate));
     jobsData = d.jobsData || [];
     monthlyTrend = d.monthlyTrend || [];
     departmentStats = d.departmentStats || [];
