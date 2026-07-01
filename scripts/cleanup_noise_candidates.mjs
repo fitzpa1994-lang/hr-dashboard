@@ -26,6 +26,7 @@ WITH targets AS (
   FROM candidates
   WHERE name IN (
     '—這期三個方案都有解',
+    '人員面試問題',
     '測試李小明',
     '測試王小明',
     '測試陳小明',

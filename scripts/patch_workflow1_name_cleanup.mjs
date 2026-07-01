@@ -30,9 +30,7 @@ if (!extractJs.includes('const explicitDepartmentMatch =')) {
   throw new Error('Expected extract block boundary not found');
 }
 
-const replacementBlock = String.raw`const NEWSLETTER_HINTS = /(電子報|newsletter|訂閱|課程|方案都有解)/iu;
-
-const normalizeCandidate = (value) => String(value || '')
+const replacementBlock = String.raw`const normalizeCandidate = (value) => String(value || '')
   .replace(/^(?:RE|FW|FWD)\s*:\s*/i, '')
   .replace(/[()（）]/g, ' ')
   .replace(/(?:先生|女士|小姐|同學|您好)$/g, '')
@@ -57,6 +55,7 @@ const isLikelyCandidate = (value) => {
   if (value.length < 2 || value.length > 20) return false;
   if (SKIP.has(value.toLowerCase()) || SKIP.has(value)) return false;
   if (/^(?:面試時間|履歷推薦|面試安排|面試通知|錄取通知|新進人員通知)$/i.test(value)) return false;
+  if (/面試問題/.test(value)) return false;
   if (NEWSLETTER_HINTS.test(value)) return false;
   if (/[【】\[\]（）()]/.test(value)) return false;
   if (/^[\u4e00-\u9fa5]{2,5}$/.test(value)) return true;
@@ -98,7 +97,12 @@ if (!candidateName && !NEWSLETTER_HINTS.test(subject + ' ' + body)) {
 
 const explicitDepartmentMatch =`;
 
-extractNode.parameters.jsCode = extractJs.replace(
+const dedupedExtractJs = extractJs.replace(
+  /const NEWSLETTER_HINTS = \/\(電子報\|newsletter\|訂閱\|課程\|方案都有解\)\/iu;\n\nconst NEWSLETTER_HINTS = \/\(電子報\|newsletter\|訂閱\|課程\|方案都有解\)\/iu;\n\n/g,
+  "const NEWSLETTER_HINTS = /(電子報|newsletter|訂閱|課程|方案都有解)/iu;\n\n",
+);
+
+extractNode.parameters.jsCode = dedupedExtractJs.replace(
   /const normalizeCandidate = \(value\) => String\(value \|\| ''\)[\s\S]*?const explicitDepartmentMatch =/,
   replacementBlock,
 );

@@ -27,11 +27,13 @@ WITH targets AS (
     c.name AS old_name,
     CASE
       WHEN c.name = '-楊人潔' THEN REGEXP_REPLACE(c.name, '^[\\-－—–]+', '')
+      WHEN c.name = 'mis工程師-張宇豐' THEN '張宇豐'
       WHEN c.name LIKE '新華文件專員--%' THEN REGEXP_REPLACE(c.name, '^新華文件專員--', '')
       ELSE c.name
     END AS new_name
   FROM candidates c
   WHERE c.name = '-楊人潔'
+     OR c.name = 'mis工程師-張宇豐'
      OR c.name LIKE '新華文件專員--%'
 ),
 updated AS (
