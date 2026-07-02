@@ -952,6 +952,36 @@ function normalizeDashboardText(value) {
   return String(value || '').trim();
 }
 
+function normalizeLikelyStaleYear(dateString, referenceDateString) {
+  const dateText = String(dateString || '').trim().slice(0, 10);
+  const referenceText = String(referenceDateString || '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateText)) return dateString;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(referenceText)) return dateString;
+  const parsedYear = Number(dateText.slice(0, 4));
+  const referenceYear = Number(referenceText.slice(0, 4));
+  if (!Number.isFinite(parsedYear) || !Number.isFinite(referenceYear)) return dateString;
+  if (parsedYear >= referenceYear - 1) return dateString;
+  return `${referenceYear}${dateText.slice(4)}`;
+}
+
+function normalizeDashboardCandidate(candidate) {
+  if (!candidate || typeof candidate !== 'object') return candidate;
+  const referenceDate = String(candidate.latestDate || candidate.date || TODAY || '').slice(0, 10);
+  const normalizedDate = normalizeLikelyStaleYear(candidate.date, referenceDate);
+  const normalizedHistory = Array.isArray(candidate.history)
+    ? candidate.history.map(entry => ({
+        ...entry,
+        date: normalizeLikelyStaleYear(entry?.date, referenceDate),
+      }))
+    : candidate.history;
+
+  return {
+    ...candidate,
+    date: normalizedDate,
+    history: normalizedHistory,
+  };
+}
+
 function getCandidatePrimaryDate(candidate) {
   return String(
     candidate?.latestDate ||
@@ -1177,8 +1207,12 @@ async function loadData() {
     schedEvents = (d.schedEvents || []).filter(event => !isDashboardNoiseSchedule(event));
     onboardData = d.onboardData || [];
     resignData = d.resignData || [];
-    candidatesData = (d.candidatesData || []).filter(candidate => !isDashboardNoiseCandidate(candidate));
-    unmappedCandidates = (d.unmappedCandidates || []).filter(candidate => !isDashboardNoiseCandidate(candidate));
+    candidatesData = (d.candidatesData || [])
+      .filter(candidate => !isDashboardNoiseCandidate(candidate))
+      .map(normalizeDashboardCandidate);
+    unmappedCandidates = (d.unmappedCandidates || [])
+      .filter(candidate => !isDashboardNoiseCandidate(candidate))
+      .map(normalizeDashboardCandidate);
     jobsData = d.jobsData || [];
     monthlyTrend = d.monthlyTrend || [];
     departmentStats = d.departmentStats || [];
