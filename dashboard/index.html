@@ -1019,7 +1019,7 @@ function getOverviewKpis() {
     isRecentWithin(getCandidatePrimaryDate(candidate), 14)
   );
   const recentPendingInvite = pendingInvite.filter(candidate =>
-    isRecentWithin(getCandidatePrimaryDate(candidate), 21)
+    isRecentWithin(getCandidatePrimaryDate(candidate), 14)
   );
   const pendingReviewCount = recentPendingReview.length;
   const pendingReviewOverdueCount = recentPendingReview.filter(candidate =>
@@ -1242,7 +1242,7 @@ function initOverview() {
     : (overviewKpis.pendingReviewCount ? '等待主管決策' : '目前無待回覆');
   document.getElementById('kpi-pending-invite-subtext').textContent = overviewKpis.pendingInviteOverdueCount
     ? `${overviewKpis.pendingInviteOverdueCount} 筆超過 3 天`
-    : (overviewKpis.pendingInviteCount ? '近 21 天新進' : '');
+    : (overviewKpis.pendingInviteCount ? '近 14 天新進' : '');
   document.getElementById('kpi-week-onboard').textContent = overviewKpis.nextOnboardCount;
   document.getElementById('kpi-next-onboard-label').textContent = overviewKpis.nextOnboardDate
     ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))} 預計到職`
