@@ -1024,6 +1024,63 @@ function buildOnboardingLookup(items) {
   return map;
 }
 
+function mergeScheduleEvents(baseEvents, onboardings, resignations) {
+  const merged = [];
+  const seen = new Set();
+
+  function pushEvent(event) {
+    if (!event?.date || !event?.type) return;
+    if (isDashboardNoiseSchedule(event)) return;
+    const key = [
+      event.type,
+      normalizeNameKey(event.name),
+      String(event.date || ''),
+      String(event.time || ''),
+      normalizeDashboardText(event.pos),
+      normalizeDashboardText(event.dept),
+    ].join('|');
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(event);
+  }
+
+  for (const event of baseEvents || []) {
+    pushEvent(event);
+  }
+
+  for (const onboarding of onboardings || []) {
+    pushEvent({
+      type: 'onboard',
+      name: onboarding.name || '',
+      pos: onboarding.pos || '',
+      dept: onboarding.dept || '',
+      date: onboarding.date || '',
+      time: '09:00',
+      hr: onboarding.hr || '',
+      round: 0,
+      note: '',
+      emailLink: onboarding.emailLink || '',
+    });
+  }
+
+  for (const resignation of resignations || []) {
+    pushEvent({
+      type: 'resign',
+      name: resignation.name || '',
+      pos: resignation.pos || '',
+      dept: resignation.dept || '',
+      date: resignation.lastDay || '',
+      time: '',
+      hr: resignation.hr || '',
+      round: 0,
+      note: resignation.reason || '',
+      emailLink: resignation.emailLink || '',
+    });
+  }
+
+  return sortByPrimaryDate(merged, item => item.date);
+}
+
 function getCandidateStageKey(candidate) {
   if (!candidate) return 'unknown';
   if (candidate.onboardDate) return 'onboarded';
@@ -1259,9 +1316,9 @@ async function loadData() {
     const d = await res.json();
 
     TODAY = d.today || TODAY;
-    schedEvents = (d.schedEvents || []).filter(event => !isDashboardNoiseSchedule(event));
     onboardData = d.onboardData || [];
     resignData = d.resignData || [];
+    schedEvents = mergeScheduleEvents(d.schedEvents || [], onboardData, resignData);
     const rawCandidates = (d.candidatesData || [])
       .filter(candidate => !isDashboardNoiseCandidate(candidate))
       .map(normalizeDashboardCandidate);
@@ -1276,6 +1333,9 @@ async function loadData() {
     lastGeneratedAt = d.generatedAt || null;
 
     const dt = new Date(TODAY + 'T00:00:00');
+    schedMonthDate = new Date(TODAY + 'T00:00:00');
+    schedSelectedDate = TODAY;
+    calDate = new Date(TODAY + 'T00:00:00');
     updateHeaderStatus(
       `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`,
       `最後更新 ${new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}${lastGeneratedAt ? ' · API ' + String(lastGeneratedAt).replace('T',' ') : ''}`
