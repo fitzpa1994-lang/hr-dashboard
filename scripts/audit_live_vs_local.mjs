@@ -99,39 +99,89 @@ async function fetchLiveWorkflow(workflowId) {
   return JSON.parse(text);
 }
 
+const MOJIBAKE = /�/;
+
+function corruptionMark(text) {
+  return MOJIBAKE.test(String(text ?? '')) ? '〔含亂碼〕' : '';
+}
+
+// 節點以 id 配對（n8n 節點 id 為穩定 UUID，不受名稱亂碼／改名影響），無 id 時退回名稱。
+function nodeKey(node) {
+  return node.id || `name:${node.name}`;
+}
+
+// 把 connections 的「名稱鍵」翻譯成「id 鍵」，讓接線比對不受節點名稱差異干擾。
+function connectionsById(workflow) {
+  const nameToId = new Map((workflow.nodes || []).map((n) => [n.name, n.id || `name:${n.name}`]));
+  const translate = (name) => nameToId.get(name) || `unknown:${name}`;
+  const out = {};
+  for (const [sourceName, outputs] of Object.entries(workflow.connections || {})) {
+    const translated = {};
+    for (const [outputType, groups] of Object.entries(outputs || {})) {
+      translated[outputType] = (groups || []).map((group) =>
+        (group || []).map((conn) => ({ ...conn, node: translate(conn.node) })));
+    }
+    out[translate(sourceName)] = translated;
+  }
+  return out;
+}
+
+function collectCorruptedStrings(value, pathLabel, sink) {
+  if (typeof value === 'string') {
+    if (MOJIBAKE.test(value)) sink.push(pathLabel);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => collectCorruptedStrings(v, `${pathLabel}[${i}]`, sink));
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) collectCorruptedStrings(v, `${pathLabel}.${k}`, sink);
+  }
+}
+
 function compareWorkflow(fileName, local, live) {
   const findings = [];
-  const localNodes = new Map((local.nodes || []).map((n) => [n.name, n]));
-  const liveNodes = new Map((live.nodes || []).map((n) => [n.name, n]));
+  const localNodes = new Map((local.nodes || []).map((n) => [nodeKey(n), n]));
+  const liveNodes = new Map((live.nodes || []).map((n) => [nodeKey(n), n]));
 
-  for (const name of localNodes.keys()) {
-    if (!liveNodes.has(name)) findings.push(`✖ 線上缺少節點：「${name}」（僅存在本地）`);
+  for (const [key, node] of localNodes) {
+    if (!liveNodes.has(key)) findings.push(`✖ 線上缺少節點：「${node.name}」（僅存在本地）`);
   }
-  for (const name of liveNodes.keys()) {
-    if (!localNodes.has(name)) findings.push(`✖ 本地缺少節點：「${name}」（僅存在線上）`);
+  for (const [key, node] of liveNodes) {
+    if (!localNodes.has(key)) findings.push(`✖ 本地缺少節點：「${node.name}」${corruptionMark(node.name)}（僅存在線上）`);
   }
 
-  for (const [name, localNode] of localNodes) {
-    const liveNode = liveNodes.get(name);
+  for (const [key, localNode] of localNodes) {
+    const liveNode = liveNodes.get(key);
     if (!liveNode) continue;
+    const label = localNode.name;
+    if (localNode.name !== liveNode.name) {
+      findings.push(`✖ 節點「${label}」名稱不同：live="${liveNode.name}"${corruptionMark(liveNode.name)}`);
+    }
     if (localNode.type !== liveNode.type) {
-      findings.push(`✖ 節點「${name}」type 不同：local=${localNode.type} live=${liveNode.type}`);
+      findings.push(`✖ 節點「${label}」type 不同：local=${localNode.type} live=${liveNode.type}`);
       continue;
     }
     if (Boolean(localNode.disabled) !== Boolean(liveNode.disabled)) {
-      findings.push(`✖ 節點「${name}」disabled 狀態不同：local=${Boolean(localNode.disabled)} live=${Boolean(liveNode.disabled)}`);
+      findings.push(`✖ 節點「${label}」disabled 狀態不同：local=${Boolean(localNode.disabled)} live=${Boolean(liveNode.disabled)}`);
     }
     if (hash(localNode.parameters ?? {}) !== hash(liveNode.parameters ?? {})) {
       const keys = diffParameterKeys(localNode.parameters, liveNode.parameters);
-      findings.push(`✖ 節點「${name}」參數不同：${keys.join('、')}`);
+      findings.push(`✖ 節點「${label}」參數不同：${keys.join('、')}`);
+    }
+    const corrupted = [];
+    collectCorruptedStrings(liveNode.parameters, 'parameters', corrupted);
+    if (corrupted.length) {
+      findings.push(`⚠ 節點「${label}」線上參數含亂碼字元：${corrupted.slice(0, 5).join('、')}${corrupted.length > 5 ? ` …共 ${corrupted.length} 處` : ''}`);
     }
   }
 
-  if (hash(local.connections ?? {}) !== hash(live.connections ?? {})) {
-    findings.push('✖ connections（節點接線）不同');
+  if (hash(connectionsById(local)) !== hash(connectionsById(live))) {
+    findings.push('✖ connections（節點接線，依 id 比對）不同');
   }
   if (local.name && live.name && local.name !== live.name) {
-    findings.push(`✖ workflow 名稱不同：local="${local.name}" live="${live.name}"`);
+    findings.push(`✖ workflow 名稱不同：local="${local.name}" live="${live.name}"${corruptionMark(live.name)}`);
   }
   return findings;
 }

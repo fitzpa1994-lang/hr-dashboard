@@ -6,9 +6,7 @@ const n8nDir = path.join(root, 'n8n');
 
 function findFile(prefix) {
   const entry = fs.readdirSync(n8nDir).find((name) => name.startsWith(prefix) && name.endsWith('.json'));
-  if (!entry) {
-    throw new Error(`Missing n8n export for ${prefix}`);
-  }
+  if (!entry) throw new Error(`Missing n8n export for ${prefix}`);
   return path.join(n8nDir, entry);
 }
 
@@ -21,31 +19,24 @@ function writeJson(filePath, value) {
 }
 
 function updateWorkflowNodes(workflow, updater) {
-  for (const node of workflow.nodes || []) {
-    updater(node);
-  }
-  if (workflow.activeVersion?.nodes) {
-    for (const node of workflow.activeVersion.nodes) {
-      updater(node);
-    }
-  }
+  for (const node of workflow.nodes || []) updater(node);
+  for (const node of workflow.activeVersion?.nodes || []) updater(node);
 }
 
 const bootstrapQuery = `ALTER TABLE candidates
 ADD COLUMN IF NOT EXISTS job_requisition_id INTEGER REFERENCES job_requisitions(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_candidates_job_requisition
-ON candidates(job_requisition_id);
-`;
+ON candidates(job_requisition_id);`;
 
-const extractJs = `const item = $input.item.json;
+const extractJs = String.raw`const item = $input.item.json;
 const subject = String(item.subject || '').trim();
 const rawBody = item.body?.content || item.bodyPreview || '';
 const body = String(rawBody)
   .replace(/<[^>]+>/g, ' ')
   .replace(/&nbsp;/g, ' ')
-  .replace(/&#\\d+;/g, ' ')
-  .replace(/\\s+/g, ' ')
+  .replace(/&#\d+;/g, ' ')
+  .replace(/\s+/g, ' ')
   .trim();
 
 const sender = typeof item.from === 'string'
@@ -71,10 +62,19 @@ const toEmails = collectEmails(item.to);
 const ccEmails = collectEmails(item.cc);
 const recipientEmails = [...new Set([...toEmails, ...ccEmails])];
 
+const normalizedSubject = subject.replace(/\s+/g, '').toLowerCase();
+const routingSignals = subject + ' ' + body;
+const hasExplicitXinzhuSignal = /新竹/.test(routingSignals);
+const hasExplicitXinhuaSignal = /新華/.test(routingSignals);
+const hasExplicitWbuSignal = /WBU|SAR|五部|RF\s*PM/.test(routingSignals);
+const hasExplicitAdminSignal = /董事長室|財務|行政|MIS|資訊部|品管/.test(routingSignals);
+const hasExplicitAnGuiSignal = /安規|電池/.test(routingSignals);
+const hasExplicitIccSignal = /\bICC\b|ICC/.test(routingSignals);
+
 const recipientRoutingRules = [
-  { match: /viclee@sporton\\.com\\.tw$/, topDepartment: 'WBU', preferredRequisitionId: 25 },
-  { match: /codychang@sporton\\.com\\.tw$/, topDepartment: 'ICC', preferredRequisitionId: 1 },
-  { match: /yenchen@sporton\\.com\\.tw$/, topDepartment: 'ICC' },
+  { match: /viclee@sporton\.com\.tw$/, topDepartment: 'WBU', preferredRequisitionId: 25 },
+  { match: /codychang@sporton\.com\.tw$/, topDepartment: 'ICC', preferredRequisitionId: 1 },
+  { match: /yenchen@sporton\.com\.tw$/, topDepartment: 'ICC' },
 ];
 
 const recipientHint = recipientRoutingRules.find((rule) => recipientEmails.some((email) => rule.match.test(email))) || null;
@@ -86,10 +86,10 @@ const SKIP = new Set([
 ]);
 
 const normalizeCandidate = (value) => String(value || '')
-  .replace(/^(?:RE|FW|FWD)\\s*:\\s*/i, '')
+  .replace(/^(?:RE|FW|FWD)\s*:\s*/i, '')
   .replace(/[()]/g, ' ')
   .replace(/(?:先生|女士|小姐|同學)$/g, '')
-  .replace(/\\s+/g, '')
+  .replace(/\s+/g, '')
   .trim();
 
 const isLikelyCandidate = (value) => {
@@ -97,15 +97,15 @@ const isLikelyCandidate = (value) => {
   if (value.length < 2 || value.length > 16) return false;
   if (SKIP.has(value.toLowerCase()) || SKIP.has(value)) return false;
   if (/^(?:面試時間|履歷推薦|面試安排|面試通知|錄取通知|新進人員通知)$/i.test(value)) return false;
-  return /[\\u4e00-\\u9fa5A-Za-z]/.test(value);
+  return /[\u4e00-\u9fa5A-Za-z]/.test(value);
 };
 
 let candidateName = null;
 const subjectPatterns = [
-  /[\\u3010\\[][^\\u3011\\]]+[\\u3011\\]]\\s*[\\-\\uff0d\\u2014\\u2013:\\uff1a]\\s*([^\\n]+?)\\s*$/,
-  /[\\u3010\\[][^\\u3011\\]]+[\\u3011\\]]\\s*([^\\n]+?)\\s*$/,
-  /[\\-\\uff0d\\u2014\\u2013:\\uff1a]\\s*([^\\n]+?)\\s*$/,
-  /([^\\n]+?)\\s*(?:先生|女士|小姐)\\s*$/
+  /[\u3010\[][^\u3011\]]+[\u3011\]]\s*[\-\uff0d\u2014\u2013:\uff1a]\s*([^\n]+?)\s*$/,
+  /[\u3010\[][^\u3011\]]+[\u3011\]]\s*([^\n]+?)\s*$/,
+  /[\-\uff0d\u2014\u2013:\uff1a]\s*([^\n]+?)\s*$/,
+  /([^\n]+?)\s*(?:先生|女士|小姐)\s*$/
 ];
 for (const pattern of subjectPatterns) {
   const match = subject.match(pattern);
@@ -119,9 +119,9 @@ for (const pattern of subjectPatterns) {
 
 if (!candidateName) {
   const bodyNamePatterns = [
-    /候選人[：: ]*([\\u4e00-\\u9fa5A-Za-z]{2,16})/,
-    /姓名[：: ]*([\\u4e00-\\u9fa5A-Za-z]{2,16})/,
-    /([\\u4e00-\\u9fa5]{2,4})\\s*(?:先生|女士|小姐)\\s*您好/
+    /候選人[：: ]*([\u4e00-\u9fa5A-Za-z]{2,16})/,
+    /姓名[：: ]*([\u4e00-\u9fa5A-Za-z]{2,16})/,
+    /([\u4e00-\u9fa5]{2,4})\s*(?:先生|女士|小姐)\s*您好/
   ];
   for (const pattern of bodyNamePatterns) {
     const match = body.match(pattern);
@@ -134,31 +134,48 @@ if (!candidateName) {
   }
 }
 
-const explicitDepartmentMatch = body.match(/部門[：: ]*([^\\s，。,；;]+)/);
+const explicitDepartmentMatch = body.match(/部門[：: ]*([^\s，。,；;]+)/);
 const explicitDepartment = explicitDepartmentMatch ? explicitDepartmentMatch[1].trim() : null;
 
-const positionFromSubjectMatch = subject.match(/[\\u3010\\[]([^\\u3011\\]]+)[\\u3011\\]]/);
-const explicitPositionMatch = body.match(/(?:職缺|職稱|應徵職位)[：: ]*([^\\n]+)/);
+const positionFromSubjectMatch = subject.match(/[\u3010\[]([^\u3011\]]+)[\u3011\]]/);
+const explicitPositionMatch = body.match(/(?:職缺|職稱|應徵職位)[：: ]*([^\n]+)/);
 const inferredPosition = explicitPositionMatch
   ? explicitPositionMatch[1].trim()
   : (positionFromSubjectMatch ? positionFromSubjectMatch[1].trim() : null);
 
+const hasXinzhuRf = /新竹.*RF.*測試工程師|RF.*測試工程師.*新竹/i.test(routingSignals);
+const hasXinzhuEmc = /新竹.*EMC.*測試工程師|EMC.*測試工程師.*新竹/i.test(routingSignals);
+const hasXinhuaRf = /新華.*RF.*測試工程師|RF.*測試工程師.*新華/i.test(routingSignals);
+const hasXinhuaFile = /新華.*文件專員|文件專員.*新華|文件組/i.test(routingSignals);
+
 const deriveDepartment = (position, department, text, hint) => {
   if (department) return department;
   const source = String(position || text || '');
-  const patterns = [
-    { re: /\\bICC\\b|ICC/, value: 'ICC' },
-    { re: /WBU|SAR|RF\\s*PM|文件專員|文件組|RF測試工程師/, value: 'WBU' },
-    { re: /新竹/, value: '新竹' },
-    { re: /新華/, value: '新華' },
-    { re: /安規|電池/, value: '安規' },
-    { re: /董事長室|財務|行政|MIS|資訊部|軟體工程師/, value: '行政' }
-  ];
-  for (const entry of patterns) {
-    if (entry.re.test(source)) return entry.value;
-  }
+  if (/新竹/.test(source)) return '新竹';
+  if (/新華/.test(source)) return '新華';
+  if (/安規|電池/.test(source)) return '安規';
+  if (/董事長室|財務|行政|MIS|資訊部|軟體工程師|品管/.test(source)) return '行政';
+  if (/\bICC\b|ICC/.test(source)) return 'ICC';
+  if (/WBU|SAR|五部|RF\s*PM|場測工程師/.test(source)) return 'WBU';
   return hint?.topDepartment || null;
 };
+
+let preferredRequisitionId = recipientHint?.preferredRequisitionId || null;
+if (hasXinzhuRf || hasXinzhuEmc) {
+  preferredRequisitionId = 4;
+} else if (hasXinhuaRf) {
+  preferredRequisitionId = 12;
+} else if (hasXinhuaFile) {
+  preferredRequisitionId = 2;
+} else if (/SAR測試工程師|RFSAR/i.test(routingSignals)) {
+  preferredRequisitionId = 23;
+} else if (/五部RFPM|RFPM/i.test(routingSignals)) {
+  preferredRequisitionId = 13;
+} else if (/ICC.*客服業務|ICC客服業務/i.test(routingSignals)) {
+  preferredRequisitionId = 19;
+} else if (/ICC.*案件專員|ICCPM/i.test(normalizedSubject)) {
+  preferredRequisitionId = 5;
+}
 
 const inferredDepartment = deriveDepartment(inferredPosition, explicitDepartment, subject + ' ' + body, recipientHint);
 
@@ -169,9 +186,9 @@ let interviewDate = null;
 if (!hasTentativeScheduling) {
   const currentYear = new Date(receivedAt || Date.now()).getFullYear();
   const datePatterns = [
-    { re: /(\\d{4})年(\\d{1,2})月(\\d{1,2})日/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
-    { re: /(\\d{4})[\\/.-](\\d{1,2})[\\/.-](\\d{1,2})/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
-    { re: /(\\d{1,2})月(\\d{1,2})日/, fn: (m) => String(currentYear) + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') }
+    { re: /(\d{4})年(\d{1,2})月(\d{1,2})日/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
+    { re: /(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/, fn: (m) => m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') },
+    { re: /(\d{1,2})月(\d{1,2})日/, fn: (m) => String(currentYear) + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') }
   ];
   for (const entry of datePatterns) {
     const match = searchText.match(entry.re);
@@ -184,7 +201,7 @@ if (!hasTentativeScheduling) {
 
 let interviewTime = null;
 if (!hasTentativeScheduling) {
-  const timeMatch = searchText.match(/(?:上午|下午|AM|PM|am|pm)?\\s*(\\d{1,2})[:：](\\d{2})/);
+  const timeMatch = searchText.match(/(?:上午|下午|AM|PM|am|pm)?\s*(\d{1,2})[:：](\d{2})/);
   if (timeMatch) {
     let hour = Number(timeMatch[1]);
     const marker = timeMatch[0];
@@ -201,8 +218,8 @@ return {
   sender,
   received_at: receivedAt,
   recipient_emails: recipientEmails,
-  recipient_top_department_hint: recipientHint?.topDepartment || null,
-  preferred_requisition_id: recipientHint?.preferredRequisitionId || null,
+  recipient_top_department_hint: inferredDepartment || recipientHint?.topDepartment || null,
+  preferred_requisition_id: preferredRequisitionId,
   candidate_name: candidateName,
   interview_date: interviewDate,
   interview_time: interviewTime,
@@ -212,7 +229,7 @@ return {
   body_text: body.substring(0, 2000),
 };`;
 
-const candidateQuery = `${bootstrapQuery}
+const candidateQuery = String.raw`${bootstrapQuery}
 
 WITH candidate_input AS (
   SELECT
@@ -229,20 +246,24 @@ candidate_norm AS (
     COALESCE(
       recipient_preferred_requisition_id,
       CASE
+        WHEN lower(raw_position) LIKE '%新竹%rf%測試工程師%'
+          OR lower(raw_position) LIKE '%新竹%emc%測試工程師%'
+          OR (lower(raw_position) LIKE '%rf測試工程師%' AND raw_department LIKE '%新竹%')
+          OR (lower(raw_position) LIKE '%emc測試工程師%' AND raw_department LIKE '%新竹%') THEN 4
+        WHEN lower(raw_position) LIKE '%新華%rf%測試工程師%'
+          OR (lower(raw_position) LIKE '%rf測試工程師%' AND raw_department LIKE '%新華%') THEN 12
+        WHEN lower(raw_position) LIKE '%新華%文件專員%'
+          OR (lower(raw_position) LIKE '%文件專員%' AND raw_department LIKE '%新華%')
+          OR (lower(raw_position) LIKE '%文件組%' AND raw_department LIKE '%新華%') THEN 2
         WHEN lower(raw_position) LIKE '%icc%客服業務%' OR lower(raw_position) LIKE '%icc客服業務%' THEN 19
         WHEN lower(raw_position) LIKE '%icc%案件專員%' OR lower(raw_position) LIKE '%iccpm%' THEN 5
         WHEN lower(raw_position) LIKE '%icc%測試工程師%' THEN 1
         WHEN lower(raw_position) LIKE '%sar測試工程師%' OR lower(raw_position) LIKE '%rfsar%' THEN 23
-        WHEN (
-          lower(raw_position) LIKE '%rf測試工程師%'
-          OR lower(raw_position) LIKE '%emc測試工程師%'
-          OR lower(raw_position) LIKE '%新竹%rf%測試工程師%'
-          OR lower(raw_position) LIKE '%新竹%emc%測試工程師%'
-        ) AND raw_department LIKE '%新竹%' THEN 4
         WHEN lower(raw_position) LIKE '%rf測試工程師%' AND recipient_top_department_hint = 'WBU' THEN 25
-        WHEN lower(raw_position) LIKE '%rf測試工程師%' AND raw_department LIKE '%新華%' THEN 12
         WHEN lower(raw_position) LIKE '%五部rfpm%' OR lower(raw_position) LIKE '%rfpm%' THEN 13
         WHEN lower(raw_position) = 'pm' AND recipient_top_department_hint = 'WBU' THEN 13
+        WHEN raw_position LIKE '%' || U&'MIS\7DB2\7BA1\5DE5\7A0B\5E2B' || '%'
+          OR raw_position LIKE '%' || U&'MIS\7DB2\7BA1' || '%' THEN 17
         WHEN lower(raw_position) LIKE '%助理業務/業務%' AND raw_department LIKE '%安規%' THEN 22
         WHEN lower(raw_position) LIKE '%業務助理(david)%' THEN 8
         WHEN lower(raw_position) LIKE '%文件專員%' THEN 2
@@ -255,22 +276,22 @@ candidate_norm AS (
     END AS strong_department,
     CASE
       WHEN raw_department IN ('ICC', 'WBU', '新華', '新竹', '安規', '行政') THEN raw_department
-      WHEN raw_department LIKE '%ICC%' THEN 'ICC'
-      WHEN raw_department LIKE '%WBU%' OR raw_department LIKE '%SAR%' OR raw_department LIKE '%RF%' THEN 'WBU'
-      WHEN raw_department LIKE '%新華%' THEN '新華'
       WHEN raw_department LIKE '%新竹%' THEN '新竹'
+      WHEN raw_department LIKE '%新華%' THEN '新華'
       WHEN raw_department LIKE '%安規%' OR raw_department LIKE '%電池%' THEN '安規'
       WHEN raw_department LIKE '%董事長室%' OR raw_department LIKE '%財務%' OR raw_department LIKE '%資訊%' OR raw_department LIKE '%MIS%' OR raw_department LIKE '%品管%' OR raw_department LIKE '%行政%' THEN '行政'
-      WHEN raw_position LIKE 'ICC%' THEN 'ICC'
-      WHEN raw_position LIKE 'WBU%' OR raw_position LIKE 'SAR%' OR raw_position LIKE 'RF %' OR raw_position LIKE 'RF%' THEN 'WBU'
-      WHEN raw_position LIKE '新華%' THEN '新華'
+      WHEN raw_department LIKE '%ICC%' THEN 'ICC'
+      WHEN raw_department LIKE '%WBU%' OR raw_department LIKE '%SAR%' OR raw_department LIKE '%RF%' THEN 'WBU'
       WHEN raw_position LIKE '新竹%' THEN '新竹'
+      WHEN raw_position LIKE '新華%' THEN '新華'
       WHEN raw_position LIKE '安規%' OR raw_position LIKE '%電池%' THEN '安規'
       WHEN raw_position LIKE '%董事長室%' OR raw_position LIKE '%財務%' OR raw_position LIKE '%資訊%' OR raw_position LIKE 'MIS%' OR raw_position LIKE '%品管%' OR raw_position LIKE '%行政%' THEN '行政'
+      WHEN raw_position LIKE 'ICC%' THEN 'ICC'
+      WHEN raw_position LIKE 'WBU%' OR raw_position LIKE 'SAR%' OR raw_position LIKE 'RF %' OR raw_position LIKE 'RF%' THEN 'WBU'
       ELSE recipient_top_department_hint
     END AS top_department,
-    lower(regexp_replace(raw_position, '\\s+', '', 'g')) AS pos_norm,
-    lower(regexp_replace(regexp_replace(raw_position, '^(ICC|icc|WBU|新華|新竹|安規|行政)', '', 'g'), '\\s+', '', 'g')) AS pos_core
+    lower(regexp_replace(raw_position, '\s+', '', 'g')) AS pos_norm,
+    lower(regexp_replace(regexp_replace(raw_position, '^(ICC|icc|WBU|新華|新竹|安規|行政)', '', 'g'), '\s+', '', 'g')) AS pos_core
   FROM candidate_input
 ),
 matched_requisition AS (
@@ -283,18 +304,19 @@ matched_requisition AS (
   WHERE (j.status <> 'cancelled' OR (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id))
     AND (
       (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id)
-      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm
-      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core
-      OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
-      OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
-      OR (lower(c.applied_position) LIKE '%mis%' AND j.id = 17)
-      OR (lower(c.applied_position) LIKE '%sar%' AND j.id = 23)
-      OR (lower(c.applied_position) LIKE '%ai%' AND j.id = 27)
+      OR lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_norm
+      OR lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_core
+      OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\s+', '', 'g'))
+      OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\s+', '', 'g'))
+      OR (raw_position LIKE '%' || U&'MIS\7DB2\7BA1\5DE5\7A0B\5E2B' || '%' AND j.id = 17)
+      OR (raw_position LIKE '%' || U&'MIS\7DB2\7BA1' || '%' AND j.id = 17)
+      OR (raw_position LIKE '%' || U&'SAR\5DE5\7A0B\5E2B' || '%' AND j.id = 23)
+      OR (raw_position LIKE '%' || U&'AI\8EDF\9AD4\5DE5\7A0B\5E2B' || '%' AND j.id = 27)
       OR (
         c.pos_core <> ''
         AND (
-          lower(regexp_replace(j.position_title, '\\s+', '', 'g')) LIKE '%' || c.pos_core || '%'
-          OR c.pos_core LIKE '%' || lower(regexp_replace(j.position_title, '\\s+', '', 'g')) || '%'
+          lower(regexp_replace(j.position_title, '\s+', '', 'g')) LIKE '%' || c.pos_core || '%'
+          OR c.pos_core LIKE '%' || lower(regexp_replace(j.position_title, '\s+', '', 'g')) || '%'
         )
       )
     )
@@ -307,8 +329,8 @@ matched_requisition AS (
       ELSE 4
     END,
     CASE
-      WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm THEN 0
-      WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core THEN 1
+      WHEN lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_norm THEN 0
+      WHEN lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_core THEN 1
       ELSE 2
     END,
     j.id
@@ -355,15 +377,15 @@ SET
   notes = CASE
     WHEN '{{ ($json.system_stage_note || '').replace(/'/g, "''") }}' <> '' THEN
       TRIM(BOTH ' ' FROM CONCAT(
-        NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), ''),
+        NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\s*\\[SYS_STAGE:[^\\]]+\\]', '', 'g')), ''),
         CASE
-          WHEN NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '') IS NOT NULL
+          WHEN NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\s*\\[SYS_STAGE:[^\\]]+\\]', '', 'g')), '') IS NOT NULL
             THEN ' '
           ELSE ''
         END,
         '{{ ($json.system_stage_note || '').replace(/'/g, "''") }}'
       ))
-    ELSE NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\\\s*\\\\[SYS_STAGE:[^\\\\]]+\\\\]', '', 'g')), '')
+    ELSE NULLIF(TRIM(BOTH ' ' FROM REGEXP_REPLACE(COALESCE(notes, ''), '\\s*\\[SYS_STAGE:[^\\]]+\\]', '', 'g')), '')
   END
 WHERE name = '{{ ($json.candidate_name || '').replace(/'/g, "''") }}';
 
@@ -391,11 +413,7 @@ WHERE c.name = '{{ ($json.candidate_name || '').replace(/'/g, "''") }}'
 ORDER BY c.created_at DESC
 LIMIT 1;`;
 
-const migrationQuery = `ALTER TABLE candidates
-ADD COLUMN IF NOT EXISTS job_requisition_id INTEGER REFERENCES job_requisitions(id) ON DELETE SET NULL;
-
-CREATE INDEX IF NOT EXISTS idx_candidates_job_requisition
-ON candidates(job_requisition_id);
+const migrationQuery = String.raw`${bootstrapQuery}
 
 WITH candidate_norm AS (
   SELECT
@@ -403,18 +421,20 @@ WITH candidate_norm AS (
     c.department,
     c.applied_position,
     CASE
+      WHEN lower(c.applied_position) LIKE '%新竹%rf%測試工程師%'
+        OR lower(c.applied_position) LIKE '%新竹%emc%測試工程師%'
+        OR (lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新竹%')
+        OR (lower(c.applied_position) LIKE '%emc測試工程師%' AND c.department LIKE '%新竹%') THEN 4
+      WHEN lower(c.applied_position) LIKE '%新華%rf%測試工程師%'
+        OR (lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新華%') THEN 12
+      WHEN lower(c.applied_position) LIKE '%新華%文件專員%'
+        OR (lower(c.applied_position) LIKE '%文件專員%' AND c.department LIKE '%新華%')
+        OR (lower(c.applied_position) LIKE '%文件組%' AND c.department LIKE '%新華%') THEN 2
       WHEN lower(c.applied_position) LIKE '%icc%客服業務%' OR lower(c.applied_position) LIKE '%icc客服業務%' THEN 19
       WHEN lower(c.applied_position) LIKE '%icc%案件專員%' OR lower(c.applied_position) LIKE '%iccpm%' THEN 5
       WHEN lower(c.applied_position) LIKE '%icc%測試工程師%' THEN 1
       WHEN lower(c.applied_position) LIKE '%sar測試工程師%' OR lower(c.applied_position) LIKE '%rfsar%' THEN 23
-      WHEN (
-        lower(c.applied_position) LIKE '%rf測試工程師%'
-        OR lower(c.applied_position) LIKE '%emc測試工程師%'
-        OR lower(c.applied_position) LIKE '%新竹%rf%測試工程師%'
-        OR lower(c.applied_position) LIKE '%新竹%emc%測試工程師%'
-      ) AND c.department LIKE '%新竹%' THEN 4
       WHEN lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department = 'WBU' THEN 25
-      WHEN lower(c.applied_position) LIKE '%rf測試工程師%' AND c.department LIKE '%新華%' THEN 12
       WHEN lower(c.applied_position) LIKE '%五部rfpm%' OR lower(c.applied_position) LIKE '%rfpm%' THEN 13
       WHEN lower(c.applied_position) = 'pm' AND c.department = 'WBU' THEN 13
       WHEN lower(c.applied_position) LIKE '%mis%' THEN 17
@@ -429,22 +449,22 @@ WITH candidate_norm AS (
     END AS strong_department,
     CASE
       WHEN c.department IN ('ICC', 'WBU', '新華', '新竹', '安規', '行政') THEN c.department
-      WHEN c.department LIKE '%ICC%' THEN 'ICC'
-      WHEN c.department LIKE '%WBU%' OR c.department LIKE '%SAR%' OR c.department LIKE '%RF%' THEN 'WBU'
-      WHEN c.department LIKE '%新華%' THEN '新華'
       WHEN c.department LIKE '%新竹%' THEN '新竹'
+      WHEN c.department LIKE '%新華%' THEN '新華'
       WHEN c.department LIKE '%安規%' OR c.department LIKE '%電池%' THEN '安規'
       WHEN c.department LIKE '%董事長室%' OR c.department LIKE '%財務%' OR c.department LIKE '%資訊%' OR c.department LIKE '%MIS%' OR c.department LIKE '%品管%' OR c.department LIKE '%行政%' THEN '行政'
-      WHEN c.applied_position LIKE 'ICC%' THEN 'ICC'
-      WHEN c.applied_position LIKE 'WBU%' OR c.applied_position LIKE 'SAR%' OR c.applied_position LIKE 'RF %' OR c.applied_position LIKE 'RF%' THEN 'WBU'
-      WHEN c.applied_position LIKE '新華%' THEN '新華'
+      WHEN c.department LIKE '%ICC%' THEN 'ICC'
+      WHEN c.department LIKE '%WBU%' OR c.department LIKE '%SAR%' OR c.department LIKE '%RF%' THEN 'WBU'
       WHEN c.applied_position LIKE '新竹%' THEN '新竹'
+      WHEN c.applied_position LIKE '新華%' THEN '新華'
       WHEN c.applied_position LIKE '安規%' OR c.applied_position LIKE '%電池%' THEN '安規'
       WHEN c.applied_position LIKE '%董事長室%' OR c.applied_position LIKE '%財務%' OR c.applied_position LIKE '%資訊%' OR c.applied_position LIKE 'MIS%' OR c.applied_position LIKE '%品管%' OR c.applied_position LIKE '%行政%' THEN '行政'
+      WHEN c.applied_position LIKE 'ICC%' THEN 'ICC'
+      WHEN c.applied_position LIKE 'WBU%' OR c.applied_position LIKE 'SAR%' OR c.applied_position LIKE 'RF %' OR c.applied_position LIKE 'RF%' THEN 'WBU'
       ELSE NULL
     END AS top_department,
-    lower(regexp_replace(c.applied_position, '\\s+', '', 'g')) AS pos_norm,
-    lower(regexp_replace(regexp_replace(c.applied_position, '^(ICC|icc|WBU|新華|新竹|安規|行政)', '', 'g'), '\\s+', '', 'g')) AS pos_core
+    lower(regexp_replace(c.applied_position, '\s+', '', 'g')) AS pos_norm,
+    lower(regexp_replace(regexp_replace(c.applied_position, '^(ICC|icc|WBU|新華|新竹|安規|行政)', '', 'g'), '\s+', '', 'g')) AS pos_core
   FROM candidates c
 ),
 matched AS (
@@ -462,8 +482,8 @@ matched AS (
           ELSE 3
         END,
         CASE
-          WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm THEN 0
-          WHEN lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core THEN 1
+          WHEN lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_norm THEN 0
+          WHEN lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_core THEN 1
           ELSE 2
         END,
         j.id
@@ -472,15 +492,15 @@ matched AS (
   JOIN job_requisitions j
     ON (
       (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id)
-      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_norm
-      OR lower(regexp_replace(j.position_title, '\\s+', '', 'g')) = c.pos_core
-      OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
-      OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\\s+', '', 'g'))
+      OR lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_norm
+      OR lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_core
+      OR c.pos_norm = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\s+', '', 'g'))
+      OR c.pos_core = lower(regexp_replace(split_part(j.department, ' / ', 1) || j.position_title, '\s+', '', 'g'))
       OR (
         c.pos_core <> ''
         AND (
-          lower(regexp_replace(j.position_title, '\\s+', '', 'g')) LIKE '%' || c.pos_core || '%'
-          OR c.pos_core LIKE '%' || lower(regexp_replace(j.position_title, '\\s+', '', 'g')) || '%'
+          lower(regexp_replace(j.position_title, '\s+', '', 'g')) LIKE '%' || c.pos_core || '%'
+          OR c.pos_core LIKE '%' || lower(regexp_replace(j.position_title, '\s+', '', 'g')) || '%'
         )
       )
     )
@@ -491,7 +511,10 @@ SET job_requisition_id = m.job_requisition_id
 FROM matched m
 WHERE c.id = m.candidate_id
   AND m.rn = 1
-  AND c.job_requisition_id IS NULL;
+  AND (
+    c.job_requisition_id IS NULL
+    OR c.job_requisition_id <> m.job_requisition_id
+  );
 
 SELECT id, name, department, applied_position, job_requisition_id
 FROM candidates
@@ -501,7 +524,7 @@ LIMIT 20;`;
 function patchWorkflow1(filePath) {
   const workflow = readJson(filePath);
   updateWorkflowNodes(workflow, (node) => {
-    if (node.type === 'n8n-nodes-base.code' && node.name === 'Code：萃取基本資訊' && typeof node.parameters?.jsCode === 'string') {
+    if (node.type === 'n8n-nodes-base.code' && typeof node.parameters?.jsCode === 'string' && node.parameters.jsCode.includes('recipientRoutingRules')) {
       node.parameters.jsCode = extractJs;
     }
     if (typeof node.parameters?.query === 'string' && node.parameters.query.includes('INSERT INTO candidates')) {
@@ -534,7 +557,7 @@ function patchDashboardApi(filePath) {
       "      WHERE c.job_requisition_id = j.id\n         OR (\n           c.job_requisition_id IS NULL\n           AND c.department = j.department\n           AND c.applied_position = j.position_title\n         )"
     );
     if (!updated.includes('ADD COLUMN IF NOT EXISTS job_requisition_id')) {
-      updated = `${bootstrapQuery}\n${updated}`;
+      updated = `${bootstrapQuery}\n\n${updated}`;
     }
     node.parameters.query = updated;
   });
