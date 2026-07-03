@@ -85,6 +85,10 @@ npm run verify:deployment      # Zeabur dashboard 健康檢查
 
 ## 8. 已知未完事項
 
+0. **【下次優先】6 月資料缺口**（2026-07-03 使用者回報「6 月很多資料還是沒有抓到」，範圍未明）：
+   先問清楚缺哪類資料 → 查 6 月 executions 錯誤與各表 6 月筆數量化缺口 → 回補（Workflow2 歷史匯入改日期範圍
+   ／`scripts/maintenance/backfill_*` 逐筆補／臨時 workflow 重掃 Outlook 指定區間）。
+   注：修復前的 Workflow3 到職路徑會中途拋錯，若損壞始於 6 月即可解釋到職資料漏抓。
 1. **E2E 驗證到職路徑**（修復後尚未有真實到職信通過全程）：寄一封主旨含「新進人員通知」的測試信到觸發信箱，
    確認 execution success、onboardings 有正規化部門/職位、對應職缺 headcount 遞減，然後清除測試資料。
 2. Zeabur watch 分支確認（見第 6 節）。
