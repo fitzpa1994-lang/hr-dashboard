@@ -425,22 +425,32 @@
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">今日面試</span>
+              <span class="kpi-label">今日面試排程</span>
               <i data-lucide="users" class="w-4 h-4 text-brand"></i>
             </div>
             <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-today-intv">3</span>
-              <span class="text-xs text-green-600 font-medium mb-1 flex items-center"><i data-lucide="trending-up" class="w-3 h-3 mr-0.5"></i> 2</span>
+              <span class="kpi-value" id="kpi-today-intv">0</span>
+              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-today-intv-subtext">今日排程</span>
             </div>
           </div>
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">待主管回覆</span>
-              <i data-lucide="clock" class="w-4 h-4 text-purple-600"></i>
+              <span class="kpi-label">今日離職人員</span>
+              <i data-lucide="user-minus" class="w-4 h-4 text-rose-600"></i>
             </div>
             <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-pending-review">8</span>
-              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-pending-review-subtext">等待主管決策</span>
+              <span class="kpi-value" id="kpi-today-resign">0</span>
+              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-today-resign-subtext">今日離職</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="flex items-center justify-between mb-2">
+              <span class="kpi-label">今日到職人員</span>
+              <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
+            </div>
+            <div class="flex items-end gap-2">
+              <span class="kpi-value" id="kpi-today-onboard">0</span>
+              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-today-onboard-subtext">今日到職</span>
             </div>
           </div>
           <div class="kpi-card">
@@ -449,27 +459,8 @@
               <i data-lucide="calendar-plus" class="w-4 h-4 text-amber-500"></i>
             </div>
             <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-pending-invite">5</span>
-              <span class="text-xs text-amber-600 font-medium mb-1 flex items-center" id="kpi-pending-invite-subtext"></span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label" id="kpi-next-onboard-label">近期預計到職</span>
-              <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
-            </div>
-            <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-week-onboard">4</span>
-            </div>
-          </div>
-          <div class="kpi-card cursor-pointer" onclick="showUnmappedCandidates()">
-            <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">待補職缺</span>
-              <i data-lucide="link-2-off" class="w-4 h-4 text-rose-500"></i>
-            </div>
-            <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-unmapped-candidates">0</span>
-              <span class="text-xs text-rose-600 font-medium mb-1 flex items-center" id="kpi-unmapped-candidates-subtext"></span>
+              <span class="kpi-value" id="kpi-pending-arrangement">0</span>
+              <span class="text-xs text-amber-600 font-medium mb-1 flex items-center" id="kpi-pending-arrangement-subtext">待安排面試</span>
             </div>
           </div>
         </div>
@@ -492,36 +483,18 @@
               </div>
             </div>
 
-            <!-- 招募漏斗 & 近期狀態變更 -->
-            <div class="grid grid-cols-2 gap-5">
-              <div class="surface-panel-strong p-6">
-                <div class="flex items-center justify-between mb-4">
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-gray-500"></i>招募漏斗（月度 KPI）</h2>
-                  <select id="funnel-month-select" class="text-xs border border-gray-200 rounded px-2 py-1 bg-gray-50 text-gray-600 focus:outline-none focus:border-brand cursor-pointer" onchange="updateFunnel()">
-                    <option value="all">全部月份</option>
-                    <option value="2026-05" selected>2026 年 5 月</option>
-                    <option value="2026-04">2026 年 4 月</option>
-                  </select>
-                </div>
-                <div class="flex items-center justify-between mt-2 px-4">
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-total">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">HR 推薦</div></div>
-                  <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-gray-800" id="funnel-interview">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">進入面試</div></div>
-                  <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
-                  <div class="flex flex-col items-center"><div class="text-xl font-bold text-brand" id="funnel-offer">0</div><div class="text-[11px] text-gray-500 mt-1 font-medium">錄取 / Offer</div></div>
-                </div>
-                <div class="mt-5 pt-3 border-t border-gray-100 flex justify-between text-[11px] text-gray-500">
-                  <span id="rate-recommend-interview">推薦轉面試率 0%</span>
-                  <span id="rate-interview-offer">面試轉錄取率 0%</span>
+            <div class="surface-panel-strong flex flex-col">
+              <div class="section-head">
+                <div>
+                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="workflow" class="w-4 h-4 text-gray-500"></i>招募進度追蹤</h2>
+                  <div class="section-subtitle">依 HR 推薦、面試時間、確認到職日排列近期進度。</div>
                 </div>
               </div>
-              <div class="surface-panel-strong flex flex-col">
-                <div class="section-head">
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-gray-500"></i>近期狀態變更</h2>
-                </div>
-                <div class="p-3 flex-1 flex flex-col gap-2" id="overview-recent-cands">
-                  <!-- JS Render -->
-                </div>
+              <div class="overflow-x-auto">
+                <table class="w-full tbl-compact">
+                  <thead><tr><th>候選人</th><th>應徵職缺</th><th>HR 推薦</th><th>面試時間</th><th>確認到職日</th><th>目前狀態</th></tr></thead>
+                  <tbody id="overview-progress-tbody"></tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -546,33 +519,27 @@
               </div>
             </div>
 
-            <!-- Important & Warnings -->
-            <div class="surface-panel-strong p-5">
-              <h2 class="text-[13px] font-semibold text-gray-800 flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>主管提醒事項</h2>
-              <div class="space-y-3">
-                <div class="p-3 bg-purple-50 border border-purple-100 rounded text-[12px] text-purple-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">錄取職缺核定待確認</span>
-                  目前仍有 3 筆錄取案件等待主管確認職缺核定，請優先完成，以免影響後續報到排程。
-                </div>
-                <div class="p-3 bg-red-50 border border-red-100 rounded text-[12px] text-red-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">招募進度需追蹤</span>
-                  目前有多筆職缺超過 45 天仍未完成招募，建議先檢查高優先級職缺是否需要調整策略。
-                </div>
-                <div class="p-3 bg-amber-50 border border-amber-100 rounded text-[12px] text-amber-800 leading-tight">
-                  <span class="font-semibold block mb-0.5">待處理 Offer</span>
-                  仍有 3 筆候選人已進入錄取流程但尚未完成 Offer 作業，請確認回覆與報到安排。
-                </div>
-                <div class="border-t border-gray-100 pt-3 mt-1">
-                  <div class="text-[11px] font-semibold text-gray-500 mb-2">近期重要排程</div>
-                  <div class="flex gap-2 items-start mb-2">
-                    <div class="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0"></div>
-                    <div class="text-[12px] text-gray-700">5/29（四）10:00 主管核定會議（3 筆待確認）</div>
-                  </div>
-                  <div class="flex gap-2 items-start">
-                    <div class="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0"></div>
-                    <div class="text-[12px] text-gray-700">6/01（一）09:00 招募例會與到職追蹤</div>
-                  </div>
-                </div>
+            <div class="surface-panel-strong flex flex-col">
+              <div class="section-head">
+                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>今日到職人員</h2>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full tbl-compact">
+                  <thead><tr><th>姓名</th><th>職位 / 部門</th><th>負責 HR</th></tr></thead>
+                  <tbody id="overview-today-onboard-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="surface-panel-strong flex flex-col">
+              <div class="section-head">
+                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="user-minus" class="w-4 h-4 text-rose-600"></i>今日離職人員</h2>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full tbl-compact">
+                  <thead><tr><th>姓名</th><th>職位 / 部門</th><th>負責 HR</th></tr></thead>
+                  <tbody id="overview-today-resign-tbody"></tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -682,13 +649,10 @@
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg flex-wrap">
             <button id="cand-filter-all" class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
-            <button id="cand-filter-pending-review" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('pending_review', this)">待主管回覆</button>
-            <button id="cand-filter-pending-invite" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('approved_to_invite', this)">待安排面試</button>
+            <button id="cand-filter-arranging" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('arranging', this)">待安排面試</button>
             <button id="cand-filter-interviewing" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
-            <button id="cand-filter-offer" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('offer', this)">錄取中</button>
-            <button id="cand-filter-onboarded" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">已到職</button>
-            <button id="cand-filter-withdrawn" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('withdrawn', this)">已撤回</button>
-            <button id="cand-filter-unmapped" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('unmapped', this)">待補職缺</button>
+            <button id="cand-filter-no-interview" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('rejected', this)">不安排面試</button>
+            <button id="cand-filter-onboarded" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">確認到職日</button>
             <div class="ml-auto flex items-center gap-3">
               <input id="candidate-search" type="text" placeholder="搜尋候選人..." class="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand">
               <span id="cand-count" class="text-xs text-gray-500">0 / 0 筆</span>
@@ -1041,48 +1005,128 @@ function isDashboardNoiseSchedule(event) {
   return false;
 }
 
+function normalizeNameKey(value) {
+  return String(value || '').replace(/\s+/g, '').trim();
+}
+
+function buildOnboardingLookup(items) {
+  const map = new Map();
+  for (const item of items || []) {
+    const key = normalizeNameKey(item?.name);
+    if (!key) continue;
+    const current = map.get(key);
+    const currentDate = String(current?.date || '');
+    const nextDate = String(item?.date || '');
+    if (!current || comparePrimaryDates(nextDate, currentDate) < 0) {
+      map.set(key, item);
+    }
+  }
+  return map;
+}
+
+function getCandidateStageKey(candidate) {
+  if (!candidate) return 'unknown';
+  if (candidate.onboardDate) return 'onboarded';
+  if (candidate.status === 'interviewing') return 'interviewing';
+  if (candidate.status === 'offer') return 'interviewing';
+  if (candidate.status === 'pending_review' || candidate.status === 'approved_to_invite') return 'arranging';
+  if (candidate.status === 'withdrawn' || candidate.status === 'rejected') return 'rejected';
+  if (candidate.status === 'onboarded') return 'onboarded';
+  return candidate.status || 'unknown';
+}
+
+function mergeCandidatesWithOnboardings(candidates, onboardings) {
+  const onboardLookup = buildOnboardingLookup(onboardings);
+  const merged = [];
+  const seen = new Set();
+
+  for (const rawCandidate of candidates) {
+    const candidate = normalizeDashboardCandidate(rawCandidate);
+    const key = normalizeNameKey(candidate?.name);
+    const onboarding = onboardLookup.get(key);
+    seen.add(key);
+    if (!onboarding) {
+      merged.push(candidate);
+      continue;
+    }
+
+    const history = Array.isArray(candidate.history) ? [...candidate.history] : [];
+    if (!history.some(entry => entry?.type === 'onboard' && String(entry?.date || '') === String(onboarding.date || ''))) {
+      history.push({
+        date: onboarding.date,
+        type: 'onboard',
+        title: '確認到職日',
+        note: [onboarding.pos, onboarding.dept].filter(Boolean).join(' · '),
+        color: 'green',
+      });
+    }
+
+    merged.push({
+      ...candidate,
+      onboardDate: onboarding.date || '',
+      onboardStatus: onboarding.status || 'pending',
+      onboardHr: onboarding.hr || candidate.hr || '',
+      onboardPos: onboarding.pos || candidate.pos || '',
+      onboardDept: onboarding.dept || candidate.dept || '',
+      status: 'onboarded',
+      history: history.sort((left, right) => String(left?.date || '').localeCompare(String(right?.date || ''))),
+      latestDate: comparePrimaryDates(onboarding.date, candidate.latestDate || candidate.date || '') < 0
+        ? onboarding.date
+        : (candidate.latestDate || candidate.date || ''),
+    });
+  }
+
+  for (const onboarding of onboardings || []) {
+    const key = normalizeNameKey(onboarding?.name);
+    if (!key || seen.has(key)) continue;
+    merged.push({
+      name: onboarding.name,
+      pos: onboarding.pos || '--',
+      dept: onboarding.dept || '--',
+      jobRequisitionId: null,
+      date: onboarding.date || '',
+      latestDate: onboarding.date || '',
+      status: 'onboarded',
+      onboardDate: onboarding.date || '',
+      onboardStatus: onboarding.status || 'pending',
+      hr: onboarding.hr || '',
+      onboardHr: onboarding.hr || '',
+      note: '',
+      source: '預計報到人員',
+      latestSubject: '',
+      emailLink: onboarding.emailLink || '',
+      resumeLink: '',
+      history: onboarding.date ? [{
+        date: onboarding.date,
+        type: 'onboard',
+        title: '確認到職日',
+        note: [onboarding.pos, onboarding.dept].filter(Boolean).join(' · '),
+        color: 'green',
+      }] : [],
+    });
+  }
+
+  return sortByPrimaryDate(merged, item => item.onboardDate || getCandidatePrimaryDate(item));
+}
+
 function getOverviewKpis() {
-  const week = getWeekBounds(TODAY);
-  const pendingReview = candidatesData.filter(candidate => candidate.status === 'pending_review');
-  const pendingInvite = candidatesData.filter(candidate => candidate.status === 'approved_to_invite');
-  const recentPendingReview = pendingReview.filter(candidate =>
-    isRecentWithin(getCandidatePrimaryDate(candidate), 14)
+  const pendingArrangement = candidatesData.filter(candidate =>
+    getCandidateStageKey(candidate) === 'arranging' &&
+    isRecentWithin(getCandidatePrimaryDate(candidate), 21)
   );
-  const recentPendingInvite = pendingInvite.filter(candidate =>
-    isRecentWithin(getCandidatePrimaryDate(candidate), 14)
-  );
-  const pendingReviewCount = recentPendingReview.length;
-  const pendingReviewOverdueCount = recentPendingReview.filter(candidate =>
-    getDaysSince(getCandidatePrimaryDate(candidate)) > 2
-  ).length;
-  const pendingInviteOpenCount = recentPendingInvite.length;
-  const pendingInviteOverdueCount = recentPendingInvite.filter(candidate =>
+  const pendingArrangementOverdueCount = pendingArrangement.filter(candidate =>
     getDaysSince(getCandidatePrimaryDate(candidate)) > 3
   ).length;
-
-  const weekOnboard = onboardData.filter(item =>
-    item.status === 'pending' &&
-    item.date >= week.start &&
-    item.date <= week.end
-  );
-
-  const upcomingOnboards = onboardData
-    .filter(item => item.status === 'pending' && item.date >= TODAY)
-    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
-  const nextOnboardDate = upcomingOnboards.length ? upcomingOnboards[0].date : null;
-  const nextOnboardCount = nextOnboardDate
-    ? upcomingOnboards.filter(item => item.date === nextOnboardDate).length
-    : 0;
+  const todayInterviews = schedEvents.filter(event => event.date === TODAY && event.type === 'interview');
+  const todayOnboards = onboardData.filter(item => item.date === TODAY && item.status !== 'cancelled');
+  const todayResigns = resignData.filter(item => item.lastDay === TODAY && item.status !== 'cancelled');
 
   return {
-    pendingReviewCount,
-    pendingReviewOverdueCount,
-    pendingInviteCount: pendingInviteOpenCount,
-    pendingInviteOverdueCount,
-    weekOnboardCount: weekOnboard.length,
-    nextOnboardDate,
-    nextOnboardCount,
-    unmappedCandidateCount: unmappedCandidates.length,
+    todayInterviewCount: todayInterviews.length,
+    todayOnboardCount: todayOnboards.length,
+    todayResignCount: todayResigns.length,
+    pendingArrangementCount: pendingArrangement.length,
+    pendingArrangementOverdueCount,
   };
 }
 
@@ -1126,29 +1170,42 @@ function jsArg(v){
 }
 
 const stLabelMap={
-  pending_review:'待主管回覆',
+  arranging:'待安排面試',
+  pending_review:'待安排面試',
   approved_to_invite:'待安排面試',
+  pending:'待到職',
   interviewing:'面試中',
-  offer:'錄取中',
-  onboarded:'已到職',
-  withdrawn:'已撤回',
+  offer:'面試中',
+  onboarded:'確認到職日',
+  rejected:'不安排面試',
+  withdrawn:'不安排面試',
+  active:'待離職',
+  done:'已完成',
   open:'招募中',
   filled:'已補滿',
   on_hold:'暫停'
 };
 const badgeClassMap={
+  arranging:'badge-purple',
   pending_review:'badge-purple',
   approved_to_invite:'badge-orange',
+  pending:'badge-green',
   interviewing:'badge-blue',
-  offer:'badge-orange',
+  offer:'badge-blue',
   onboarded:'badge-green',
+  rejected:'badge-red',
   withdrawn:'badge-red',
+  active:'badge-red',
+  done:'badge-gray',
   open:'badge-blue',
   filled:'badge-green',
   on_hold:'badge-orange'
 };
 
-function getBadge(status) {
+function getBadge(statusOrCandidate) {
+  const status = typeof statusOrCandidate === 'string'
+    ? statusOrCandidate
+    : getCandidateStageKey(statusOrCandidate);
   const lbl = stLabelMap[status] || status || '--';
   const cls = badgeClassMap[status] || 'badge-gray';
   return `<span class="badge ${cls}">${escHtml(lbl)}</span>`;
@@ -1156,27 +1213,25 @@ function getBadge(status) {
 
 function getCandidateProgressText(candidate) {
   if (!candidate) return '--';
+  const stage = getCandidateStageKey(candidate);
   const hr = String(candidate.hr || '').trim();
   const date = String(candidate.date || '').trim();
   const time = String(candidate.time || '').trim();
   const when = [date ? fmtDateWeek(date) : '', time || ''].filter(Boolean).join(' ');
-
-  if (candidate.status === 'pending_review') {
-    return '待主管回覆';
+  if (stage === 'arranging') {
+    return '待安排面試';
   }
-  if (candidate.status === 'approved_to_invite') {
-    return hr ? `已由${hr}安排面試` : '待安排面試';
-  }
-  if (candidate.status === 'interviewing') {
+  if (stage === 'interviewing') {
     if (hr && when) return `已由${hr}安排面試 ${when}`;
     if (hr) return `已由${hr}安排面試`;
     if (when) return `面試時間 ${when}`;
     return '面試中';
   }
-  if (candidate.status === 'offer') return '錄取流程中';
-  if (candidate.status === 'onboarded') return '已到職';
-  if (candidate.status === 'withdrawn') return '已撤回';
-  return stLabelMap[candidate.status] || '--';
+  if (stage === 'onboarded') {
+    return candidate.onboardDate ? `${fmtDateWeek(candidate.onboardDate)} 預計到職` : '已確認到職日';
+  }
+  if (stage === 'rejected') return '不安排面試';
+  return stLabelMap[stage] || '--';
 }
 
 function updateHeaderStatus(text, subText) {
@@ -1207,9 +1262,10 @@ async function loadData() {
     schedEvents = (d.schedEvents || []).filter(event => !isDashboardNoiseSchedule(event));
     onboardData = d.onboardData || [];
     resignData = d.resignData || [];
-    candidatesData = (d.candidatesData || [])
+    const rawCandidates = (d.candidatesData || [])
       .filter(candidate => !isDashboardNoiseCandidate(candidate))
       .map(normalizeDashboardCandidate);
+    candidatesData = mergeCandidatesWithOnboardings(rawCandidates, onboardData);
     unmappedCandidates = (d.unmappedCandidates || [])
       .filter(candidate => !isDashboardNoiseCandidate(candidate))
       .map(normalizeDashboardCandidate);
@@ -1267,30 +1323,22 @@ function renderAll() {
 // ============================================================
 function initOverview() {
   const overviewKpis = getOverviewKpis();
-  // KPIs
-  document.getElementById('kpi-today-intv').textContent = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview').length;
-  document.getElementById('kpi-pending-review').textContent = overviewKpis.pendingReviewCount;
-  document.getElementById('kpi-pending-invite').textContent = overviewKpis.pendingInviteCount;
-  document.getElementById('kpi-pending-review-subtext').textContent = overviewKpis.pendingReviewOverdueCount
-    ? `${overviewKpis.pendingReviewOverdueCount} 筆超過 2 天`
-    : (overviewKpis.pendingReviewCount ? '等待主管決策' : '目前無待回覆');
-  document.getElementById('kpi-pending-invite-subtext').textContent = overviewKpis.pendingInviteOverdueCount
-    ? `${overviewKpis.pendingInviteOverdueCount} 筆超過 3 天`
-    : (overviewKpis.pendingInviteCount ? '近 14 天新進' : '');
-  document.getElementById('kpi-week-onboard').textContent = overviewKpis.nextOnboardCount;
-  document.getElementById('kpi-next-onboard-label').textContent = overviewKpis.nextOnboardDate
-    ? `${Number(overviewKpis.nextOnboardDate.slice(5, 7))}/${Number(overviewKpis.nextOnboardDate.slice(8, 10))} 預計到職`
-    : '近期預計到職';
-  document.getElementById('kpi-unmapped-candidates').textContent = overviewKpis.unmappedCandidateCount;
-  document.getElementById('kpi-unmapped-candidates-subtext').textContent = overviewKpis.unmappedCandidateCount
-    ? '需人工確認正式職缺'
-    : '目前都已綁定';
+  document.getElementById('kpi-today-intv').textContent = overviewKpis.todayInterviewCount;
+  document.getElementById('kpi-today-resign').textContent = overviewKpis.todayResignCount;
+  document.getElementById('kpi-today-onboard').textContent = overviewKpis.todayOnboardCount;
+  document.getElementById('kpi-pending-arrangement').textContent = overviewKpis.pendingArrangementCount;
+  document.getElementById('kpi-today-intv-subtext').textContent = overviewKpis.todayInterviewCount ? '今日排程' : '今日無面試';
+  document.getElementById('kpi-today-resign-subtext').textContent = overviewKpis.todayResignCount ? '今日離職' : '今日無離職';
+  document.getElementById('kpi-today-onboard-subtext').textContent = overviewKpis.todayOnboardCount ? '今日到職' : '今日無到職';
+  document.getElementById('kpi-pending-arrangement-subtext').textContent = overviewKpis.pendingArrangementOverdueCount
+    ? `${overviewKpis.pendingArrangementOverdueCount} 筆超過 3 天`
+    : (overviewKpis.pendingArrangementCount ? '待安排面試' : '目前無待安排');
 
   // Today Interviews Table
   const todayList = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
   document.getElementById('overview-today-tbody').innerHTML = todayList.length ? todayList.map(e=>{
     const cand = candidatesData.find(c => c.name === e.name);
-    const st = cand ? cand.status : 'interviewing';
+    const st = cand || 'interviewing';
     return `
     <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
       <td class="font-medium text-gray-900">${e.time||'--'}</td>
@@ -1302,30 +1350,47 @@ function initOverview() {
     </tr>
   `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試排程</td></tr>`;
 
-  // Funnel Calculations (Trigger monthly update)
-  updateFunnel();
+  const todayOnboards = sortByPrimaryDate(
+    onboardData.filter(item => item.date === TODAY && item.status !== 'cancelled'),
+    item => item.date
+  );
+  document.getElementById('overview-today-onboard-tbody').innerHTML = todayOnboards.length ? todayOnboards.map(item => `
+    <tr>
+      <td class="font-semibold text-brand">${item.name}</td>
+      <td>${item.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${item.dept || '--'}</span></td>
+      <td class="text-gray-500">${item.hr || '--'}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="3" class="text-center py-6 text-gray-400">今日無到職人員</td></tr>`;
 
-  // Recent Cands
-  const recent = candidatesData.slice(0,3);
-  document.getElementById('overview-recent-cands').innerHTML = recent.map(c=>`
-    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 cursor-pointer" onclick="openDrawer('${c.name}')">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">${c.name[0]}</div>
-        <div>
-          <div class="text-[13px] font-semibold text-gray-800">${c.name}</div>
-          <div class="text-[11px] text-gray-500">${c.pos} · ${c.dept}</div>
-        </div>
-      </div>
-      <div class="text-right">
-        ${getBadge(c.status)}
-        <div class="text-[10px] text-gray-400 mt-1">${fmtDate(c.date)} 更新</div>
-      </div>
-    </div>
-  `).join('');
+  const todayResigns = sortByPrimaryDate(
+    resignData.filter(item => item.lastDay === TODAY && item.status !== 'cancelled'),
+    item => item.lastDay
+  );
+  document.getElementById('overview-today-resign-tbody').innerHTML = todayResigns.length ? todayResigns.map(item => `
+    <tr>
+      <td class="font-semibold text-brand">${item.name}</td>
+      <td>${item.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${item.dept || '--'}</span></td>
+      <td class="text-gray-500">${item.hr || '--'}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="3" class="text-center py-6 text-gray-400">今日無離職人員</td></tr>`;
+
+  const progressRows = sortByPrimaryDate(candidatesData, candidate => candidate.onboardDate || candidate.date || candidate.latestDate).slice(0, 10);
+  document.getElementById('overview-progress-tbody').innerHTML = progressRows.length ? progressRows.map(candidate => `
+    <tr class="cursor-pointer" onclick="openDrawer('${candidate.name}')">
+      <td class="font-semibold text-brand">${candidate.name}</td>
+      <td>${candidate.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${candidate.dept || '--'}</span></td>
+      <td class="text-gray-500">${fmtDate(candidate.latestDate || candidate.date)}</td>
+      <td class="text-gray-500">${candidate.date ? `${fmtDateWeek(candidate.date)}${candidate.time ? ' ' + candidate.time : ''}` : '--'}</td>
+      <td class="text-gray-500">${candidate.onboardDate ? fmtDateWeek(candidate.onboardDate) : '--'}</td>
+      <td>${getBadge(candidate)}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">目前沒有可顯示的招募進度</td></tr>`;
 }
 
 function updateFunnel() {
-  const month = document.getElementById('funnel-month-select').value;
+  const monthSelect = document.getElementById('funnel-month-select');
+  if (!monthSelect) return;
+  const month = monthSelect.value;
   let data = candidatesData;
   
   if (month !== 'all') {
@@ -1333,8 +1398,8 @@ function updateFunnel() {
   }
 
   const totalRecommended = data.length;
-  const totalInterviewed = data.filter(c => ['interviewing', 'offer', 'onboarded'].includes(c.status)).length;
-  const totalOffered = data.filter(c => ['offer', 'onboarded'].includes(c.status)).length;
+  const totalInterviewed = data.filter(c => ['interviewing', 'onboarded'].includes(getCandidateStageKey(c))).length;
+  const totalOffered = data.filter(c => getCandidateStageKey(c) === 'onboarded').length;
 
   document.getElementById('funnel-total').textContent = totalRecommended;
   document.getElementById('funnel-interview').textContent = totalInterviewed;
@@ -1573,7 +1638,7 @@ function setCandF(f,btn){
 function showUnmappedCandidates(){
   const menu = document.querySelectorAll('.menu-item')[4];
   if (menu) showTab('candidates', menu);
-  const btn = document.getElementById('cand-filter-unmapped');
+  const btn = document.getElementById('cand-filter-all');
   if (btn) setCandF('unmapped', btn);
 }
 function renderCandidates(){
@@ -1581,7 +1646,7 @@ function renderCandidates(){
     ? candidatesData
     : (candFilter === 'unmapped'
         ? candidatesData.filter(c => !c.jobRequisitionId)
-        : candidatesData.filter(c => c.status === candFilter));
+        : candidatesData.filter(c => getCandidateStageKey(c) === candFilter));
   const tbody=document.getElementById('cand-tbody');
   const q = String(document.getElementById('candidate-search')?.value || '').trim().toLowerCase();
   const filtered = q ? items.filter(c => [c.name,c.pos,c.dept,c.hr,c.note,c.source].some(v => String(v || '').toLowerCase().includes(q))) : items;
@@ -1593,8 +1658,8 @@ function renderCandidates(){
       <td>${c.pos||'--'}</td>
       <td class="text-gray-500">${c.dept||'--'}</td>
       <td class="text-gray-500">${c.hr||'--'}</td>
-      <td>${getBadge(c.status)}</td>
-      <td class="text-gray-400 text-xs">${fmtDate(c.date)}</td>
+      <td>${getBadge(c)}</td>
+      <td class="text-gray-400 text-xs">${fmtDate(c.onboardDate || c.date || c.latestDate)}</td>
       <td class="text-gray-400 text-xs" title="${escHtml(c.note||'')}">${escHtml(getCandidateProgressText(c))}</td>
     </tr>
   `).join('');
@@ -1659,7 +1724,7 @@ function renderCharts(){
   for(const c of candidatesData){
     if(!deptMap[c.dept])deptMap[c.dept]={t:0,h:0};
     deptMap[c.dept].t++;
-    if(c.status==='onboarded'||c.status==='offer')deptMap[c.dept].h++;
+    if(getCandidateStageKey(c)==='onboarded')deptMap[c.dept].h++;
   }
   renderOrUpdate('deptChart',{
     type:'bar',
@@ -1741,7 +1806,7 @@ function openDrawer(name){
   if(!c)return;
 
   document.getElementById('dr-name').textContent=c.name;
-  document.getElementById('dr-pos').innerHTML=`${c.pos||'--'} <span class="mx-2 text-gray-300">|</span> ${c.dept||'--'} <span class="mx-2 text-gray-300">|</span> ${c.status?getBadge(c.status):''}`;
+  document.getElementById('dr-pos').innerHTML=`${c.pos||'--'} <span class="mx-2 text-gray-300">|</span> ${c.dept||'--'} <span class="mx-2 text-gray-300">|</span> ${getBadge(c)}`;
 
   const emailBtn=document.getElementById('dr-email-btn');
   if(c.emailLink&&c.emailLink!=='null'){emailBtn.href=c.emailLink; emailBtn.classList.remove('opacity-50','pointer-events-none');}
@@ -1756,7 +1821,7 @@ function openDrawer(name){
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">職位</span><span class="font-medium text-gray-900">${c.pos||'--'}</span></div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">負責 HR</span><span class="font-medium text-gray-900">${c.hr||'--'}</span></div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">安排進度</span><span class="font-medium text-gray-900 text-right">${getCandidateProgressText(c)}</span></div>
-    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">最近日期</span><span class="font-medium text-gray-900">${fmtDate(c.date)}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">最近日期</span><span class="font-medium text-gray-900">${fmtDate(c.onboardDate || c.date || c.latestDate)}</span></div>
   `;
 
   const tlDiv=document.getElementById('dr-timeline');
