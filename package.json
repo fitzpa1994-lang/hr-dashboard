@@ -11,6 +11,7 @@
     "diagnose:deployment": "node scripts/diagnose_deployment.mjs",
     "audit:onboarding-matches": "node scripts/audit_onboarding_matches.mjs",
     "audit:n8n": "node scripts/audit_live_vs_local.mjs",
+    "pull:n8n": "node scripts/pull_n8n_exports.mjs",
     "deploy:n8n:workflow3": "node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json",
     "migrate:live-requisitions": "node scripts/migrate_live_requisitions.mjs",
     "prepare:zeabur-env": "node scripts/prepare_zeabur_env.mjs",
