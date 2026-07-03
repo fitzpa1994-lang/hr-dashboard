@@ -10,6 +10,7 @@
     "verify:deployment": "node scripts/verify_deployment.mjs",
     "diagnose:deployment": "node scripts/diagnose_deployment.mjs",
     "audit:onboarding-matches": "node scripts/audit_onboarding_matches.mjs",
+    "audit:n8n": "node scripts/audit_live_vs_local.mjs",
     "deploy:n8n:workflow3": "node scripts/deploy_n8n_export.mjs n8n/live_Workflow3_到職離職.json",
     "migrate:live-requisitions": "node scripts/migrate_live_requisitions.mjs",
     "prepare:zeabur-env": "node scripts/prepare_zeabur_env.mjs",
@@ -18,5 +19,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "n8n-mcp": "^2.62.0"
   }
 }
