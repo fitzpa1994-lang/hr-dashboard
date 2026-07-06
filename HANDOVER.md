@@ -1,6 +1,6 @@
 # HR 招募系統 — 接手文件（HANDOVER）
 
-> 最後更新：2026-07-03（Claude 接手盤點＋線上修復完成）
+> 最後更新：2026-07-06（六月資料缺口重播回補完成＋管線加固）
 > 本文件為權威接手/維運文件。根目錄 `progress.md` 為歷史文件且**編碼已損壞**（混合 Big5/UTF-8），僅供考古，勿再更新它。
 
 ## 1. 系統總覽
@@ -26,6 +26,7 @@ Node.js dashboard server（dashboard/server.js，session＋proxy）
 | `n8n/live_Dashboard_API.json` | `x4Olor5YtMfthzWp` | Webhook `/hr-dashboard` | 儀表板全量資料查詢（含面試年份正規化 CTE） | ✅ |
 | `n8n/live_Job_Requisition_Write.json` | `3aaTC9KMPXTZ1tP6` | Webhook `/hr-dashboard-write` | 職缺建立/更新 | ✅ |
 | `n8n/live_temp_db_check.json` | `uyDXjECy9kPFaFUy` | Webhook | 候選人↔職缺 relink 維運工具（支援 dry_run） | ✅ |
+| `n8n/live_Error_Logger.json` | `IwBeD1aQaqpBcxFx` | Error Trigger | WF1/WF3 的 errorWorkflow：執行失敗寫入 email_logs（action='error'），失敗不再靜默 | （被動觸發） |
 | `n8n/live_HR_Portal.json` | — | — | Legacy，勿部署 | ❌ |
 
 ## 3. 資料庫（PostgreSQL，schema 見 database/hr_recruitment_pg.sql）
@@ -83,16 +84,29 @@ npm run verify:deployment      # Zeabur dashboard 健康檢查
 - 五個 workflow 快照與線上全部 IN_SYNC；`npm test` 全綠。
 - 相關 commits：`22962f2`（工具鏈＋歸檔）、`d6255e5`（線上修復＋快照同步）。
 
-## 8. 已知未完事項
+## 8. 2026-07-06 六月資料缺口重播回補記錄
 
-0. **【下次優先】6 月資料缺口**（2026-07-03 使用者回報「6 月很多資料還是沒有抓到」，範圍未明）：
-   先問清楚缺哪類資料 → 查 6 月 executions 錯誤與各表 6 月筆數量化缺口 → 回補（Workflow2 歷史匯入改日期範圍
-   ／`scripts/maintenance/backfill_*` 逐筆補／臨時 workflow 重掃 Outlook 指定區間）。
-   注：修復前的 Workflow3 到職路徑會中途拋錯，若損壞始於 6 月即可解釋到職資料漏抓。
-1. **E2E 驗證到職路徑**（修復後尚未有真實到職信通過全程）：寄一封主旨含「新進人員通知」的測試信到觸發信箱，
-   確認 execution success、onboardings 有正規化部門/職位、對應職缺 headcount 遞減，然後清除測試資料。
+- **缺口成因**：編碼災難發生於 6/3–6/4 之間（`f4d5ce7` 的 live 修補推送），此後每封到職通知信在 Workflow3
+  都執行到一半拋錯（與 6/25、6/26、7/1 的 error executions 一一對應），且錯誤靜默 — 直到 7/3 修復為止，
+  到職信整整漏抓一個月。email_logs 裡的 `skipped/非面試類信件` 是 Workflow1 的正常記號，非 Workflow3 記錄。
+- **回補方式（重播）**：以 `scripts/maintenance/replay_*.mjs` 把 5/1 起信箱中到職相關信 89 封＋離職資料夾 33 封，
+  逐節點複製線上處理鏈成臨時 workflow 依時間順序重灌 — 等同讓真實管線重新處理歷史信件，同時完成 E2E 驗證。
+- **重播揭露並已修正**：①「錄取通知＋新進人員通知」雙插入造成重複列（已清理＋生產加 NOT EXISTS 防重複）；
+  ② 信件年份錯字（如「2025年6月15日」）造成錯年列（已清理＋merge jsCode 加 guardOnboardYear）；
+  ③ 舊離職 parser 時區偏移使 7/3 前離職日全部 +1 天（9 筆已修正）；
+  ④ AI 對回信的 cancel 判讀證實**正確**（胡采穎親自婉拒、劉又福電話取消 — 內文可稽）。
+- **最終狀態**：onboardings 5/1 起 48 筆乾淨資料（今日 7/6 = 5 位 pending＋胡采穎 cancelled）、
+  resignations 34 筆與信箱一致、六月殭屍 pending 全數標記 onboarded、馬偉豪標記 cancelled、
+  馮堿呈報到日待定（暫記 7/27＋註記）。
+- **穩定性**：WF1/WF3 掛上 `HR Error Logger`（`IwBeD1aQaqpBcxFx`）— 之後任何執行失敗都會寫入
+  email_logs（action='error'），可於 DB／面板查到，不再靜默。
+
+## 9. 已知未完事項
+
+1. **職缺 headcount 對帳**：重播回補的 onboarding 記錄**刻意未做**職缺遞減（避免與 6 月人工調整重複扣），
+   需跑 `npm run audit:onboarding-matches` 對帳（需在 .env 填 `HR_DASHBOARD_URL`＋`HR_DASHBOARD_PASSWORD`）。
 2. Zeabur watch 分支確認（見第 6 節）。
-3. 既有待辦（源自舊 progress 記錄）：到職→缺額遞減的 live E2E 實證 — 與第 1 項為同一件事。
+3. 「已報到／今日報到同仁」確認信目前無自動處理路徑（actual_date/status 靠人工或清理 SQL）—
+   候選功能：Workflow3 增加 mark_onboarded 意圖分支。
 4. `progress.md`（根目錄）編碼損壞 — 視需要可從 git 歷史＋雙編碼嘗試復原，或就此封存。
-5. 離職重複資料清理 SQL（`scripts/maintenance/sql/cleanup_resignation_duplicates_*.sql`）：
-   保守版只處理了特定人員；若重複情況再現，考慮把去重邏輯做進 Workflow3 的 INSERT。
+5. 馮堿呈實際報到日待 HR 確認後更新（目前暫記 2026-07-27）。

@@ -3,7 +3,20 @@
 這裡存放**已執行過的一次性**維運／修補工具，保留作為審計軌跡與日後範本。
 它們不屬於常規部署流程；再次執行前請先確認目標資料／workflow 的現況。
 
-共同慣例：透過環境變數 `N8N_API_BASE_URL`（含 `/api/v1`）＋ `N8N_API_KEY` 呼叫 n8n REST API。
+共同慣例：透過環境變數 `N8N_API_BASE_URL`（含 `/api/v1`）＋ `N8N_API_KEY` 呼叫 n8n REST API
+（2026-07-06 起新腳本亦自動讀取專案根目錄 `.env`）。
+
+## 2026-07-06 六月缺口重播回補系列（可重複使用的復原工具）
+
+| 腳本 | 用途 |
+| --- | --- |
+| `replay_onboarding_emails.mjs` | **重播器**：抓信箱中到職相關信件（新進人員通知/錄取通知事宜），逐節點複製線上 Workflow3 到職鏈成臨時 workflow，依時間順序重新處理。email_msg_id 去重、不做職缺遞減。dry-run 預設，`--apply` 執行 |
+| `replay_resignation_emails.mjs` | 同上，離職資料夾 → 離職鏈（純 regex，無 AI） |
+| `read_outlook_bodies.mjs` | 調閱指定主旨關鍵字的信件內文（驗證 AI 判讀用），如 `node ... "胡采穎"` |
+| `create_error_logger.mjs` | 建立 HR Error Logger workflow（Error Trigger → email_logs action='error'）並掛為 WF1/WF3 的 errorWorkflow（已執行，logger id `IwBeD1aQaqpBcxFx`） |
+| `harden_workflow3_20260706.mjs` | 對本地 Workflow3 快照注入年份防呆＋防重複插入（已套用並部署） |
+| `sql/cleanup_onboarding_replay_dedupe_20260706.sql` | 重播後清理：刪 2025 錯字列、每人去重、馮堿呈待定日、過期 pending 標 onboarded |
+| `sql/fix_resignation_offbyone_dates_20260706.sql` | 修正舊 parser 時區偏移造成的離職日 +1 天（9 筆）＋曾佳佩重複列 |
 
 ## 2026-06 ~ 2026-07 到職/離職資料修復系列
 

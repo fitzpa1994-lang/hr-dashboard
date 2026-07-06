@@ -1,0 +1,112 @@
+{
+  "updatedAt": "2026-07-06T05:58:26.910Z",
+  "createdAt": "2026-07-06T05:58:26.910Z",
+  "id": "IwBeD1aQaqpBcxFx",
+  "name": "HR Error Logger",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "err-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "err-shape",
+      "name": "Code：整理錯誤",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const e = $input.item.json;\nreturn {\n  msgid: 'error-' + (e.execution && e.execution.id ? e.execution.id : Date.now()),\n  subject: ('[WF ERROR] ' + ((e.workflow && e.workflow.name) || '') + ' @ ' + ((e.execution && e.execution.lastNodeExecuted) || '')).slice(0, 200),\n  err: String((e.execution && e.execution.error && (e.execution.error.message || e.execution.error.description)) || 'unknown').slice(0, 500),\n};"
+      }
+    },
+    {
+      "id": "err-pg",
+      "name": "PG：寫入 error log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, error_msg, processed_at)\nVALUES ('{{ $json.msgid }}', '{{ ($json.subject || '').replace(/'/g, \"''\") }}', NULL, NOW(), 'error', '{{ ($json.err || '').replace(/'/g, \"''\") }}', NOW())\nON CONFLICT (email_msg_id) DO NOTHING;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code：整理錯誤",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code：整理錯誤": {
+      "main": [
+        [
+          {
+            "node": "PG：寫入 error log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "f0e64376-cd8b-4d02-bfdc-79e2002a87e5",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-06T05:58:26.910Z",
+      "createdAt": "2026-07-06T05:58:26.910Z",
+      "role": "workflow:owner",
+      "workflowId": "IwBeD1aQaqpBcxFx",
+      "projectId": "NvjFEev0823h2STF",
+      "project": {
+        "updatedAt": "2026-05-15T07:57:49.399Z",
+        "createdAt": "2026-05-15T07:52:05.149Z",
+        "id": "NvjFEev0823h2STF",
+        "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}

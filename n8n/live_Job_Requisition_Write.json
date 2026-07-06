@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-05-29T09:30:00.000Z",
-  "createdAt": "2026-05-29T09:30:00.000Z",
-  "id": "hrJobWrite20260529",
+  "updatedAt": "2026-05-29T07:20:05.307Z",
+  "createdAt": "2026-05-29T07:20:05.307Z",
+  "id": "3aaTC9KMPXTZ1tP6",
   "name": "HR Job Requisition Write",
-  "description": "Write webhook for creating and updating job requisitions from the Node dashboard service.",
-  "active": false,
+  "description": null,
+  "active": true,
   "isArchived": false,
   "nodes": [
     {
@@ -197,17 +197,243 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": null,
-  "pinData": {},
-  "versionId": "job-write-version-20260529",
-  "activeVersionId": null,
-  "versionCounter": 1,
-  "triggerCount": 0,
-  "shared": [],
+  "pinData": null,
+  "versionId": "9ffe47b3-e596-46c0-a20c-886df4d60050",
+  "activeVersionId": "9ffe47b3-e596-46c0-a20c-886df4d60050",
+  "versionCounter": 5,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-29T07:20:05.307Z",
+      "createdAt": "2026-05-29T07:20:05.307Z",
+      "role": "workflow:owner",
+      "workflowId": "3aaTC9KMPXTZ1tP6",
+      "projectId": "NvjFEev0823h2STF",
+      "project": {
+        "updatedAt": "2026-05-15T07:57:49.399Z",
+        "createdAt": "2026-05-15T07:52:05.149Z",
+        "id": "NvjFEev0823h2STF",
+        "name": "Huang yu-Wei <pkpk70532@yahoo.com.tw>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+      }
+    }
+  ],
   "tags": [],
-  "activeVersion": null
+  "activeVersion": {
+    "updatedAt": "2026-05-29T07:20:05.307Z",
+    "createdAt": "2026-05-29T07:20:05.307Z",
+    "versionId": "9ffe47b3-e596-46c0-a20c-886df4d60050",
+    "workflowId": "3aaTC9KMPXTZ1tP6",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "hr-dashboard-write",
+          "httpMethod": "POST",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "job-write-webhook-001",
+        "name": "Webhook: Job Requisition Write",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "hr-dashboard-job-requisition-write"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "token-check",
+                "leftValue": "={{ $json.headers.authorization }}",
+                "rightValue": "={{ 'Bearer ' + $env.N8N_HR_TOKEN }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "job-write-if-token-001",
+        "name": "IF: Token valid?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          220,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "text",
+          "responseBody": "{\"error\":\"Unauthorized\"}",
+          "options": {
+            "responseCode": 403,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ]
+            }
+          }
+        },
+        "id": "job-write-unauthorized-001",
+        "name": "Respond: 403 Unauthorized",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          440,
+          180
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH input AS (\n  SELECT\n    '{{ ($json.body.action || '').replace(/'/g, \"''\") }}'::TEXT AS action,\n    NULLIF('{{ $json.body.requisition?.id ?? '' }}', '')::INTEGER AS id,\n    '{{ ($json.body.requisition?.department || '').replace(/'/g, \"''\") }}'::TEXT AS department,\n    '{{ ($json.body.requisition?.positionTitle || '').replace(/'/g, \"''\") }}'::TEXT AS position_title,\n    {{ Number($json.body.requisition?.headcount ?? 0) }}::INTEGER AS headcount,\n    '{{ ($json.body.requisition?.status || '').replace(/'/g, \"''\") }}'::TEXT AS status,\n    {{ Number($json.body.requisition?.urgency ?? 3) }}::INTEGER AS urgency,\n    NULLIF('{{ ($json.body.requisition?.notes || '').replace(/'/g, \"''\") }}', '')::TEXT AS notes,\n    NULLIF('{{ $json.body.requisition?.openDate ?? '' }}', '')::DATE AS open_date,\n    NULLIF('{{ $json.body.requisition?.targetDate ?? '' }}', '')::DATE AS target_date\n),\nexisting AS (\n  SELECT j.id\n  FROM job_requisitions j\n  JOIN input ON input.department = j.department\n            AND input.position_title = j.position_title\n),\ncreated AS (\n  INSERT INTO job_requisitions (\n    position_title,\n    department,\n    headcount,\n    filled_count,\n    open_date,\n    target_date,\n    status,\n    urgency,\n    notes\n  )\n  SELECT\n    input.position_title,\n    input.department,\n    input.headcount,\n    0,\n    input.open_date,\n    input.target_date,\n    input.status,\n    input.urgency,\n    input.notes\n  FROM input\n  WHERE input.action = 'create'\n    AND NOT EXISTS (SELECT 1 FROM existing)\n  RETURNING id, position_title, department, headcount, status, urgency, notes, open_date, target_date\n),\nupdated AS (\n  UPDATE job_requisitions j\n  SET position_title = input.position_title,\n      department = input.department,\n      headcount = input.headcount,\n      open_date = input.open_date,\n      target_date = input.target_date,\n      status = input.status,\n      urgency = input.urgency,\n      notes = input.notes\n  FROM input\n  WHERE (input.action = 'update' AND j.id = input.id)\n     OR (input.action = 'create' AND j.department = input.department AND j.position_title = input.position_title)\n  RETURNING j.id, j.position_title, j.department, j.headcount, j.status, j.urgency, j.notes, j.open_date, j.target_date\n)\nSELECT json_build_object(\n  'ok', true,\n  'action', input.action,\n  'requisition', json_build_object(\n    'id', COALESCE(created.id, updated.id, input.id),\n    'positionTitle', COALESCE(created.position_title, updated.position_title, input.position_title),\n    'department', COALESCE(created.department, updated.department, input.department),\n    'headcount', COALESCE(created.headcount, updated.headcount, input.headcount),\n    'status', COALESCE(created.status, updated.status, input.status),\n    'urgency', COALESCE(created.urgency, updated.urgency, input.urgency),\n    'notes', COALESCE(created.notes, updated.notes, input.notes, ''),\n    'openDate', TO_CHAR(COALESCE(created.open_date, updated.open_date, input.open_date), 'YYYY-MM-DD'),\n    'targetDate', TO_CHAR(COALESCE(created.target_date, updated.target_date, input.target_date), 'YYYY-MM-DD')\n  )\n) AS data\nFROM input\nLEFT JOIN created ON TRUE\nLEFT JOIN updated ON TRUE;",
+          "options": {}
+        },
+        "id": "job-write-pg-001",
+        "name": "PG: Write job requisition",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NGdDfE2F1YFXGcmn",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const raw = $input.item.json;\nreturn { json_response: JSON.stringify(raw.data || { ok: false, error: 'No response data' }) };"
+        },
+        "id": "job-write-code-response-001",
+        "name": "Code: Build response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          660,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "text",
+          "responseBody": "={{ $json.json_response }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ]
+            }
+          }
+        },
+        "id": "job-write-respond-001",
+        "name": "Respond: Job write",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          880,
+          0
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook: Job Requisition Write": {
+        "main": [
+          [
+            {
+              "node": "IF: Token valid?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF: Token valid?": {
+        "main": [
+          [
+            {
+              "node": "PG: Write job requisition",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond: 403 Unauthorized",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "PG: Write job requisition": {
+        "main": [
+          [
+            {
+              "node": "Code: Build response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: Build response": {
+        "main": [
+          [
+            {
+              "node": "Respond: Job write",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Huang yu-Wei",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-29T07:20:22.413Z",
+        "id": 50,
+        "workflowId": "3aaTC9KMPXTZ1tP6",
+        "versionId": "9ffe47b3-e596-46c0-a20c-886df4d60050",
+        "event": "activated",
+        "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
+      }
+    ]
+  }
 }

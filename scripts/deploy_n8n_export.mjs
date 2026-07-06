@@ -12,6 +12,7 @@ const KNOWN_WORKFLOWS = new Map([
   ['live_Dashboard_API.json', 'x4Olor5YtMfthzWp'],
   ['live_Job_Requisition_Write.json', '3aaTC9KMPXTZ1tP6'],
   ['live_temp_db_check.json', 'uyDXjECy9kPFaFUy'],
+  ['live_Error_Logger.json', 'IwBeD1aQaqpBcxFx'],
 ]);
 
 function normalizeBaseUrl(value) {
