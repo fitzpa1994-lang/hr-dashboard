@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-06T05:58:27.073Z",
+  "updatedAt": "2026-07-06T07:22:18.337Z",
   "createdAt": "2026-05-20T07:04:02.300Z",
   "id": "zEIwksk6hz9Ri8NA",
   "name": "HR Workflow：到職離職信件自動匯入 (純Regex + 分流防呆版)",
@@ -132,7 +132,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH inserted AS (\n  INSERT INTO onboardings (name, department, position, expected_date, status, email_subject, email_msg_id, email_web_link)\n  SELECT\n    '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n    COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n    COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n    COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE),\n    'pending',\n    '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n    '{{ $json.email_msg_id || '' }}',\n    NULLIF('{{ $json.email_web_link || '' }}', '')\n  WHERE NOT EXISTS (\n    SELECT 1 FROM onboardings ob\n    WHERE ob.name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n      AND ob.status <> 'cancelled'\n      AND ob.expected_date BETWEEN COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) - 60\n                               AND COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) + 60\n  )\n  ON CONFLICT (email_msg_id) DO NOTHING\n  RETURNING department, position\n)\nUPDATE job_requisitions j\nSET headcount = GREATEST(j.headcount - 1, 0)\nWHERE j.status = 'open'\n  AND j.headcount > 0\n  AND EXISTS (\n    SELECT 1\n    FROM inserted i\n    WHERE i.department = j.department\n      AND i.position = j.position_title\n  );\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+        "query": "-- person-upsert：同名 pending 收到帶新日期的新進人員通知時更新既有列\nUPDATE onboardings ob SET\n  expected_date = NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE,\n  department = COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), ob.department),\n  position = COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), ob.position),\n  updated_at = NOW()\nWHERE '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' LIKE '%新進人員通知%'\n  AND NULLIF('{{ $json.scheduled_onboard_date || '' }}', '') IS NOT NULL\n  AND ob.name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n  AND ob.status = 'pending'\n  AND ob.email_msg_id <> '{{ $json.email_msg_id || '' }}'\n  AND ob.expected_date IS DISTINCT FROM NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE\n  AND ob.expected_date BETWEEN NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE - 60 AND NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE + 60;\n\nWITH inserted AS (\n  INSERT INTO onboardings (name, department, position, expected_date, status, email_subject, email_msg_id, email_web_link)\n  SELECT\n    '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n    COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n    COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n    COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE),\n    'pending',\n    '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n    '{{ $json.email_msg_id || '' }}',\n    NULLIF('{{ $json.email_web_link || '' }}', '')\n  WHERE NOT EXISTS (\n    SELECT 1 FROM onboardings ob\n    WHERE ob.name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n      AND ob.status <> 'cancelled'\n      AND ob.expected_date BETWEEN COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) - 60\n                               AND COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) + 60\n  )\n  ON CONFLICT (email_msg_id) DO NOTHING\n  RETURNING department, position\n)\nUPDATE job_requisitions j\nSET headcount = GREATEST(j.headcount - 1, 0)\nWHERE j.status = 'open'\n  AND j.headcount > 0\n  AND EXISTS (\n    SELECT 1\n    FROM inserted i\n    WHERE i.department = j.department\n      AND i.position = j.position_title\n  );\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
         "options": {}
       },
       "id": "177e2c15-35cf-4cd3-8976-f1911ddf98c1",
@@ -762,10 +762,10 @@
   },
   "staticData": {
     "node:Outlook 收信觸發：到職 (收件匣)": {
-      "lastTimeChecked": "2026-07-06T14:02:41.001+08:00"
+      "lastTimeChecked": "2026-07-06T15:22:18.381+08:00"
     },
     "node:Outlook 收信觸發：離職 (離職資料夾)": {
-      "lastTimeChecked": "2026-07-06T14:02:22.000+08:00"
+      "lastTimeChecked": "2026-07-06T15:22:18.505+08:00"
     },
     "node:Outlook ??????? (????)": {
       "lastTimeChecked": "2026-07-03T17:01:00.001+08:00"
@@ -777,14 +777,14 @@
       "lastTimeChecked": "2026-07-03T17:00:24.002+08:00"
     },
     "node:Outlook 收信觸發：到職 (寄件備份)": {
-      "lastTimeChecked": "2026-07-06T14:02:08.001+08:00"
+      "lastTimeChecked": "2026-07-06T15:22:18.617+08:00"
     }
   },
   "meta": null,
   "pinData": {},
-  "versionId": "926a0daa-bb8b-40c1-ac89-a2407fe44371",
-  "activeVersionId": "926a0daa-bb8b-40c1-ac89-a2407fe44371",
-  "versionCounter": 1257,
+  "versionId": "1057ee4e-d976-442b-b9fe-163549fbdbea",
+  "activeVersionId": "1057ee4e-d976-442b-b9fe-163549fbdbea",
+  "versionCounter": 1271,
   "triggerCount": 3,
   "shared": [
     {
@@ -814,9 +814,9 @@
     }
   ],
   "activeVersion": {
-    "updatedAt": "2026-07-06T05:57:30.343Z",
-    "createdAt": "2026-07-06T05:57:30.343Z",
-    "versionId": "926a0daa-bb8b-40c1-ac89-a2407fe44371",
+    "updatedAt": "2026-07-06T07:22:18.339Z",
+    "createdAt": "2026-07-06T07:22:18.339Z",
+    "versionId": "1057ee4e-d976-442b-b9fe-163549fbdbea",
     "workflowId": "zEIwksk6hz9Ri8NA",
     "nodes": [
       {
@@ -944,7 +944,7 @@
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "WITH inserted AS (\n  INSERT INTO onboardings (name, department, position, expected_date, status, email_subject, email_msg_id, email_web_link)\n  SELECT\n    '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n    COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n    COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n    COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE),\n    'pending',\n    '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n    '{{ $json.email_msg_id || '' }}',\n    NULLIF('{{ $json.email_web_link || '' }}', '')\n  WHERE NOT EXISTS (\n    SELECT 1 FROM onboardings ob\n    WHERE ob.name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n      AND ob.status <> 'cancelled'\n      AND ob.expected_date BETWEEN COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) - 60\n                               AND COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) + 60\n  )\n  ON CONFLICT (email_msg_id) DO NOTHING\n  RETURNING department, position\n)\nUPDATE job_requisitions j\nSET headcount = GREATEST(j.headcount - 1, 0)\nWHERE j.status = 'open'\n  AND j.headcount > 0\n  AND EXISTS (\n    SELECT 1\n    FROM inserted i\n    WHERE i.department = j.department\n      AND i.position = j.position_title\n  );\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+          "query": "-- person-upsert：同名 pending 收到帶新日期的新進人員通知時更新既有列\nUPDATE onboardings ob SET\n  expected_date = NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE,\n  department = COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), ob.department),\n  position = COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), ob.position),\n  updated_at = NOW()\nWHERE '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' LIKE '%新進人員通知%'\n  AND NULLIF('{{ $json.scheduled_onboard_date || '' }}', '') IS NOT NULL\n  AND ob.name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n  AND ob.status = 'pending'\n  AND ob.email_msg_id <> '{{ $json.email_msg_id || '' }}'\n  AND ob.expected_date IS DISTINCT FROM NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE\n  AND ob.expected_date BETWEEN NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE - 60 AND NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE + 60;\n\nWITH inserted AS (\n  INSERT INTO onboardings (name, department, position, expected_date, status, email_subject, email_msg_id, email_web_link)\n  SELECT\n    '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n    COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n    COALESCE(NULLIF('{{ ($json.position || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n    COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE),\n    'pending',\n    '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n    '{{ $json.email_msg_id || '' }}',\n    NULLIF('{{ $json.email_web_link || '' }}', '')\n  WHERE NOT EXISTS (\n    SELECT 1 FROM onboardings ob\n    WHERE ob.name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n      AND ob.status <> 'cancelled'\n      AND ob.expected_date BETWEEN COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) - 60\n                               AND COALESCE(NULLIF('{{ $json.scheduled_onboard_date || '' }}', '')::DATE, CURRENT_DATE) + 60\n  )\n  ON CONFLICT (email_msg_id) DO NOTHING\n  RETURNING department, position\n)\nUPDATE job_requisitions j\nSET headcount = GREATEST(j.headcount - 1, 0)\nWHERE j.status = 'open'\n  AND j.headcount > 0\n  AND EXISTS (\n    SELECT 1\n    FROM inserted i\n    WHERE i.department = j.department\n      AND i.position = j.position_title\n  );\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
           "options": {}
         },
         "id": "177e2c15-35cf-4cd3-8976-f1911ddf98c1",
@@ -1573,34 +1573,18 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-07-06T05:58:27.099Z",
-        "id": 309,
+        "createdAt": "2026-07-06T07:22:18.372Z",
+        "id": 314,
         "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "926a0daa-bb8b-40c1-ac89-a2407fe44371",
+        "versionId": "1057ee4e-d976-442b-b9fe-163549fbdbea",
         "event": "deactivated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       },
       {
-        "createdAt": "2026-07-06T05:58:27.437Z",
-        "id": 310,
+        "createdAt": "2026-07-06T07:22:18.726Z",
+        "id": 315,
         "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "926a0daa-bb8b-40c1-ac89-a2407fe44371",
-        "event": "activated",
-        "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
-      },
-      {
-        "createdAt": "2026-07-06T05:57:30.370Z",
-        "id": 307,
-        "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "926a0daa-bb8b-40c1-ac89-a2407fe44371",
-        "event": "deactivated",
-        "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
-      },
-      {
-        "createdAt": "2026-07-06T05:57:30.715Z",
-        "id": 308,
-        "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "926a0daa-bb8b-40c1-ac89-a2407fe44371",
+        "versionId": "1057ee4e-d976-442b-b9fe-163549fbdbea",
         "event": "activated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       }

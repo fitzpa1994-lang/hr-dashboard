@@ -64,10 +64,10 @@ npm run verify:deployment      # Zeabur dashboard 健康檢查
 ## 6. 部署
 
 - Dashboard：push GitHub → Zeabur 自動部署 `hr-dashboard` 服務（https://sp-hr.zeabur.app）。
-- ⚠ **待確認**：本地開發分支為 `node-dashboard-deploy`（與遠端同步）；`origin/main` 落後 50+ commits。
-  `doc/zeabur-deployment.md` 寫 Zeabur watch `main` — 請至 Zeabur 後台確認實際 watch 的分支：
-  - 若 watch `node-dashboard-deploy` → 更新文件，`main` 標記棄用（或定期同步）。
-  - 若 watch `main` → 線上 dashboard 已嚴重過時，需要合併。
+- **部署分支＝`node-dashboard-deploy`（2026-07-06 已實證）**：origin/main 只剩遠古靜態頁（無 server、無 /api），
+  而線上 `/api/health` 正常、登入後頁面內容與本分支最新版一致，且當日 push 後服務即自動重啟。
+  → `main` 為廢棄分支，勿再使用；`doc/zeabur-deployment.md` 中「watch main」的記載已過時。
+- ⚠ **push 到 `node-dashboard-deploy` 會直接上 production dashboard** — commit 前務必 `npm test`。
 
 ## 7. 2026-07-03 接手盤點與修復記錄
 
@@ -103,10 +103,11 @@ npm run verify:deployment      # Zeabur dashboard 健康檢查
 
 ## 9. 已知未完事項
 
-1. **職缺 headcount 對帳**：重播回補的 onboarding 記錄**刻意未做**職缺遞減（避免與 6 月人工調整重複扣），
-   需跑 `npm run audit:onboarding-matches` 對帳（需在 .env 填 `HR_DASHBOARD_URL`＋`HR_DASHBOARD_PASSWORD`）。
-2. Zeabur watch 分支確認（見第 6 節）。
-3. 「已報到／今日報到同仁」確認信目前無自動處理路徑（actual_date/status 靠人工或清理 SQL）—
+1. **職缺 headcount 遞減套用**：audit 已跑（2026-07-06）：pending 11、可配對 10、可遞減 10、
+   未配對 1（劉晉嘉：WBU / RF工程一部・案件專員 — 職稱經信件原文確認無誤，職缺表無此組合，
+   候選作法＝歸入 WBU / PM 職缺或新增職缺列）。是否對 10 筆執行遞減待使用者決定。
+2. 「已報到／今日報到同仁」確認信目前無自動處理路徑（actual_date/status 靠人工或清理 SQL）—
    候選功能：Workflow3 增加 mark_onboarded 意圖分支。
-4. `progress.md`（根目錄）編碼損壞 — 視需要可從 git 歷史＋雙編碼嘗試復原，或就此封存。
-5. 馮堿呈實際報到日待 HR 確認後更新（目前暫記 2026-07-27）。
+3. `progress.md`（根目錄）編碼損壞 — 視需要可從 git 歷史＋雙編碼嘗試復原，或就此封存。
+4. 馮堿呈報到日暫記 2026-07-27：正式通知信到達時，管線的人員 upsert（2026-07-06 加入
+   「PG：寫入 onboardings」）會自動以新日期更新同名 pending 列，屆時驗證即可。

@@ -116,19 +116,22 @@ def is_sql_template(value):
 
 
 def validate_update_literals(path_name, sql, errors):
-    for key, allowed in ALLOWED_VALUES.items():
-        table, field = key.split(".")
-        if not re.search(rf"\bUPDATE\s+{table}\b", sql, re.IGNORECASE):
-            continue
-
-        for match in re.finditer(rf"\b{field}\s*=\s*'([^']*)'", sql, re.IGNORECASE):
-            value = match.group(1)
-            if is_sql_template(value):
+    # 逐語句歸屬：多語句查詢中，status/action 字面值只檢查「同一語句內」出現的 UPDATE 目標表，
+    # 避免跨語句誤配（例如 upsert 的 WHERE ob.status = 'pending' 被歸給另一句的 job_requisitions）。
+    for statement in sql.split(";"):
+        for key, allowed in ALLOWED_VALUES.items():
+            table, field = key.split(".")
+            if not re.search(rf"\bUPDATE\s+{table}\b", statement, re.IGNORECASE):
                 continue
-            if value not in allowed:
-                errors.append(
-                    f"{path_name}: {table}.{field} writes {value!r}, allowed: {sorted(allowed)}"
-                )
+
+            for match in re.finditer(rf"\b{field}\s*=\s*'([^']*)'", statement, re.IGNORECASE):
+                value = match.group(1)
+                if is_sql_template(value):
+                    continue
+                if value not in allowed:
+                    errors.append(
+                        f"{path_name}: {table}.{field} writes {value!r}, allowed: {sorted(allowed)}"
+                    )
 
 
 def split_csv_preserving_quotes(text):
