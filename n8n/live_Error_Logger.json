@@ -81,12 +81,11 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "staticData": null,
+  "staticData": {},
   "meta": null,
   "pinData": null,
   "versionId": "f0e64376-cd8b-4d02-bfdc-79e2002a87e5",
   "activeVersionId": null,
-  "versionCounter": 1,
   "triggerCount": 0,
   "shared": [
     {

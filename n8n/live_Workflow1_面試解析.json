@@ -418,18 +418,13 @@
     "binaryMode": "separate",
     "errorWorkflow": "IwBeD1aQaqpBcxFx"
   },
-  "staticData": {
-    "node:Outlook 收信觸發": {
-      "lastTimeChecked": "2026-07-06T14:02:39.001+08:00"
-    }
-  },
+  "staticData": {},
   "meta": {
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
   "versionId": "74623eeb-e56f-4d5e-a410-6f7691d00436",
   "activeVersionId": "74623eeb-e56f-4d5e-a410-6f7691d00436",
-  "versionCounter": 1690,
   "triggerCount": 1,
   "shared": [
     {

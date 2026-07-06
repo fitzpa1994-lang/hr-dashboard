@@ -199,12 +199,11 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "staticData": null,
+  "staticData": {},
   "meta": null,
   "pinData": null,
   "versionId": "9ffe47b3-e596-46c0-a20c-886df4d60050",
   "activeVersionId": "9ffe47b3-e596-46c0-a20c-886df4d60050",
-  "versionCounter": 5,
   "triggerCount": 1,
   "shared": [
     {

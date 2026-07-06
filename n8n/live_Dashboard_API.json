@@ -215,12 +215,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "staticData": null,
+  "staticData": {},
   "meta": null,
   "pinData": {},
   "versionId": "bd0684c8-6b0e-4637-8fb5-9de1bef2fff9",
   "activeVersionId": "bd0684c8-6b0e-4637-8fb5-9de1bef2fff9",
-  "versionCounter": 81,
   "triggerCount": 1,
   "shared": [
     {

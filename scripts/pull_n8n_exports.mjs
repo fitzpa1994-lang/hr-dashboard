@@ -61,6 +61,9 @@ for (const fileName of targets) {
     continue;
   }
   const wf = await res.json();
+  // 去除揮發性執行期欄位（輪詢時間戳、版本計數），避免快照無意義變動
+  wf.staticData = {};
+  delete wf.versionCounter;
   const outPath = path.join(ROOT, 'n8n', fileName);
   fs.writeFileSync(outPath, JSON.stringify(wf, null, 2) + '\n');
   console.log(`已同步 ${fileName}（updatedAt=${wf.updatedAt}, active=${wf.active}, nodes=${wf.nodes.length}）`);

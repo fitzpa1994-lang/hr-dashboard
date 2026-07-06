@@ -760,31 +760,11 @@
     "binaryMode": "separate",
     "errorWorkflow": "IwBeD1aQaqpBcxFx"
   },
-  "staticData": {
-    "node:Outlook 收信觸發：到職 (收件匣)": {
-      "lastTimeChecked": "2026-07-06T15:41:37.382+08:00"
-    },
-    "node:Outlook 收信觸發：離職 (離職資料夾)": {
-      "lastTimeChecked": "2026-07-06T15:41:37.495+08:00"
-    },
-    "node:Outlook ??????? (????)": {
-      "lastTimeChecked": "2026-07-03T17:01:00.001+08:00"
-    },
-    "node:Outlook ���HĲ�o�G��¾ (����X)": {
-      "lastTimeChecked": "2026-07-03T17:01:16.002+08:00"
-    },
-    "node:Outlook ���HĲ�o�G��¾ (��¾��Ƨ�)": {
-      "lastTimeChecked": "2026-07-03T17:00:24.002+08:00"
-    },
-    "node:Outlook 收信觸發：到職 (寄件備份)": {
-      "lastTimeChecked": "2026-07-06T15:41:37.610+08:00"
-    }
-  },
+  "staticData": {},
   "meta": null,
   "pinData": {},
   "versionId": "a68cfa08-3d8d-418a-b165-7e0165fc4eee",
   "activeVersionId": "a68cfa08-3d8d-418a-b165-7e0165fc4eee",
-  "versionCounter": 1278,
   "triggerCount": 3,
   "shared": [
     {

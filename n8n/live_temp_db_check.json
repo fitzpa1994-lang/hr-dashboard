@@ -180,12 +180,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "staticData": null,
+  "staticData": {},
   "meta": null,
   "pinData": {},
   "versionId": "88cb5b97-58d7-4d71-96ad-25e83c5be4fc",
   "activeVersionId": "43f4834d-da5f-4f17-a9fc-d427d18cae17",
-  "versionCounter": 99,
   "triggerCount": 1,
   "shared": [
     {
