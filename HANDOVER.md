@@ -101,6 +101,22 @@ npm run verify:deployment      # Zeabur dashboard 健康檢查
 - **穩定性**：WF1/WF3 掛上 `HR Error Logger`（`IwBeD1aQaqpBcxFx`）— 之後任何執行失敗都會寫入
   email_logs（action='error'），可於 DB／面板查到，不再靜默。
 
+## 8.5 2026-07-06 Workflow1 面試解析事故修復記錄
+
+- **成因**：7/2 15:51 的 `repair_live_workflow1_claude_body.mjs` 推送把「Code：整合輸出」jsCode
+  **整段複製成兩份＋regex 反斜線剝除**（`const base` 宣告兩次 → SyntaxError）。此後每封真面試信
+  執行到該節點即拋錯，非面試信照常 skip，故障隱形（Error Logger 當時尚未存在）。
+  7/3 反向同步時誤將此損壞版當作「較新的線上版」收入快照（`d6255e5`）。
+- **發現**：使用者質疑許璨勝 7/15 面試信未上面板 → 執行紀錄 #3373 證明主旨過濾通過、
+  死於整合輸出 SyntaxError。
+- **修復**：自 git `fa1314f` 取回乾淨 111 行版本部署；WF1/WF3 Claude 節點加
+  `retryOnFail`（治 Anthropic Overloaded）；清除 connections 兩個 latin-1 幽靈鍵；
+  Error Logger 補 activate。
+- **回補**：`replay_interview_emails.mjs` 重播 7/2 起 122 封（全成功）＋擴大至 6/1
+  （涵蓋 6/8、6/15 週僅剩 1 場的面試缺口）。
+- **教訓**：任何「修補線上 workflow」的腳本，產出前必須驗證 jsCode 可編譯
+  （`new Function` 語法檢查）與反斜線完整性 — 重播器與 audit 工具現已內建這類檢查。
+
 ## 9. 已知未完事項
 
 1. **職缺 headcount 政策（2026-07-06 決議）**：重播回補的記錄**不做**批次遞減 — 職缺數由使用者在

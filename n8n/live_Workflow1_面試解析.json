@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-06T05:58:27.572Z",
+  "updatedAt": "2026-07-06T08:51:50.647Z",
   "createdAt": "2026-05-15T10:08:31.212Z",
   "id": "pqnpr72wTiOE2m8I",
   "name": "HR Workflow 1：面試信件解析",
@@ -108,7 +108,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/{[sS]*}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch (error) {}\n\nconst ns = (value) => {\n  if (value === null || value === undefined) return 'null';\n  const text = String(value).trim();\n  if (text === '' || text === 'null' || text === 'undefined') return 'null';\n  return text;\n};\n\nconst subjectText = String(base.email_subject || '');\nconst bodyText = String(base.body_text || '');\nconst combinedText = (subjectText + ' ' + bodyText).replace(/s+/g, ' ');\n\nconst extractedDate = ns(base.interview_date || aiResult.interview_date);\nconst extractedTime = ns(base.interview_time || aiResult.interview_time);\nconst receivedYear = Number(String(base.received_at || '').slice(0, 4)) || null;\nconst normalizeInterviewDateYear = (value) => {\n  const text = String(value || '').trim();\n  if (!/^d{4}-d{2}-d{2}$/.test(text) || !receivedYear) return value;\n  const parsedYear = Number(text.slice(0, 4));\n  if (!Number.isFinite(parsedYear)) return value;\n  if (parsedYear >= receivedYear - 1) return value;\n  return String(receivedYear) + text.slice(4);\n};\nconst normalizedExtractedDate = normalizeInterviewDateYear(extractedDate);\nconst hasConcreteSchedule = normalizedExtractedDate !== 'null' && extractedTime !== 'null' && !base.has_tentative_scheduling;\n\nconst requestInviteCue = /(請.{0,12}(安排|邀約).{0,6}面試|請幫忙安排面試|請協助安排面試|請通知面試|請評估|可安排面試)/u.test(combinedText);\nconst confirmedScheduleCue = /(已安排.{0,12}面試|面試時間|面試邀約|安排於|安排在|訂於|scheduled|schedule confirmed)/iu.test(combinedText);\nconst rescheduleCue = /(更新面試時間|最新面試時間|更改面試時間|改期|延期|延後|改為)/u.test(combinedText);\nconst cancelCue = /(取消面試|不安排面試|不考慮|婉拒|取消流程)/u.test(combinedText);\n\nlet intent = aiResult.intent || 'recommend';\nif (cancelCue) {\n  intent = 'cancel';\n} else if (hasConcreteSchedule && rescheduleCue) {\n  intent = 'update_time';\n} else if (hasConcreteSchedule && confirmedScheduleCue) {\n  intent = 'schedule';\n} else if (requestInviteCue && !hasConcreteSchedule) {\n  intent = 'request_invite';\n}\n\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? '[SYS_STAGE:approved_to_invite|HR:' + (hrOwner === 'null' ? '' : hrOwner) + ']'\n  : '';\n\nconst inferredPosition = ns(base.inferred_applied_position) !== 'null' ? base.inferred_applied_position : null;\nconst inferredDepartment = ns(base.inferred_department) !== 'null' ? base.inferred_department : null;\n\nconst appliedPosition = ns(aiResult.applied_position) !== 'null'\n  ? aiResult.applied_position\n  : (inferredPosition || '未知職位');\nconst isWeakDepartment = (value) => {\n  const text = String(value || '').trim();\n  if (!text) return true;\n  return ['未分類', '未知部門', '未知單位', '人力資源部', 'HR', 'HR部門'].includes(text);\n};\nconst aiDepartment = ns(aiResult.department) !== 'null' ? aiResult.department : null;\nconst department = (!isWeakDepartment(aiDepartment) ? aiDepartment : null)\n  || inferredDepartment\n  || '未分類';\n\nconst forcePendingScheduling = ['request_invite', 'recommend', 'other'].includes(intent) || !!base.has_tentative_scheduling;\nconst interviewDate = forcePendingScheduling\n  ? 'null'\n  : normalizedExtractedDate;\nconst interviewTime = forcePendingScheduling\n  ? 'null'\n  : extractedTime;\n\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time'\n      ? 'rescheduled'\n      : (['schedule', 'second_schedule'].includes(intent) ? 'scheduled' : 'pending'));\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: ns(base.received_at),\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: appliedPosition,\n  department,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/{[sS]*}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch (error) {}\n\nconst ns = (value) => {\n  if (value === null || value === undefined) return 'null';\n  const text = String(value).trim();\n  if (text === '' || text === 'null' || text === 'undefined') return 'null';\n  return text;\n};\n\nconst subjectText = String(base.email_subject || '');\nconst bodyText = String(base.body_text || '');\nconst combinedText = (subjectText + ' ' + bodyText).replace(/s+/g, ' ');\n\nconst extractedDate = ns(base.interview_date || aiResult.interview_date);\nconst extractedTime = ns(base.interview_time || aiResult.interview_time);\nconst receivedYear = Number(String(base.received_at || '').slice(0, 4)) || null;\nconst normalizeInterviewDateYear = (value) => {\n  const text = String(value || '').trim();\n  if (!/^d{4}-d{2}-d{2}$/.test(text) || !receivedYear) return value;\n  const parsedYear = Number(text.slice(0, 4));\n  if (!Number.isFinite(parsedYear)) return value;\n  if (parsedYear >= receivedYear - 1) return value;\n  return String(receivedYear) + text.slice(4);\n};\nconst normalizedExtractedDate = normalizeInterviewDateYear(extractedDate);\nconst hasConcreteSchedule = normalizedExtractedDate !== 'null' && extractedTime !== 'null' && !base.has_tentative_scheduling;\n\nconst requestInviteCue = /(請.{0,12}(安排|邀約).{0,6}面試|請幫忙安排面試|請協助安排面試|請通知面試|請評估|可安排面試)/u.test(combinedText);\nconst confirmedScheduleCue = /(已安排.{0,12}面試|面試時間|面試邀約|安排於|安排在|訂於|scheduled|schedule confirmed)/iu.test(combinedText);\nconst rescheduleCue = /(更新面試時間|最新面試時間|更改面試時間|改期|延期|延後|改為)/u.test(combinedText);\nconst cancelCue = /(取消面試|不安排面試|不考慮|婉拒|取消流程)/u.test(combinedText);\n\nlet intent = aiResult.intent || 'recommend';\nif (cancelCue) {\n  intent = 'cancel';\n} else if (hasConcreteSchedule && rescheduleCue) {\n  intent = 'update_time';\n} else if (hasConcreteSchedule && confirmedScheduleCue) {\n  intent = 'schedule';\n} else if (requestInviteCue && !hasConcreteSchedule) {\n  intent = 'request_invite';\n}\n\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? '[SYS_STAGE:approved_to_invite|HR:' + (hrOwner === 'null' ? '' : hrOwner) + ']'\n  : '';\n\nconst inferredPosition = ns(base.inferred_applied_position) !== 'null' ? base.inferred_applied_position : null;\nconst inferredDepartment = ns(base.inferred_department) !== 'null' ? base.inferred_department : null;\n\nconst appliedPosition = ns(aiResult.applied_position) !== 'null'\n  ? aiResult.applied_position\n  : (inferredPosition || '未知職位');\nconst isWeakDepartment = (value) => {\n  const text = String(value || '').trim();\n  if (!text) return true;\n  return ['未分類', '未知部門', '未知單位', '人力資源部', 'HR', 'HR部門'].includes(text);\n};\nconst aiDepartment = ns(aiResult.department) !== 'null' ? aiResult.department : null;\nconst department = (!isWeakDepartment(aiDepartment) ? aiDepartment : null)\n  || inferredDepartment\n  || '未分類';\n\nconst forcePendingScheduling = ['request_invite', 'recommend', 'other'].includes(intent) || !!base.has_tentative_scheduling;\nconst interviewDate = forcePendingScheduling\n  ? 'null'\n  : normalizedExtractedDate;\nconst interviewTime = forcePendingScheduling\n  ? 'null'\n  : extractedTime;\n\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time'\n      ? 'rescheduled'\n      : (['schedule', 'second_schedule'].includes(intent) ? 'scheduled' : 'pending'));\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: ns(base.received_at),\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: appliedPosition,\n  department,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
+        "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch (error) {}\n\nconst ns = (value) => {\n  if (value === null || value === undefined) return 'null';\n  const text = String(value).trim();\n  if (text === '' || text === 'null' || text === 'undefined') return 'null';\n  return text;\n};\n\nconst subjectText = String(base.email_subject || '');\nconst bodyText = String(base.body_text || '');\nconst combinedText = (subjectText + ' ' + bodyText).replace(/\\s+/g, ' ');\n\nconst extractedDate = ns(base.interview_date || aiResult.interview_date);\nconst extractedTime = ns(base.interview_time || aiResult.interview_time);\nconst receivedYear = Number(String(base.received_at || '').slice(0, 4)) || null;\nconst normalizeInterviewDateYear = (value) => {\n  const text = String(value || '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text) || !receivedYear) return value;\n  const parsedYear = Number(text.slice(0, 4));\n  if (!Number.isFinite(parsedYear)) return value;\n  if (parsedYear >= receivedYear - 1) return value;\n  return String(receivedYear) + text.slice(4);\n};\nconst normalizedExtractedDate = normalizeInterviewDateYear(extractedDate);\nconst hasConcreteSchedule = normalizedExtractedDate !== 'null' && extractedTime !== 'null' && !base.has_tentative_scheduling;\n\nconst requestInviteCue = /(請.{0,12}(安排|邀約).{0,6}面試|請幫忙安排面試|請協助安排面試|請通知面試|請評估|可安排面試)/u.test(combinedText);\nconst confirmedScheduleCue = /(已安排.{0,12}面試|面試時間|面試邀約|安排於|安排在|訂於|scheduled|schedule confirmed)/iu.test(combinedText);\nconst rescheduleCue = /(更新面試時間|最新面試時間|更改面試時間|改期|延期|延後|改為)/u.test(combinedText);\nconst cancelCue = /(取消面試|不安排面試|不考慮|婉拒|取消流程)/u.test(combinedText);\n\nlet intent = aiResult.intent || 'recommend';\nif (cancelCue) {\n  intent = 'cancel';\n} else if (hasConcreteSchedule && rescheduleCue) {\n  intent = 'update_time';\n} else if (hasConcreteSchedule && confirmedScheduleCue) {\n  intent = 'schedule';\n} else if (requestInviteCue && !hasConcreteSchedule) {\n  intent = 'request_invite';\n}\n\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? '[SYS_STAGE:approved_to_invite|HR:' + (hrOwner === 'null' ? '' : hrOwner) + ']'\n  : '';\n\nconst inferredPosition = ns(base.inferred_applied_position) !== 'null' ? base.inferred_applied_position : null;\nconst inferredDepartment = ns(base.inferred_department) !== 'null' ? base.inferred_department : null;\n\nconst appliedPosition = ns(aiResult.applied_position) !== 'null'\n  ? aiResult.applied_position\n  : (inferredPosition || '未知職位');\nconst isWeakDepartment = (value) => {\n  const text = String(value || '').trim();\n  if (!text) return true;\n  return ['未分類', '未知部門', '未知單位', '人力資源部', 'HR', 'HR部門'].includes(text);\n};\nconst aiDepartment = ns(aiResult.department) !== 'null' ? aiResult.department : null;\nconst department = (!isWeakDepartment(aiDepartment) ? aiDepartment : null)\n  || inferredDepartment\n  || '未分類';\n\nconst forcePendingScheduling = ['request_invite', 'recommend', 'other'].includes(intent) || !!base.has_tentative_scheduling;\nconst interviewDate = forcePendingScheduling\n  ? 'null'\n  : normalizedExtractedDate;\nconst interviewTime = forcePendingScheduling\n  ? 'null'\n  : extractedTime;\n\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time'\n      ? 'rescheduled'\n      : (['schedule', 'second_schedule'].includes(intent) ? 'scheduled' : 'pending'));\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: ns(base.received_at),\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: appliedPosition,\n  department,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
       },
       "id": "cb35b346-7ff3-42c8-b1ae-80a15dbd35cd",
       "name": "Code：整合輸出",
@@ -159,7 +159,10 @@
           "id": "y6zxdCqqBzmwq5bi",
           "name": "Anthropic account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -379,28 +382,6 @@
         ]
       ]
     },
-    "Codeï¼æåå¤äººæ¨è¦": {
-      "main": [
-        [
-          {
-            "node": "PGï¼å¯«å¥ candidates",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Codeï¼æ´åè¼¸åº": {
-      "main": [
-        [
-          {
-            "node": "Codeï¼æåå¤äººæ¨è¦",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Code：拆分多人推薦": {
       "main": [
         [
@@ -423,8 +404,8 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "74623eeb-e56f-4d5e-a410-6f7691d00436",
-  "activeVersionId": "74623eeb-e56f-4d5e-a410-6f7691d00436",
+  "versionId": "10c3671d-7037-4e7c-b5ea-9af31ced9de5",
+  "activeVersionId": "10c3671d-7037-4e7c-b5ea-9af31ced9de5",
   "triggerCount": 1,
   "shared": [
     {
@@ -454,9 +435,9 @@
     }
   ],
   "activeVersion": {
-    "updatedAt": "2026-07-02T07:51:17.107Z",
-    "createdAt": "2026-07-02T07:51:17.107Z",
-    "versionId": "74623eeb-e56f-4d5e-a410-6f7691d00436",
+    "updatedAt": "2026-07-06T08:51:50.648Z",
+    "createdAt": "2026-07-06T08:51:50.648Z",
+    "versionId": "10c3671d-7037-4e7c-b5ea-9af31ced9de5",
     "workflowId": "pqnpr72wTiOE2m8I",
     "nodes": [
       {
@@ -560,7 +541,7 @@
       {
         "parameters": {
           "mode": "runOnceForEachItem",
-          "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/{[sS]*}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch (error) {}\n\nconst ns = (value) => {\n  if (value === null || value === undefined) return 'null';\n  const text = String(value).trim();\n  if (text === '' || text === 'null' || text === 'undefined') return 'null';\n  return text;\n};\n\nconst subjectText = String(base.email_subject || '');\nconst bodyText = String(base.body_text || '');\nconst combinedText = (subjectText + ' ' + bodyText).replace(/s+/g, ' ');\n\nconst extractedDate = ns(base.interview_date || aiResult.interview_date);\nconst extractedTime = ns(base.interview_time || aiResult.interview_time);\nconst receivedYear = Number(String(base.received_at || '').slice(0, 4)) || null;\nconst normalizeInterviewDateYear = (value) => {\n  const text = String(value || '').trim();\n  if (!/^d{4}-d{2}-d{2}$/.test(text) || !receivedYear) return value;\n  const parsedYear = Number(text.slice(0, 4));\n  if (!Number.isFinite(parsedYear)) return value;\n  if (parsedYear >= receivedYear - 1) return value;\n  return String(receivedYear) + text.slice(4);\n};\nconst normalizedExtractedDate = normalizeInterviewDateYear(extractedDate);\nconst hasConcreteSchedule = normalizedExtractedDate !== 'null' && extractedTime !== 'null' && !base.has_tentative_scheduling;\n\nconst requestInviteCue = /(請.{0,12}(安排|邀約).{0,6}面試|請幫忙安排面試|請協助安排面試|請通知面試|請評估|可安排面試)/u.test(combinedText);\nconst confirmedScheduleCue = /(已安排.{0,12}面試|面試時間|面試邀約|安排於|安排在|訂於|scheduled|schedule confirmed)/iu.test(combinedText);\nconst rescheduleCue = /(更新面試時間|最新面試時間|更改面試時間|改期|延期|延後|改為)/u.test(combinedText);\nconst cancelCue = /(取消面試|不安排面試|不考慮|婉拒|取消流程)/u.test(combinedText);\n\nlet intent = aiResult.intent || 'recommend';\nif (cancelCue) {\n  intent = 'cancel';\n} else if (hasConcreteSchedule && rescheduleCue) {\n  intent = 'update_time';\n} else if (hasConcreteSchedule && confirmedScheduleCue) {\n  intent = 'schedule';\n} else if (requestInviteCue && !hasConcreteSchedule) {\n  intent = 'request_invite';\n}\n\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? '[SYS_STAGE:approved_to_invite|HR:' + (hrOwner === 'null' ? '' : hrOwner) + ']'\n  : '';\n\nconst inferredPosition = ns(base.inferred_applied_position) !== 'null' ? base.inferred_applied_position : null;\nconst inferredDepartment = ns(base.inferred_department) !== 'null' ? base.inferred_department : null;\n\nconst appliedPosition = ns(aiResult.applied_position) !== 'null'\n  ? aiResult.applied_position\n  : (inferredPosition || '未知職位');\nconst isWeakDepartment = (value) => {\n  const text = String(value || '').trim();\n  if (!text) return true;\n  return ['未分類', '未知部門', '未知單位', '人力資源部', 'HR', 'HR部門'].includes(text);\n};\nconst aiDepartment = ns(aiResult.department) !== 'null' ? aiResult.department : null;\nconst department = (!isWeakDepartment(aiDepartment) ? aiDepartment : null)\n  || inferredDepartment\n  || '未分類';\n\nconst forcePendingScheduling = ['request_invite', 'recommend', 'other'].includes(intent) || !!base.has_tentative_scheduling;\nconst interviewDate = forcePendingScheduling\n  ? 'null'\n  : normalizedExtractedDate;\nconst interviewTime = forcePendingScheduling\n  ? 'null'\n  : extractedTime;\n\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time'\n      ? 'rescheduled'\n      : (['schedule', 'second_schedule'].includes(intent) ? 'scheduled' : 'pending'));\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: ns(base.received_at),\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: appliedPosition,\n  department,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/{[sS]*}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch (error) {}\n\nconst ns = (value) => {\n  if (value === null || value === undefined) return 'null';\n  const text = String(value).trim();\n  if (text === '' || text === 'null' || text === 'undefined') return 'null';\n  return text;\n};\n\nconst subjectText = String(base.email_subject || '');\nconst bodyText = String(base.body_text || '');\nconst combinedText = (subjectText + ' ' + bodyText).replace(/s+/g, ' ');\n\nconst extractedDate = ns(base.interview_date || aiResult.interview_date);\nconst extractedTime = ns(base.interview_time || aiResult.interview_time);\nconst receivedYear = Number(String(base.received_at || '').slice(0, 4)) || null;\nconst normalizeInterviewDateYear = (value) => {\n  const text = String(value || '').trim();\n  if (!/^d{4}-d{2}-d{2}$/.test(text) || !receivedYear) return value;\n  const parsedYear = Number(text.slice(0, 4));\n  if (!Number.isFinite(parsedYear)) return value;\n  if (parsedYear >= receivedYear - 1) return value;\n  return String(receivedYear) + text.slice(4);\n};\nconst normalizedExtractedDate = normalizeInterviewDateYear(extractedDate);\nconst hasConcreteSchedule = normalizedExtractedDate !== 'null' && extractedTime !== 'null' && !base.has_tentative_scheduling;\n\nconst requestInviteCue = /(請.{0,12}(安排|邀約).{0,6}面試|請幫忙安排面試|請協助安排面試|請通知面試|請評估|可安排面試)/u.test(combinedText);\nconst confirmedScheduleCue = /(已安排.{0,12}面試|面試時間|面試邀約|安排於|安排在|訂於|scheduled|schedule confirmed)/iu.test(combinedText);\nconst rescheduleCue = /(更新面試時間|最新面試時間|更改面試時間|改期|延期|延後|改為)/u.test(combinedText);\nconst cancelCue = /(取消面試|不安排面試|不考慮|婉拒|取消流程)/u.test(combinedText);\n\nlet intent = aiResult.intent || 'recommend';\nif (cancelCue) {\n  intent = 'cancel';\n} else if (hasConcreteSchedule && rescheduleCue) {\n  intent = 'update_time';\n} else if (hasConcreteSchedule && confirmedScheduleCue) {\n  intent = 'schedule';\n} else if (requestInviteCue && !hasConcreteSchedule) {\n  intent = 'request_invite';\n}\n\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? '[SYS_STAGE:approved_to_invite|HR:' + (hrOwner === 'null' ? '' : hrOwner) + ']'\n  : '';\n\nconst inferredPosition = ns(base.inferred_applied_position) !== 'null' ? base.inferred_applied_position : null;\nconst inferredDepartment = ns(base.inferred_department) !== 'null' ? base.inferred_department : null;\n\nconst appliedPosition = ns(aiResult.applied_position) !== 'null'\n  ? aiResult.applied_position\n  : (inferredPosition || '未知職位');\nconst isWeakDepartment = (value) => {\n  const text = String(value || '').trim();\n  if (!text) return true;\n  return ['未分類', '未知部門', '未知單位', '人力資源部', 'HR', 'HR部門'].includes(text);\n};\nconst aiDepartment = ns(aiResult.department) !== 'null' ? aiResult.department : null;\nconst department = (!isWeakDepartment(aiDepartment) ? aiDepartment : null)\n  || inferredDepartment\n  || '未分類';\n\nconst forcePendingScheduling = ['request_invite', 'recommend', 'other'].includes(intent) || !!base.has_tentative_scheduling;\nconst interviewDate = forcePendingScheduling\n  ? 'null'\n  : normalizedExtractedDate;\nconst interviewTime = forcePendingScheduling\n  ? 'null'\n  : extractedTime;\n\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time'\n      ? 'rescheduled'\n      : (['schedule', 'second_schedule'].includes(intent) ? 'scheduled' : 'pending'));\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: ns(base.received_at),\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: appliedPosition,\n  department,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
+          "jsCode": "const base = $('Code：萃取基本資訊').item.json;\nlet aiResult = {};\ntry {\n  const raw = $input.item.json.content;\n  const text = Array.isArray(raw) ? (raw[0]?.text || '') : (typeof raw === 'string' ? raw : '');\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch (error) {}\n\nconst ns = (value) => {\n  if (value === null || value === undefined) return 'null';\n  const text = String(value).trim();\n  if (text === '' || text === 'null' || text === 'undefined') return 'null';\n  return text;\n};\n\nconst subjectText = String(base.email_subject || '');\nconst bodyText = String(base.body_text || '');\nconst combinedText = (subjectText + ' ' + bodyText).replace(/\\s+/g, ' ');\n\nconst extractedDate = ns(base.interview_date || aiResult.interview_date);\nconst extractedTime = ns(base.interview_time || aiResult.interview_time);\nconst receivedYear = Number(String(base.received_at || '').slice(0, 4)) || null;\nconst normalizeInterviewDateYear = (value) => {\n  const text = String(value || '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text) || !receivedYear) return value;\n  const parsedYear = Number(text.slice(0, 4));\n  if (!Number.isFinite(parsedYear)) return value;\n  if (parsedYear >= receivedYear - 1) return value;\n  return String(receivedYear) + text.slice(4);\n};\nconst normalizedExtractedDate = normalizeInterviewDateYear(extractedDate);\nconst hasConcreteSchedule = normalizedExtractedDate !== 'null' && extractedTime !== 'null' && !base.has_tentative_scheduling;\n\nconst requestInviteCue = /(請.{0,12}(安排|邀約).{0,6}面試|請幫忙安排面試|請協助安排面試|請通知面試|請評估|可安排面試)/u.test(combinedText);\nconst confirmedScheduleCue = /(已安排.{0,12}面試|面試時間|面試邀約|安排於|安排在|訂於|scheduled|schedule confirmed)/iu.test(combinedText);\nconst rescheduleCue = /(更新面試時間|最新面試時間|更改面試時間|改期|延期|延後|改為)/u.test(combinedText);\nconst cancelCue = /(取消面試|不安排面試|不考慮|婉拒|取消流程)/u.test(combinedText);\n\nlet intent = aiResult.intent || 'recommend';\nif (cancelCue) {\n  intent = 'cancel';\n} else if (hasConcreteSchedule && rescheduleCue) {\n  intent = 'update_time';\n} else if (hasConcreteSchedule && confirmedScheduleCue) {\n  intent = 'schedule';\n} else if (requestInviteCue && !hasConcreteSchedule) {\n  intent = 'request_invite';\n}\n\nconst candidateStatus = intent === 'cancel'\n  ? 'withdrawn'\n  : (intent === 'request_invite'\n      ? 'approved_to_invite'\n      : (['recommend', 'other'].includes(intent) ? 'pending_review' : 'in_progress'));\nconst dbStatus = candidateStatus === 'approved_to_invite' ? 'pending_review' : candidateStatus;\nconst hrOwner = ns(aiResult.hr_owner);\nconst systemStageNote = candidateStatus === 'approved_to_invite'\n  ? '[SYS_STAGE:approved_to_invite|HR:' + (hrOwner === 'null' ? '' : hrOwner) + ']'\n  : '';\n\nconst inferredPosition = ns(base.inferred_applied_position) !== 'null' ? base.inferred_applied_position : null;\nconst inferredDepartment = ns(base.inferred_department) !== 'null' ? base.inferred_department : null;\n\nconst appliedPosition = ns(aiResult.applied_position) !== 'null'\n  ? aiResult.applied_position\n  : (inferredPosition || '未知職位');\nconst isWeakDepartment = (value) => {\n  const text = String(value || '').trim();\n  if (!text) return true;\n  return ['未分類', '未知部門', '未知單位', '人力資源部', 'HR', 'HR部門'].includes(text);\n};\nconst aiDepartment = ns(aiResult.department) !== 'null' ? aiResult.department : null;\nconst department = (!isWeakDepartment(aiDepartment) ? aiDepartment : null)\n  || inferredDepartment\n  || '未分類';\n\nconst forcePendingScheduling = ['request_invite', 'recommend', 'other'].includes(intent) || !!base.has_tentative_scheduling;\nconst interviewDate = forcePendingScheduling\n  ? 'null'\n  : normalizedExtractedDate;\nconst interviewTime = forcePendingScheduling\n  ? 'null'\n  : extractedTime;\n\nconst interviewStatus = intent === 'cancel'\n  ? 'cancelled'\n  : (intent === 'update_time'\n      ? 'rescheduled'\n      : (['schedule', 'second_schedule'].includes(intent) ? 'scheduled' : 'pending'));\n\nreturn {\n  email_msg_id: base.email_msg_id,\n  email_subject: base.email_subject,\n  email_web_link: ns(base.email_web_link),\n  sender: ns(base.sender),\n  received_at: ns(base.received_at),\n  candidate_name: base.candidate_name || aiResult.candidate_name || '未知姓名',\n  applied_position: appliedPosition,\n  department,\n  interview_date: interviewDate,\n  interview_time: interviewTime,\n  round: Number(aiResult.round) || 1,\n  location: ns(aiResult.location),\n  hr_owner: hrOwner,\n  intent,\n  status: candidateStatus,\n  db_status: dbStatus,\n  system_stage_note: systemStageNote,\n  interview_status: interviewStatus,\n};"
         },
         "id": "cb35b346-7ff3-42c8-b1ae-80a15dbd35cd",
         "name": "Code：整合輸出",
@@ -611,7 +592,10 @@
             "id": "y6zxdCqqBzmwq5bi",
             "name": "Anthropic account"
           }
-        }
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000
       },
       {
         "parameters": {
@@ -831,28 +815,6 @@
           ]
         ]
       },
-      "Codeï¼æåå¤äººæ¨è¦": {
-        "main": [
-          [
-            {
-              "node": "PGï¼å¯«å¥ candidates",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Codeï¼æ´åè¼¸åº": {
-        "main": [
-          [
-            {
-              "node": "Codeï¼æåå¤äººæ¨è¦",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Code：拆分多人推薦": {
         "main": [
           [
@@ -868,22 +830,22 @@
     "authors": "Huang yu-Wei",
     "name": null,
     "description": null,
-    "autosaved": true,
+    "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-07-06T05:58:27.597Z",
-        "id": 311,
+        "createdAt": "2026-07-06T08:51:50.814Z",
+        "id": 339,
         "workflowId": "pqnpr72wTiOE2m8I",
-        "versionId": "74623eeb-e56f-4d5e-a410-6f7691d00436",
-        "event": "deactivated",
+        "versionId": "10c3671d-7037-4e7c-b5ea-9af31ced9de5",
+        "event": "activated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       },
       {
-        "createdAt": "2026-07-06T05:58:27.757Z",
-        "id": 312,
+        "createdAt": "2026-07-06T08:51:50.676Z",
+        "id": 338,
         "workflowId": "pqnpr72wTiOE2m8I",
-        "versionId": "74623eeb-e56f-4d5e-a410-6f7691d00436",
-        "event": "activated",
+        "versionId": "10c3671d-7037-4e7c-b5ea-9af31ced9de5",
+        "event": "deactivated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       }
     ]

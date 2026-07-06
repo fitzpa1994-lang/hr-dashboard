@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-06T07:41:37.337Z",
+  "updatedAt": "2026-07-06T08:36:56.644Z",
   "createdAt": "2026-05-20T07:04:02.300Z",
   "id": "zEIwksk6hz9Ri8NA",
   "name": "HR Workflow：到職離職信件自動匯入 (純Regex + 分流防呆版)",
@@ -281,7 +281,10 @@
           "id": "y6zxdCqqBzmwq5bi",
           "name": "Anthropic account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -763,8 +766,8 @@
   "staticData": {},
   "meta": null,
   "pinData": {},
-  "versionId": "a68cfa08-3d8d-418a-b165-7e0165fc4eee",
-  "activeVersionId": "a68cfa08-3d8d-418a-b165-7e0165fc4eee",
+  "versionId": "616c261d-be93-4ed1-81c1-1820d35df599",
+  "activeVersionId": "616c261d-be93-4ed1-81c1-1820d35df599",
   "triggerCount": 3,
   "shared": [
     {
@@ -794,9 +797,9 @@
     }
   ],
   "activeVersion": {
-    "updatedAt": "2026-07-06T07:41:37.338Z",
-    "createdAt": "2026-07-06T07:41:37.338Z",
-    "versionId": "a68cfa08-3d8d-418a-b165-7e0165fc4eee",
+    "updatedAt": "2026-07-06T08:36:56.645Z",
+    "createdAt": "2026-07-06T08:36:56.645Z",
+    "versionId": "616c261d-be93-4ed1-81c1-1820d35df599",
     "workflowId": "zEIwksk6hz9Ri8NA",
     "nodes": [
       {
@@ -1073,7 +1076,10 @@
             "id": "y6zxdCqqBzmwq5bi",
             "name": "Anthropic account"
           }
-        }
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000
       },
       {
         "parameters": {
@@ -1553,18 +1559,18 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-07-06T07:41:37.373Z",
-        "id": 316,
+        "createdAt": "2026-07-06T08:36:56.669Z",
+        "id": 323,
         "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "a68cfa08-3d8d-418a-b165-7e0165fc4eee",
+        "versionId": "616c261d-be93-4ed1-81c1-1820d35df599",
         "event": "deactivated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       },
       {
-        "createdAt": "2026-07-06T07:41:37.722Z",
-        "id": 317,
+        "createdAt": "2026-07-06T08:36:57.095Z",
+        "id": 324,
         "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "a68cfa08-3d8d-418a-b165-7e0165fc4eee",
+        "versionId": "616c261d-be93-4ed1-81c1-1820d35df599",
         "event": "activated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       }

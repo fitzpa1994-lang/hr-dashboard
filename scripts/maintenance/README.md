@@ -17,6 +17,14 @@
 | `harden_workflow3_20260706.mjs` | 對本地 Workflow3 快照注入年份防呆＋防重複插入（已套用並部署） |
 | `sql/cleanup_onboarding_replay_dedupe_20260706.sql` | 重播後清理：刪 2025 錯字列、每人去重、馮堿呈待定日、過期 pending 標 onboarded |
 | `sql/fix_resignation_offbyone_dates_20260706.sql` | 修正舊 parser 時區偏移造成的離職日 +1 天（9 筆）＋曾佳佩重複列 |
+| `replay_interview_emails.mjs` | **WF1 面試信重播器**：監看資料夾信件依時間順序餵進複製的面試解析鏈（冪等）。用法 `node ... --apply 2026-06-01` |
+| `fix_wf1_merge_code_20260706.mjs` | 修復 WF1「整合輸出」jsCode（7/2 事故：整段複製×2＋regex 反斜線剝除 → 每封面試信 SyntaxError）；取 git fa1314f 乾淨版＋為 WF1/WF3 Claude 節點加 retryOnFail（已執行）|
+| `clean_wf1_ghost_connections_20260706.mjs` | 清除 WF1 connections 的 latin-1 亂碼幽靈鍵（7/2 事故殘骸，已執行）|
+| `sync_wf3_canonicalization_from_module.mjs` | 把 dashboard 正規化模組轉換注入 WF3 merge jsCode（對照表改動後的同步工具）|
+| `patch_wf3_person_upsert_20260706.mjs` | WF3 加人員層級 upsert：同名 pending 收到帶新日期的通知信自動更新（已套用）|
+| `create_error_logger.mjs` / `harden_workflow3_20260706.mjs` | 見上；Error Logger 已 activate（2026-07-06）|
+
+⚠ **勿再執行**：`repair_live_workflow1_claude_body.mjs`（7/2 事故源頭 — 產生了複製×2＋反斜線剝除的 jsCode）。
 
 ## 2026-06 ~ 2026-07 到職/離職資料修復系列
 
