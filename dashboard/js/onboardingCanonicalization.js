@@ -24,7 +24,10 @@ export function canonicalizeOnboardingDepartment(rawDepartment, context = {}) {
   }
 
   if (hasAny(keywordText, ['國際標準認證事業五部', 'WBU', '五部'])) {
-    if (hasAny(keywordText, ['RF工程一部'])) return 'WBU / RF工程一部';
+    if (hasAny(keywordText, ['RF工程一部'])) {
+      if (hasAny(keywordText, ['案件專員', '案件管理'])) return 'WBU / PM';
+      return 'WBU / RF工程一部';
+    }
     if (hasAny(keywordText, ['SAR工程部'])) return 'WBU / SAR工程部';
     if (hasAny(keywordText, ['場測工程部'])) return 'WBU / 場測工程部';
     if (hasAny(keywordText, ['國際認證一部', '認證專員'])) return 'WBU / 國際認證一部';

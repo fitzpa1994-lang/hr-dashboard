@@ -82,3 +82,25 @@ describe('north/reserve sales canonicalization', () => {
     expect(result.canonicalPosition).toBe('業務專員');
   });
 });
+
+describe('RF case-management PM canonicalization', () => {
+  test('maps RF工程一部 案件專員 hires to the WBU / PM requisition', () => {
+    const result = canonicalizeOnboardingMatch({
+      department: '五部 RF工程一部',
+      position: '案件專員',
+      emailSubject: '【新進人員通知】五部  RF工程一部：劉晉嘉  預計於2026/8/3 (一)報到',
+    });
+
+    expect(result.canonicalDepartment).toBe('WBU / PM');
+    expect(result.canonicalPosition).toBe('PM');
+
+    const engineer = canonicalizeOnboardingMatch({
+      department: '五部 RF工程一部',
+      position: '測試工程師',
+      emailSubject: '【新進人員通知】五部  RF工程一部：某某某  預計於2026/8/3 (一)報到',
+    });
+
+    expect(engineer.canonicalDepartment).toBe('WBU / RF工程一部');
+    expect(engineer.canonicalPosition).toBe('測試工程師');
+  });
+});
