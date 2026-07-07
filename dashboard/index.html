@@ -2122,8 +2122,8 @@ function renderCharts(){
 
   const normalizeHrName = name => {
     const s = String(name || '').trim();
-    const cjk = s.match(/[一-龥㐀-䶿]+/g);
-    if (cjk && cjk.join('').length >= 2) return cjk.join('');
+    const cjk = s.match(/[一-龥㐀-䶿]{2,}/g);
+    if (cjk && cjk.length > 0) return cjk[0];
     return s.replace(/\s+/g, ' ');
   };
   const hrMap={};
