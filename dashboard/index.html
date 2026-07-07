@@ -244,6 +244,7 @@
     color: #728196;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    white-space: nowrap;
     border-bottom: 1px solid rgba(148, 163, 184, 0.14);
     background-color: rgba(244, 247, 251, 0.9);
   }
@@ -687,10 +688,12 @@
               <span id="cand-count" class="text-xs text-gray-500">0 / 0 筆</span>
             </div>
           </div>
+          <div class="overflow-x-auto">
           <table class="w-full tbl-compact">
             <thead><tr><th>姓名</th><th>應徵職位</th><th>部門</th><th>負責 HR</th><th>狀態</th><th>最近更新</th><th>備註</th></tr></thead>
             <tbody id="cand-tbody"></tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -1512,11 +1515,11 @@ function initOverview() {
     const st = cand || 'interviewing';
     return `
     <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
-      <td class="font-medium text-gray-900">${e.time||'--'}</td>
-      <td class="font-semibold text-brand">${e.name}</td>
+      <td class="font-medium text-gray-900" style="white-space:nowrap">${e.time||'--'}</td>
+      <td class="font-semibold text-brand" style="white-space:nowrap">${e.name}</td>
       <td>${e.pos} <span class="text-gray-400 text-[11px] ml-1">${e.dept}</span></td>
-      <td>第 ${e.round||1} 輪</td>
-      <td class="text-gray-500">${e.hr}</td>
+      <td style="white-space:nowrap">第 ${e.round||1} 輪</td>
+      <td class="text-gray-500" style="white-space:nowrap">${e.hr}</td>
       <td>${getBadge(st)}</td>
     </tr>
   `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試排程</td></tr>`;
@@ -1551,11 +1554,11 @@ function initOverview() {
   const progressRows = sortByPrimaryDate(candidatesData, candidate => candidate.onboardDate || candidate.date || candidate.latestDate).slice(0, 10);
   document.getElementById('overview-progress-tbody').innerHTML = progressRows.length ? progressRows.map(candidate => `
     <tr class="cursor-pointer" onclick="openDrawer('${candidate.name}')">
-      <td class="font-semibold text-brand">${candidate.name}</td>
+      <td class="font-semibold text-brand" style="white-space:nowrap">${candidate.name}</td>
       <td>${candidate.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${candidate.dept || '--'}</span></td>
-      <td class="text-gray-500">${fmtDate(candidate.firstSignalAt)}</td>
-      <td class="text-gray-500">${candidate.date ? `${fmtDateWeek(candidate.date)}${candidate.time ? ' ' + candidate.time : ''}` : '--'}</td>
-      <td class="text-gray-500">${candidate.onboardDate ? fmtDateWeek(candidate.onboardDate) : '--'}</td>
+      <td class="text-gray-500" style="white-space:nowrap">${fmtDate(candidate.firstSignalAt)}</td>
+      <td class="text-gray-500" style="white-space:nowrap">${candidate.date ? `${fmtDateWeek(candidate.date)}${candidate.time ? ' ' + candidate.time : ''}` : '--'}</td>
+      <td class="text-gray-500" style="white-space:nowrap">${candidate.onboardDate ? fmtDateWeek(candidate.onboardDate) : '--'}</td>
       <td>${getBadge(candidate)}</td>
     </tr>
   `).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">目前沒有可顯示的招募進度</td></tr>`;
@@ -1975,12 +1978,12 @@ function renderCandidates(){
   if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-gray-400">沒有符合條件的候選人</td></tr>';return;}
   tbody.innerHTML=filtered.map(c=>`
     <tr class="cursor-pointer" onclick="openDrawer('${c.name}')">
-      <td class="font-semibold text-brand">${c.name}</td>
-      <td>${c.pos||'--'}</td>
-      <td class="text-gray-500">${c.dept||'--'}</td>
-      <td class="text-gray-500">${c.hr||'--'}</td>
-      <td>${getBadge(c)}</td>
-      <td class="text-gray-400 text-xs">${fmtDate(c.onboardDate || c.latestDate || c.date)}</td>
+      <td class="font-semibold text-brand" style="white-space:nowrap">${c.name}</td>
+      <td style="white-space:nowrap">${c.pos||'--'}</td>
+      <td class="text-gray-500" style="white-space:nowrap">${c.dept||'--'}</td>
+      <td class="text-gray-500" style="white-space:nowrap">${c.hr||'--'}</td>
+      <td style="white-space:nowrap">${getBadge(c)}</td>
+      <td class="text-gray-400 text-xs" style="white-space:nowrap">${fmtDate(c.onboardDate || c.latestDate || c.date)}</td>
       <td class="text-gray-400 text-xs" title="${escHtml(c.note||'')}">${escHtml(getCandidateProgressText(c))}</td>
     </tr>
   `).join('');
