@@ -49,7 +49,7 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
   function ensureToolbar() {
     const jobsTab = document.getElementById('tab-jobs');
     if (!jobsTab) return;
-    const toolbar = jobsTab.querySelector('.px-5.py-4');
+    const toolbar = jobsTab.querySelector('.section-head');
     if (!toolbar) return;
 
     if (!toolbar.querySelector('[data-job-filter="closed"]')) {
