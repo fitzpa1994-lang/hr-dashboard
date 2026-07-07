@@ -1661,27 +1661,91 @@ function calNext(){calDate.setMonth(calDate.getMonth()+1);renderCalendar();}
 // HR EVENTS TAB (ONBOARD / RESIGN)
 // ============================================================
 function renderOnboardResign(){
+  function weekLater(){ const d=new Date(TODAY); d.setDate(d.getDate()+6); return d.toISOString().split('T')[0]; }
+  function groupByTime(items, dateKey){
+    const wEnd=weekLater();
+    const g={today:[],week:[],upcoming:[],past:[]};
+    items.forEach(item=>{
+      const d=item[dateKey]||'';
+      if(d===TODAY) g.today.push(item);
+      else if(d>TODAY&&d<=wEnd) g.week.push(item);
+      else if(d>TODAY) g.upcoming.push(item);
+      else g.past.push(item);
+    });
+    const asc=(a,b)=>String(a[dateKey]||'').localeCompare(String(b[dateKey]||''));
+    const desc=(a,b)=>String(b[dateKey]||'').localeCompare(String(a[dateKey]||''));
+    g.today.sort(asc); g.week.sort(asc); g.upcoming.sort(asc); g.past.sort(desc);
+    return g;
+  }
+  function secHead(label,count){
+    return `<tr><td colspan="4" class="py-1.5 px-3 bg-gray-50 text-[10px] font-semibold text-gray-500 uppercase tracking-wider border-t border-gray-100">${label} <span class="font-normal text-gray-400 normal-case">${count} 人</span></td></tr>`;
+  }
+
   const oBody=document.getElementById('onboard-list');
-  const orderedOnboards = sortByPrimaryDate(onboardData, item => item.date);
-  oBody.innerHTML = orderedOnboards.length ? orderedOnboards.map(o=>`
+  const og=groupByTime(onboardData.filter(o=>o.status!=='cancelled'),'date');
+  let oHtml='';
+  if(og.today.length) oHtml+=secHead('今天',og.today.length)+og.today.map(o=>`
+    <tr class="bg-blue-50">
+      <td class="font-semibold text-gray-900">${o.name}</td>
+      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+      <td class="font-semibold text-blue-600">${fmtDateWeek(o.date)}</td>
+      <td>${getBadge(o.status)}</td>
+    </tr>`).join('');
+  if(og.week.length) oHtml+=secHead('本週',og.week.length)+og.week.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
       <td>${getBadge(o.status)}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有到職資料</td></tr>`;
+    </tr>`).join('');
+  if(og.upcoming.length) oHtml+=secHead('之後',og.upcoming.length)+og.upcoming.map(o=>`
+    <tr>
+      <td class="font-semibold text-gray-900">${o.name}</td>
+      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+      <td>${fmtDateWeek(o.date)}</td>
+      <td>${getBadge(o.status)}</td>
+    </tr>`).join('');
+  if(og.past.length) oHtml+=secHead('已完成',og.past.length)+og.past.map(o=>`
+    <tr class="opacity-50">
+      <td class="font-semibold text-gray-900">${o.name}</td>
+      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+      <td>${fmtDateWeek(o.date)}</td>
+      <td>${getBadge(o.status)}</td>
+    </tr>`).join('');
+  oBody.innerHTML=oHtml||`<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有到職資料</td></tr>`;
 
   const rBody=document.getElementById('resign-list');
-  const orderedResigns = sortByPrimaryDate(resignData, item => item.lastDay);
-  rBody.innerHTML = orderedResigns.length ? orderedResigns.map(r=>`
+  const rg=groupByTime(resignData.filter(r=>r.status!=='cancelled'),'lastDay');
+  let rHtml='';
+  if(rg.today.length) rHtml+=secHead('今天',rg.today.length)+rg.today.map(r=>`
+    <tr class="bg-red-50">
+      <td class="font-semibold text-gray-900">${r.name}</td>
+      <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+      <td class="font-semibold text-red-500">${fmtDateWeek(r.lastDay)}</td>
+      <td><span class="badge badge-red">待離職</span></td>
+    </tr>`).join('');
+  if(rg.week.length) rHtml+=secHead('本週',rg.week.length)+rg.week.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
-      <td><span class="badge ${r.status==='done'?'badge-gray':'badge-red'}">${r.status==='done'?'已完成':'待離職'}</span></td>
-    </tr>
-  `).join('') : `<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有離職資料</td></tr>`;
+      <td><span class="badge badge-red">待離職</span></td>
+    </tr>`).join('');
+  if(rg.upcoming.length) rHtml+=secHead('之後',rg.upcoming.length)+rg.upcoming.map(r=>`
+    <tr>
+      <td class="font-semibold text-gray-900">${r.name}</td>
+      <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+      <td>${fmtDateWeek(r.lastDay)}</td>
+      <td><span class="badge badge-red">待離職</span></td>
+    </tr>`).join('');
+  if(rg.past.length) rHtml+=secHead('已完成',rg.past.length)+rg.past.map(r=>`
+    <tr class="opacity-50">
+      <td class="font-semibold text-gray-900">${r.name}</td>
+      <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+      <td>${fmtDateWeek(r.lastDay)}</td>
+      <td><span class="badge badge-gray">已完成</span></td>
+    </tr>`).join('');
+  rBody.innerHTML=rHtml||`<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有離職資料</td></tr>`;
 }
 
 // ============================================================
