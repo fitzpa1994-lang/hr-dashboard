@@ -1521,7 +1521,7 @@ function initOverview() {
     <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
       <td class="font-medium text-gray-900" style="white-space:nowrap">${e.time||'--'}</td>
       <td class="font-semibold text-brand" style="white-space:nowrap">${e.name}</td>
-      <td>${e.pos} <span class="text-gray-400 text-[11px] ml-1">${e.dept}</span></td>
+      <td style="white-space:nowrap">${e.pos} <span class="text-gray-400 text-[11px] ml-1">${e.dept}</span></td>
       <td style="white-space:nowrap">第 ${e.round||1} 輪</td>
       <td class="text-gray-500" style="white-space:nowrap">${e.hr}</td>
       <td style="white-space:nowrap">${getBadge(st)}</td>
@@ -1559,7 +1559,7 @@ function initOverview() {
   document.getElementById('overview-progress-tbody').innerHTML = progressRows.length ? progressRows.map(candidate => `
     <tr class="cursor-pointer" onclick="openDrawer('${candidate.name}')">
       <td class="font-semibold text-brand" style="white-space:nowrap">${candidate.name}</td>
-      <td>${candidate.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${candidate.dept || '--'}</span></td>
+      <td style="white-space:nowrap">${candidate.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${candidate.dept || '--'}</span></td>
       <td class="text-gray-500" style="white-space:nowrap">${fmtDate(candidate.firstSignalAt)}</td>
       <td class="text-gray-500" style="white-space:nowrap">${candidate.date ? `${fmtDateWeek(candidate.date)}${candidate.time ? ' ' + candidate.time : ''}` : '--'}</td>
       <td class="text-gray-500" style="white-space:nowrap">${candidate.onboardDate ? fmtDateWeek(candidate.onboardDate) : '--'}</td>
