@@ -640,19 +640,23 @@
              <div class="section-head bg-transparent">
                 <i data-lucide="user-check" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">近期到職名單</h2>
              </div>
+             <div class="overflow-x-auto">
              <table class="w-full tbl-compact">
                <thead><tr><th>姓名</th><th>職位 / 部門</th><th>預計到職日</th><th colspan="2">狀態 / 確認</th></tr></thead>
                <tbody id="onboard-list"></tbody>
              </table>
+             </div>
           </div>
           <div class="surface-panel-strong flex flex-col h-fit">
              <div class="section-head bg-transparent">
                 <i data-lucide="user-minus" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">近期離職名單</h2>
              </div>
+             <div class="overflow-x-auto">
              <table class="w-full tbl-compact">
                <thead><tr><th>姓名</th><th>職位 / 部門</th><th>最後在職日</th><th>狀態</th></tr></thead>
                <tbody id="resign-list"></tbody>
              </table>
+             </div>
           </div>
         </div>
       </div>
@@ -1835,21 +1839,21 @@ function renderOnboardResign(){
   let oHtml='';
   if(og.today.length) oHtml+=secHead('今天',og.today.length)+og.today.map(o=>`
     <tr class="bg-blue-50">
-      <td class="font-semibold text-gray-900">${o.name}</td>
+      <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td class="font-semibold text-blue-600">${fmtDateWeek(o.date)}</td>
       <td colspan="2">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.week.length) oHtml+=secHead('本週',og.week.length)+og.week.map(o=>`
     <tr>
-      <td class="font-semibold text-gray-900">${o.name}</td>
+      <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
       <td colspan="2">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.upcoming.length) oHtml+=secHead('之後',og.upcoming.length)+og.upcoming.map(o=>`
     <tr>
-      <td class="font-semibold text-gray-900">${o.name}</td>
+      <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
       <td colspan="2">${getBadge(o.status)}</td>
@@ -1857,7 +1861,7 @@ function renderOnboardResign(){
   if(pastAll.length){
     const pastRowsHtml=pastAll.map(o=>`
       <tr class="${o.status==='no_show'?'opacity-40':''}">
-        <td class="font-semibold text-gray-900">${o.name}</td>
+        <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
         <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
         <td class="text-gray-500">${fmtDateWeek(o.date)}</td>
         <td>${o.status==='no_show'?'<span class="badge badge-red">放棄報到</span>':'<span class="badge badge-green">已到職</span>'}</td>
@@ -1872,21 +1876,21 @@ function renderOnboardResign(){
   let rHtml='';
   if(rg.today.length) rHtml+=secHead('今天',rg.today.length)+rg.today.map(r=>`
     <tr class="bg-red-50">
-      <td class="font-semibold text-gray-900">${r.name}</td>
+      <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td class="font-semibold text-red-500">${fmtDateWeek(r.lastDay)}</td>
       <td><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
   if(rg.week.length) rHtml+=secHead('本週',rg.week.length)+rg.week.map(r=>`
     <tr>
-      <td class="font-semibold text-gray-900">${r.name}</td>
+      <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
       <td><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
   if(rg.upcoming.length) rHtml+=secHead('之後',rg.upcoming.length)+rg.upcoming.map(r=>`
     <tr>
-      <td class="font-semibold text-gray-900">${r.name}</td>
+      <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
       <td><span class="badge badge-red">待離職</span></td>
@@ -1894,7 +1898,7 @@ function renderOnboardResign(){
   if(rg.past.length){
     const pastRowsHtml=rg.past.map(r=>`
       <tr class="opacity-50">
-        <td class="font-semibold text-gray-900">${r.name}</td>
+        <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
         <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
         <td>${fmtDateWeek(r.lastDay)}</td>
         <td><span class="badge badge-gray">已完成</span></td>
