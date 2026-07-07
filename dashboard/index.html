@@ -1524,7 +1524,7 @@ function initOverview() {
       <td>${e.pos} <span class="text-gray-400 text-[11px] ml-1">${e.dept}</span></td>
       <td style="white-space:nowrap">第 ${e.round||1} 輪</td>
       <td class="text-gray-500" style="white-space:nowrap">${e.hr}</td>
-      <td>${getBadge(st)}</td>
+      <td style="white-space:nowrap">${getBadge(st)}</td>
     </tr>
   `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試排程</td></tr>`;
 
@@ -1563,7 +1563,7 @@ function initOverview() {
       <td class="text-gray-500" style="white-space:nowrap">${fmtDate(candidate.firstSignalAt)}</td>
       <td class="text-gray-500" style="white-space:nowrap">${candidate.date ? `${fmtDateWeek(candidate.date)}${candidate.time ? ' ' + candidate.time : ''}` : '--'}</td>
       <td class="text-gray-500" style="white-space:nowrap">${candidate.onboardDate ? fmtDateWeek(candidate.onboardDate) : '--'}</td>
-      <td>${getBadge(candidate)}</td>
+      <td style="white-space:nowrap">${getBadge(candidate)}</td>
     </tr>
   `).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">目前沒有可顯示的招募進度</td></tr>`;
 }
@@ -1842,21 +1842,21 @@ function renderOnboardResign(){
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td class="font-semibold text-blue-600">${fmtDateWeek(o.date)}</td>
-      <td colspan="2">${getBadge(o.status)}</td>
+      <td colspan="2" style="white-space:nowrap">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.week.length) oHtml+=secHead('本週',og.week.length)+og.week.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
-      <td colspan="2">${getBadge(o.status)}</td>
+      <td colspan="2" style="white-space:nowrap">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.upcoming.length) oHtml+=secHead('之後',og.upcoming.length)+og.upcoming.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
-      <td colspan="2">${getBadge(o.status)}</td>
+      <td colspan="2" style="white-space:nowrap">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(pastAll.length){
     const pastRowsHtml=pastAll.map(o=>`
@@ -1879,21 +1879,21 @@ function renderOnboardResign(){
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td class="font-semibold text-red-500">${fmtDateWeek(r.lastDay)}</td>
-      <td><span class="badge badge-red">待離職</span></td>
+      <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
   if(rg.week.length) rHtml+=secHead('本週',rg.week.length)+rg.week.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
-      <td><span class="badge badge-red">待離職</span></td>
+      <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
   if(rg.upcoming.length) rHtml+=secHead('之後',rg.upcoming.length)+rg.upcoming.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
-      <td><span class="badge badge-red">待離職</span></td>
+      <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
   if(rg.past.length){
     const pastRowsHtml=rg.past.map(r=>`
