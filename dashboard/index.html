@@ -1725,6 +1725,13 @@ function schedGoToday(){
   schedMonthDate = new Date(TODAY+'T00:00:00');
   schedSelectedDate = TODAY;
   renderSchedule();
+  setTimeout(() => {
+    const todayCell = document.querySelector('.schedule-day.today');
+    if (todayCell) {
+      const dc = document.querySelector('.dashboard-content');
+      if (dc) dc.scrollTop = todayCell.getBoundingClientRect().top + dc.scrollTop - dc.getBoundingClientRect().top - 120;
+    }
+  }, 30);
 }
 function isSameMonthString(dateString, refDate){
   return String(dateString || '').slice(0, 7) === `${refDate.getFullYear()}-${String(refDate.getMonth()+1).padStart(2,'0')}`;
@@ -1971,7 +1978,7 @@ function renderCandidates(){
       <td class="text-gray-500">${c.dept||'--'}</td>
       <td class="text-gray-500">${c.hr||'--'}</td>
       <td>${getBadge(c)}</td>
-      <td class="text-gray-400 text-xs">${fmtDate(c.onboardDate || c.date || c.latestDate)}</td>
+      <td class="text-gray-400 text-xs">${fmtDate(c.onboardDate || c.latestDate || c.date)}</td>
       <td class="text-gray-400 text-xs" title="${escHtml(c.note||'')}">${escHtml(getCandidateProgressText(c))}</td>
     </tr>
   `).join('');
@@ -2113,8 +2120,14 @@ function renderCharts(){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:6}}},scales:{x:{grid:{display:false}},y:{border:{display:false}}}}
   });
 
+  const normalizeHrName = name => {
+    const s = String(name || '').trim();
+    const cjk = s.match(/[一-龥㐀-䶿]+/g);
+    if (cjk && cjk.join('').length >= 2) return cjk.join('');
+    return s.replace(/\s+/g, ' ');
+  };
   const hrMap={};
-  for(const e of schedEvents.filter(e=>e.type==='interview'&&e.hr)) hrMap[e.hr]=(hrMap[e.hr]||0)+1;
+  for(const e of schedEvents.filter(e=>e.type==='interview'&&e.hr)) { const k=normalizeHrName(e.hr); hrMap[k]=(hrMap[k]||0)+1; }
   renderOrUpdate('hrWorkChart',{
     type:'bar',
     data:{
@@ -2170,6 +2183,7 @@ function showTab(name, btn){
   document.getElementById('page-title').textContent = titleMap[name] || '';
 
   if(name==='analytics') setTimeout(renderCharts, 50); // slight delay to ensure container is visible
+  if(name==='schedule') setTimeout(schedGoToday, 30);
   if (location.hash !== '#'+name) history.replaceState(null,'','#'+name);
 }
 
