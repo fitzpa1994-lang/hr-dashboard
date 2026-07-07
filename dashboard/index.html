@@ -664,10 +664,12 @@
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">開缺中</button>
             <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">已補滿</button>
           </div>
+          <div class="overflow-x-auto">
           <table class="w-full tbl-compact">
             <thead><tr><th>單位</th><th>職缺名稱</th><th>缺額</th><th>已補數</th><th>開缺日期</th><th>目標日期</th><th>急迫度</th><th>狀態</th></tr></thead>
             <tbody id="job-tbody"></tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -2258,7 +2260,7 @@ if (location.hash) {
   if (menuIndex !== undefined) showTab(initial, document.querySelectorAll('.menu-item')[menuIndex]);
 }
 </script>
-<script type="module" src="js/jobsEditor.js?v=4"></script>
+<script type="module" src="js/jobsEditor.js?v=5"></script>
 </body>
 </html>
 

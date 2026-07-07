@@ -259,14 +259,14 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     const header = document.querySelector('#tab-jobs thead tr');
     if (header) {
       header.innerHTML = [
-        '<th style="min-width:90px">部門</th>',
-        '<th style="min-width:100px">職缺名稱</th>',
-        '<th class="text-center" style="min-width:50px">缺額</th>',
-        '<th class="text-center" style="min-width:80px">急迫度</th>',
+        '<th style="min-width:120px">部門</th>',
+        '<th style="min-width:110px">職缺名稱</th>',
+        '<th class="text-center" style="min-width:70px">缺額</th>',
+        '<th class="text-center" style="min-width:90px">急迫度</th>',
         '<th class="text-center" style="min-width:55px">候選人</th>',
-        '<th style="min-width:70px">狀態</th>',
-        '<th>備註</th>',
-        '<th class="text-right" style="min-width:60px">操作</th>',
+        '<th style="min-width:80px">狀態</th>',
+        '<th style="min-width:120px">備註</th>',
+        '<th class="text-right" style="min-width:70px">操作</th>',
       ].join('');
     }
 
