@@ -546,19 +546,29 @@
           </div>
         </div>
 
-        <!-- 各部門招募進度 -->
-        <div class="surface-panel-strong flex flex-col">
-          <div class="section-head">
-            <div>
-              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-gray-500"></i>各部門招募進度</h2>
-              <div class="section-subtitle">各單位目前招募中的候選人人數分布（不含已淘汰）</div>
+        <!-- 每月招募趨勢 + 各部門招募進度 -->
+        <div class="grid grid-cols-12 gap-6">
+          <div class="col-span-5 surface-panel-strong flex flex-col">
+            <div class="section-head">
+              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-500"></i>每月面試趨勢</h2>
+            </div>
+            <div class="p-5" style="height:220px">
+              <canvas id="overview-monthly-chart"></canvas>
             </div>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full tbl-compact">
-              <thead><tr><th>部門</th><th class="text-center">待安排面試</th><th class="text-center">面試中</th><th class="text-center">確認到職日</th><th class="text-center">合計</th></tr></thead>
-              <tbody id="overview-dept-tbody"></tbody>
-            </table>
+          <div class="col-span-7 surface-panel-strong flex flex-col">
+            <div class="section-head">
+              <div>
+                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-gray-500"></i>各單位招募進度</h2>
+                <div class="section-subtitle">依母公司分組，不含已淘汰人選</div>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full tbl-compact">
+                <thead><tr><th>單位</th><th class="text-center">待安排</th><th class="text-center">面試中</th><th class="text-center">確認到職</th><th class="text-center">合計</th></tr></thead>
+                <tbody id="overview-dept-tbody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1407,31 +1417,76 @@ function renderAll() {
 // ============================================================
 // OVERVIEW TAB (DASHBOARD)
 // ============================================================
+function renderOverviewMonthlyChart() {
+  const months = (monthlyTrend || []).slice(-6);
+  if (!months.length) return;
+  renderOrUpdate('overview-monthly-chart', {
+    type: 'bar',
+    data: {
+      labels: months.map(m => {
+        const parts = String(m.month || '').split('-');
+        return parts[1] ? parts[1] + '月' : m.month;
+      }),
+      datasets: [
+        { label: '面試', data: months.map(m => m.interviews || 0), backgroundColor: '#2B5282', borderRadius: 4 },
+        { label: '到職', data: months.map(m => m.onboarded || 0), backgroundColor: '#38A169', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 } } } },
+      scales: { x: { grid: { display: false } }, y: { border: { display: false }, ticks: { precision: 0 } } }
+    }
+  });
+}
+
 function renderDeptBreakdown() {
-  const deptMap = {};
+  const GROUP_ORDER = ['WBU', 'ICC', '新華／新竹', '安規', '行政', '其他'];
+  const groupMap = {};
+  GROUP_ORDER.forEach(g => { groupMap[g] = {}; });
+
   for (const c of candidatesData) {
     const stage = getCandidateStageKey(c);
     if (stage === 'rejected') continue;
-    const dept = c.dept || '未分類';
-    if (!deptMap[dept]) deptMap[dept] = { arranging: 0, interviewing: 0, onboarded: 0 };
-    if (stage === 'arranging') deptMap[dept].arranging++;
-    else if (stage === 'interviewing') deptMap[dept].interviewing++;
-    else if (stage === 'onboarded') deptMap[dept].onboarded++;
+    const group = getJobGroup(c.dept);
+    const sub = c.dept || '未分類';
+    if (!groupMap[group][sub]) groupMap[group][sub] = { arranging: 0, interviewing: 0, onboarded: 0 };
+    if (stage === 'arranging') groupMap[group][sub].arranging++;
+    else if (stage === 'interviewing') groupMap[group][sub].interviewing++;
+    else if (stage === 'onboarded') groupMap[group][sub].onboarded++;
   }
-  const rows = Object.entries(deptMap)
-    .map(([dept, v]) => ({ dept, ...v, total: v.arranging + v.interviewing + v.onboarded }))
-    .filter(r => r.total > 0)
-    .sort((a, b) => b.total - a.total);
-  document.getElementById('overview-dept-tbody').innerHTML = rows.length
-    ? rows.map(r => `
-      <tr>
-        <td class="font-medium text-gray-900">${r.dept}</td>
-        <td class="text-center text-gray-500">${r.arranging || '--'}</td>
-        <td class="text-center text-gray-500">${r.interviewing || '--'}</td>
-        <td class="text-center text-gray-500">${r.onboarded || '--'}</td>
-        <td class="text-center font-semibold text-brand">${r.total}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="5" class="text-center py-6 text-gray-400">目前無招募中資料</td></tr>`;
+
+  let html = '';
+  GROUP_ORDER.forEach(groupName => {
+    const subs = groupMap[groupName];
+    if (!subs || !Object.keys(subs).length) return;
+    let gA = 0, gI = 0, gO = 0;
+    Object.values(subs).forEach(v => { gA += v.arranging; gI += v.interviewing; gO += v.onboarded; });
+    const gTotal = gA + gI + gO;
+    if (!gTotal) return;
+    html += `<tr style="background:rgba(22,58,99,0.06);border-top:1px solid rgba(22,58,99,0.1)">
+      <td class="px-6 py-2 font-bold text-[12px] text-brand tracking-wide">${groupName}</td>
+      <td class="text-center py-2 font-semibold text-gray-700 text-[12px]">${gA || '--'}</td>
+      <td class="text-center py-2 font-semibold text-gray-700 text-[12px]">${gI || '--'}</td>
+      <td class="text-center py-2 font-semibold text-gray-700 text-[12px]">${gO || '--'}</td>
+      <td class="text-center py-2 font-bold text-brand text-[13px]">${gTotal}</td>
+    </tr>`;
+    Object.entries(subs)
+      .map(([dept, v]) => ({ dept, ...v, total: v.arranging + v.interviewing + v.onboarded }))
+      .filter(r => r.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .forEach(r => {
+        const label = getJobSubDept(r.dept);
+        html += `<tr>
+          <td class="pl-10 pr-4 py-2 text-gray-500 text-[12px]">${label}</td>
+          <td class="text-center text-gray-400 text-[12px]">${r.arranging || '--'}</td>
+          <td class="text-center text-gray-400 text-[12px]">${r.interviewing || '--'}</td>
+          <td class="text-center text-gray-400 text-[12px]">${r.onboarded || '--'}</td>
+          <td class="text-center font-medium text-gray-600 text-[12px]">${r.total}</td>
+        </tr>`;
+      });
+  });
+  document.getElementById('overview-dept-tbody').innerHTML = html || '<tr><td colspan="5" class="text-center py-6 text-gray-400">目前無招募中資料</td></tr>';
 }
 
 function initOverview() {
@@ -1488,6 +1543,7 @@ function initOverview() {
   `).join('') : `<tr><td colspan="3" class="text-center py-6 text-gray-400">今日無離職人員</td></tr>`;
 
   renderDeptBreakdown();
+  renderOverviewMonthlyChart();
 
   const progressRows = sortByPrimaryDate(candidatesData, candidate => candidate.onboardDate || candidate.date || candidate.latestDate).slice(0, 10);
   document.getElementById('overview-progress-tbody').innerHTML = progressRows.length ? progressRows.map(candidate => `
