@@ -545,6 +545,22 @@
             </div>
           </div>
         </div>
+
+        <!-- 各部門招募進度 -->
+        <div class="surface-panel-strong flex flex-col">
+          <div class="section-head">
+            <div>
+              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-gray-500"></i>各部門招募進度</h2>
+              <div class="section-subtitle">各單位目前招募中的候選人人數分布（不含已淘汰）</div>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full tbl-compact">
+              <thead><tr><th>部門</th><th class="text-center">待安排面試</th><th class="text-center">面試中</th><th class="text-center">確認到職日</th><th class="text-center">合計</th></tr></thead>
+              <tbody id="overview-dept-tbody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- ===== TAB: 面試排程 ===== -->
@@ -1391,6 +1407,33 @@ function renderAll() {
 // ============================================================
 // OVERVIEW TAB (DASHBOARD)
 // ============================================================
+function renderDeptBreakdown() {
+  const deptMap = {};
+  for (const c of candidatesData) {
+    const stage = getCandidateStageKey(c);
+    if (stage === 'rejected') continue;
+    const dept = c.dept || '未分類';
+    if (!deptMap[dept]) deptMap[dept] = { arranging: 0, interviewing: 0, onboarded: 0 };
+    if (stage === 'arranging') deptMap[dept].arranging++;
+    else if (stage === 'interviewing') deptMap[dept].interviewing++;
+    else if (stage === 'onboarded') deptMap[dept].onboarded++;
+  }
+  const rows = Object.entries(deptMap)
+    .map(([dept, v]) => ({ dept, ...v, total: v.arranging + v.interviewing + v.onboarded }))
+    .filter(r => r.total > 0)
+    .sort((a, b) => b.total - a.total);
+  document.getElementById('overview-dept-tbody').innerHTML = rows.length
+    ? rows.map(r => `
+      <tr>
+        <td class="font-medium text-gray-900">${r.dept}</td>
+        <td class="text-center text-gray-500">${r.arranging || '--'}</td>
+        <td class="text-center text-gray-500">${r.interviewing || '--'}</td>
+        <td class="text-center text-gray-500">${r.onboarded || '--'}</td>
+        <td class="text-center font-semibold text-brand">${r.total}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="5" class="text-center py-6 text-gray-400">目前無招募中資料</td></tr>`;
+}
+
 function initOverview() {
   const overviewKpis = getOverviewKpis();
   document.getElementById('kpi-today-intv').textContent = overviewKpis.todayInterviewCount;
@@ -1443,6 +1486,8 @@ function initOverview() {
       <td class="text-gray-500">${item.hr || '--'}</td>
     </tr>
   `).join('') : `<tr><td colspan="3" class="text-center py-6 text-gray-400">今日無離職人員</td></tr>`;
+
+  renderDeptBreakdown();
 
   const progressRows = sortByPrimaryDate(candidatesData, candidate => candidate.onboardDate || candidate.date || candidate.latestDate).slice(0, 10);
   document.getElementById('overview-progress-tbody').innerHTML = progressRows.length ? progressRows.map(candidate => `
