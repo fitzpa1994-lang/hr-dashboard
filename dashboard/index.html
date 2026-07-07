@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HR 招募儀表板 - Sporton</title>
+<link rel="icon" type="image/jpeg" href="/favicon.jpg">
 
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -1705,30 +1706,25 @@ function renderOnboardResign(){
     </table></td></tr>`;
   }
 
-  function onboardActionBtns(o){
-    if(!o.id) return getBadge(o.status);
-    return `<div class="flex gap-1">
-      <button onclick="updateOnboardStatus(${o.id},'onboarded',this)" class="px-2 py-0.5 text-[10px] font-medium rounded bg-green-100 text-green-700 hover:bg-green-200 border border-green-200">已到職</button>
-      <button onclick="updateOnboardStatus(${o.id},'no_show',this)" class="px-2 py-0.5 text-[10px] font-medium rounded bg-red-100 text-red-700 hover:bg-red-200 border border-red-200">放鳥</button>
+  function onboardMgmtBtns(o){
+    if(!o.id) return '';
+    return `<div class="flex gap-1 justify-end">
+      <button onclick="showChangeDatePicker(${o.id},this)" class="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200 whitespace-nowrap">📅 變更日期</button>
+      <button onclick="updateOnboardStatus(${o.id},'no_show',this)" class="px-2 py-0.5 text-[10px] font-medium rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 whitespace-nowrap">✗ 放棄報到</button>
     </div>`;
   }
 
   const oBody=document.getElementById('onboard-list');
   const og=groupByTime(onboardData.filter(o=>o.status!=='cancelled'),'date','status');
+  // overdue pending entries are treated as 已到職 — merge into past
+  const pastAll=[...og.overdue,...og.past];
   let oHtml='';
-  if(og.overdue.length) oHtml+=`<tr><td colspan="5" class="py-1.5 px-3 bg-orange-50 border-t border-orange-100 text-[10px] font-semibold text-orange-600 uppercase tracking-wider">⚠ 逾期未確認 <span class="font-normal normal-case">${og.overdue.length} 人</span></td></tr>`+og.overdue.map(o=>`
-    <tr class="bg-orange-50">
-      <td class="font-semibold text-gray-900">${o.name}</td>
-      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
-      <td class="text-orange-500 font-medium">${fmtDateWeek(o.date)}</td>
-      <td colspan="2">${onboardActionBtns(o)}</td>
-    </tr>`).join('');
   if(og.today.length) oHtml+=secHead('今天',og.today.length)+og.today.map(o=>`
     <tr class="bg-blue-50">
       <td class="font-semibold text-gray-900">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td class="font-semibold text-blue-600">${fmtDateWeek(o.date)}</td>
-      <td colspan="2">${onboardActionBtns(o)}</td>
+      <td colspan="2">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.week.length) oHtml+=secHead('本週',og.week.length)+og.week.map(o=>`
     <tr>
@@ -1744,15 +1740,16 @@ function renderOnboardResign(){
       <td>${fmtDateWeek(o.date)}</td>
       <td colspan="2">${getBadge(o.status)}</td>
     </tr>`).join('');
-  if(og.past.length){
-    const pastRowsHtml=og.past.map(o=>`
-      <tr class="opacity-50">
+  if(pastAll.length){
+    const pastRowsHtml=pastAll.map(o=>`
+      <tr class="${o.status==='no_show'?'opacity-40':''}">
         <td class="font-semibold text-gray-900">${o.name}</td>
         <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
-        <td>${fmtDateWeek(o.date)}</td>
-        <td colspan="2">${o.status==='no_show'?'<span class="badge badge-red">放鳥</span>':getBadge(o.status)}</td>
+        <td class="text-gray-500">${fmtDateWeek(o.date)}</td>
+        <td>${o.status==='no_show'?'<span class="badge badge-red">放棄報到</span>':'<span class="badge badge-green">已到職</span>'}</td>
+        <td>${onboardMgmtBtns(o)}</td>
       </tr>`).join('');
-    oHtml+=pastToggleHead('已完成',og.past.length,'onboard-past')+pastRows(pastRowsHtml,'onboard-past');
+    oHtml+=pastToggleHead('已完成',pastAll.length,'onboard-past')+pastRows(pastRowsHtml,'onboard-past');
   }
   oBody.innerHTML=oHtml||`<tr><td colspan="5" class="text-center py-6 text-gray-400">目前沒有到職資料</td></tr>`;
 
@@ -1799,20 +1796,42 @@ function togglePastRows(id){
   icon.textContent=hidden?'▶':'▼';
 }
 async function updateOnboardStatus(id, status, btn){
-  const row=btn.closest('tr');
   btn.disabled=true; btn.textContent='...';
   try{
     const res=await fetch(`/api/onboardings/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
     if(!res.ok) throw new Error(await res.text());
-    // update local data and re-render
     const item=onboardData.find(o=>o.id===id);
     if(item) item.status=status;
     renderOnboardResign();
   }catch(e){
     btn.disabled=false;
-    btn.textContent=status==='onboarded'?'已到職':'放鳥';
+    btn.textContent='✗ 放棄報到';
     alert('更新失敗：'+e.message);
   }
+}
+function showChangeDatePicker(id, btn){
+  const existing=btn.parentElement.querySelector('input[type=date]');
+  if(existing){ existing.remove(); return; }
+  const input=document.createElement('input');
+  input.type='date'; input.className='text-[11px] border border-gray-300 rounded px-1 py-0.5 ml-1';
+  input.value=onboardData.find(o=>o.id===id)?.date||'';
+  input.onchange=async function(){
+    const date=input.value;
+    if(!date) return;
+    input.disabled=true;
+    try{
+      const res=await fetch(`/api/onboardings/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({date})});
+      if(!res.ok) throw new Error(await res.text());
+      const item=onboardData.find(o=>o.id===id);
+      if(item) item.date=date;
+      renderOnboardResign();
+    }catch(e){
+      input.disabled=false;
+      alert('更新失敗：'+e.message);
+    }
+  };
+  btn.parentElement.appendChild(input);
+  input.focus();
 }
 
 // ============================================================

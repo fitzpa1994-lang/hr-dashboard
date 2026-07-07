@@ -284,13 +284,25 @@ async function proxyJobRequisitionWrite(req, res, action, id = null) {
   }
 }
 
-async function proxyOnboardingStatusUpdate(req, res, id) {
+async function proxyOnboardingUpdate(req, res, id) {
   if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
   if (!writeEnvReady()) return sendJson(res, 500, { error: 'Write API is not configured' });
 
   const body = await readBody(req);
-  const allowed = ['onboarded', 'no_show', 'pending', 'cancelled'];
-  if (!allowed.includes(body.status)) return sendJson(res, 400, { error: 'Invalid status' });
+  const allowedStatuses = ['onboarded', 'no_show', 'pending', 'cancelled'];
+  let action, onboardStatus;
+
+  if (body.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date)) return sendJson(res, 400, { error: 'Invalid date format' });
+    action = 'update_onboard_date';
+    onboardStatus = body.date;
+  } else if (body.status) {
+    if (!allowedStatuses.includes(body.status)) return sendJson(res, 400, { error: 'Invalid status' });
+    action = 'update_onboard';
+    onboardStatus = body.status;
+  } else {
+    return sendJson(res, 400, { error: 'Missing status or date' });
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), getProxyTimeoutMs());
@@ -299,7 +311,7 @@ async function proxyOnboardingStatusUpdate(req, res, id) {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${N8N_TOKEN}` },
-      body: JSON.stringify({ action: 'update_onboard', onboardId: id, onboardStatus: body.status })
+      body: JSON.stringify({ action, onboardId: id, onboardStatus })
     });
     const text = await upstream.text();
     res.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -358,7 +370,7 @@ export const server = http.createServer(async (req, res) => {
 
     const onboardMatch = url.pathname.match(/^\/api\/onboardings\/(\d+)$/);
     if (req.method === 'PATCH' && onboardMatch) {
-      return proxyOnboardingStatusUpdate(req, res, Number(onboardMatch[1]));
+      return proxyOnboardingUpdate(req, res, Number(onboardMatch[1]));
     }
 
     if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
