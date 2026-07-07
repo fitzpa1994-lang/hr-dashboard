@@ -1928,22 +1928,50 @@ function setJobF(f,btn){
   btn.className = 'px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white';
   renderJobs();
 }
+function getJobGroup(dept) {
+  if (!dept) return '其他';
+  if (dept.startsWith('WBU')) return 'WBU';
+  if (dept.startsWith('ICC')) return 'ICC';
+  if (dept.startsWith('新竹') || dept.startsWith('新華')) return '新華／新竹';
+  if (dept.startsWith('安規')) return '安規';
+  if (dept.startsWith('行政')) return '行政';
+  return '其他';
+}
+function getJobSubDept(dept) {
+  return String(dept || '').replace(/^[^/／]+[/／]\s*/, '').trim() || dept || '--';
+}
 function renderJobs(){
   const items=jobFilter==='all'?jobsData:jobsData.filter(j=>j.status===jobFilter);
   const tbody=document.getElementById('job-tbody');
   if(!items.length){tbody.innerHTML='<tr><td colspan="8" class="text-center py-8 text-gray-400">目前沒有職缺資料</td></tr>';return;}
-  tbody.innerHTML=items.map(j=>{
-    const rate=j.cands>0?Math.round(100*j.hired/j.cands):0;
-    return`<tr>
-      <td class="font-semibold text-gray-900">${j.pos}</td>
-      <td>${j.dept}</td>
-      <td>${j.open||'--'}</td>
-      <td>${j.open?daysOpen(j.open):0} 天</td>
-      <td>${j.cands}</td>
-      <td>${rate}%</td>
-      <td>${getBadge(j.status)}</td>
-    </tr>`;
-  }).join('');
+  const GROUP_ORDER=['WBU','ICC','新華／新竹','安規','行政','其他'];
+  const groups={};
+  GROUP_ORDER.forEach(g=>groups[g]=[]);
+  items.forEach(j=>{
+    const g=getJobGroup(j.dept);
+    (groups[g]=groups[g]||[]).push(j);
+  });
+  let html='';
+  GROUP_ORDER.forEach(groupName=>{
+    const list=groups[groupName];
+    if(!list||!list.length)return;
+    html+=`<tr><td colspan="8" style="padding:8px 24px 6px;background:rgba(22,58,99,0.05);border-top:1px solid rgba(22,58,99,0.12);border-bottom:1px solid rgba(22,58,99,0.08)"><span style="font-size:11px;font-weight:700;color:#163a63;letter-spacing:0.06em;text-transform:uppercase">${groupName}</span></td></tr>`;
+    list.forEach(j=>{
+      const subDept=getJobSubDept(j.dept);
+      const urgencyDots='●'.repeat(Math.min(j.urgency||3,5))+'○'.repeat(Math.max(0,5-(j.urgency||3)));
+      html+=`<tr>
+        <td class="text-gray-500 text-[12px]">${subDept}</td>
+        <td class="font-semibold text-gray-900">${j.pos}</td>
+        <td class="text-center">${j.headcount>=999?'數名':j.headcount||'--'}</td>
+        <td class="text-center">${j.filled||0}</td>
+        <td>${j.open||'--'}</td>
+        <td>${j.target||'--'}</td>
+        <td class="text-center text-[10px] tracking-tighter text-amber-500">${urgencyDots}</td>
+        <td>${getBadge(j.status)}</td>
+      </tr>`;
+    });
+  });
+  tbody.innerHTML=html;
 }
 
 // ============================================================
