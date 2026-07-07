@@ -1680,6 +1680,19 @@ function renderOnboardResign(){
   function secHead(label,count){
     return `<tr><td colspan="4" class="py-1.5 px-3 bg-gray-50 text-[10px] font-semibold text-gray-500 uppercase tracking-wider border-t border-gray-100">${label} <span class="font-normal text-gray-400 normal-case">${count} 人</span></td></tr>`;
   }
+  function pastToggleHead(label,count,toggleId){
+    return `<tr><td colspan="4" class="py-1.5 px-3 bg-gray-50 border-t border-gray-100">
+      <button onclick="togglePastRows('${toggleId}')" class="flex items-center gap-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors w-full text-left">
+        <span>${label}</span><span class="font-normal normal-case">${count} 人</span>
+        <span id="${toggleId}-icon" class="ml-auto">▶</span>
+      </button>
+    </td></tr>`;
+  }
+  function pastRows(rows, toggleId){
+    return `<tr id="${toggleId}-rows" class="hidden"><td colspan="4" class="p-0"><table class="w-full">
+      ${rows}
+    </table></td></tr>`;
+  }
 
   const oBody=document.getElementById('onboard-list');
   const og=groupByTime(onboardData.filter(o=>o.status!=='cancelled'),'date');
@@ -1705,13 +1718,16 @@ function renderOnboardResign(){
       <td>${fmtDateWeek(o.date)}</td>
       <td>${getBadge(o.status)}</td>
     </tr>`).join('');
-  if(og.past.length) oHtml+=secHead('已完成',og.past.length)+og.past.map(o=>`
-    <tr class="opacity-50">
-      <td class="font-semibold text-gray-900">${o.name}</td>
-      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
-      <td>${fmtDateWeek(o.date)}</td>
-      <td>${getBadge(o.status)}</td>
-    </tr>`).join('');
+  if(og.past.length){
+    const pastRowsHtml=og.past.map(o=>`
+      <tr class="opacity-50">
+        <td class="font-semibold text-gray-900">${o.name}</td>
+        <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+        <td>${fmtDateWeek(o.date)}</td>
+        <td>${getBadge(o.status)}</td>
+      </tr>`).join('');
+    oHtml+=pastToggleHead('已完成',og.past.length,'onboard-past')+pastRows(pastRowsHtml,'onboard-past');
+  }
   oBody.innerHTML=oHtml||`<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有到職資料</td></tr>`;
 
   const rBody=document.getElementById('resign-list');
@@ -1738,14 +1754,23 @@ function renderOnboardResign(){
       <td>${fmtDateWeek(r.lastDay)}</td>
       <td><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
-  if(rg.past.length) rHtml+=secHead('已完成',rg.past.length)+rg.past.map(r=>`
-    <tr class="opacity-50">
-      <td class="font-semibold text-gray-900">${r.name}</td>
-      <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
-      <td>${fmtDateWeek(r.lastDay)}</td>
-      <td><span class="badge badge-gray">已完成</span></td>
-    </tr>`).join('');
+  if(rg.past.length){
+    const pastRowsHtml=rg.past.map(r=>`
+      <tr class="opacity-50">
+        <td class="font-semibold text-gray-900">${r.name}</td>
+        <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+        <td>${fmtDateWeek(r.lastDay)}</td>
+        <td><span class="badge badge-gray">已完成</span></td>
+      </tr>`).join('');
+    rHtml+=pastToggleHead('已完成',rg.past.length,'resign-past')+pastRows(pastRowsHtml,'resign-past');
+  }
   rBody.innerHTML=rHtml||`<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有離職資料</td></tr>`;
+}
+function togglePastRows(id){
+  const rows=document.getElementById(id+'-rows');
+  const icon=document.getElementById(id+'-icon');
+  const hidden=rows.classList.toggle('hidden');
+  icon.textContent=hidden?'▶':'▼';
 }
 
 // ============================================================
