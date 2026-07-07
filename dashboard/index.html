@@ -1840,21 +1840,21 @@ function renderOnboardResign(){
   if(og.today.length) oHtml+=secHead('今天',og.today.length)+og.today.map(o=>`
     <tr class="bg-blue-50">
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
-      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+      <td style="white-space:nowrap">${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td class="font-semibold text-blue-600">${fmtDateWeek(o.date)}</td>
       <td colspan="2" style="white-space:nowrap">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.week.length) oHtml+=secHead('本週',og.week.length)+og.week.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
-      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+      <td style="white-space:nowrap">${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
       <td colspan="2" style="white-space:nowrap">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.upcoming.length) oHtml+=secHead('之後',og.upcoming.length)+og.upcoming.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
-      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+      <td style="white-space:nowrap">${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
       <td colspan="2" style="white-space:nowrap">${getBadge(o.status)}</td>
     </tr>`).join('');
@@ -1862,7 +1862,7 @@ function renderOnboardResign(){
     const pastRowsHtml=pastAll.map(o=>`
       <tr class="${o.status==='no_show'?'opacity-40':''}">
         <td class="font-semibold text-gray-900" style="white-space:nowrap">${o.name}</td>
-        <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+        <td style="white-space:nowrap">${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
         <td class="text-gray-500">${fmtDateWeek(o.date)}</td>
         <td>${o.status==='no_show'?'<span class="badge badge-red">放棄報到</span>':'<span class="badge badge-green">已到職</span>'}</td>
         <td>${onboardMgmtBtns(o)}</td>
@@ -1877,21 +1877,21 @@ function renderOnboardResign(){
   if(rg.today.length) rHtml+=secHead('今天',rg.today.length)+rg.today.map(r=>`
     <tr class="bg-red-50">
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
-      <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+      <td style="white-space:nowrap">${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td class="font-semibold text-red-500">${fmtDateWeek(r.lastDay)}</td>
       <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
   if(rg.week.length) rHtml+=secHead('本週',rg.week.length)+rg.week.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
-      <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+      <td style="white-space:nowrap">${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
       <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
   if(rg.upcoming.length) rHtml+=secHead('之後',rg.upcoming.length)+rg.upcoming.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
-      <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+      <td style="white-space:nowrap">${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
       <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
     </tr>`).join('');
@@ -1899,7 +1899,7 @@ function renderOnboardResign(){
     const pastRowsHtml=rg.past.map(r=>`
       <tr class="opacity-50">
         <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
-        <td>${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
+        <td style="white-space:nowrap">${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
         <td>${fmtDateWeek(r.lastDay)}</td>
         <td><span class="badge badge-gray">已完成</span></td>
       </tr>`).join('');
