@@ -1449,7 +1449,7 @@ function initOverview() {
     <tr class="cursor-pointer" onclick="openDrawer('${candidate.name}')">
       <td class="font-semibold text-brand">${candidate.name}</td>
       <td>${candidate.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${candidate.dept || '--'}</span></td>
-      <td class="text-gray-500">${fmtDate(candidate.latestDate || candidate.date)}</td>
+      <td class="text-gray-500">${fmtDate(candidate.firstSignalAt)}</td>
       <td class="text-gray-500">${candidate.date ? `${fmtDateWeek(candidate.date)}${candidate.time ? ' ' + candidate.time : ''}` : '--'}</td>
       <td class="text-gray-500">${candidate.onboardDate ? fmtDateWeek(candidate.onboardDate) : '--'}</td>
       <td>${getBadge(candidate)}</td>
