@@ -241,20 +241,32 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     setTimeout(() => form.elements.department.focus(), 0);
   }
 
+  const GROUP_ORDER = ['WBU', 'ICC', '新華／新竹', '安規', '行政', '其他'];
+  const getGroup = dept => {
+    if (!dept) return '其他';
+    if (dept.startsWith('WBU')) return 'WBU';
+    if (dept.startsWith('ICC')) return 'ICC';
+    if (dept.startsWith('新竹') || dept.startsWith('新華')) return '新華／新竹';
+    if (dept.startsWith('安規')) return '安規';
+    if (dept.startsWith('行政')) return '行政';
+    return '其他';
+  };
+  const getSubDept = dept => String(dept || '').replace(/^[^/／]+[/／]\s*/, '').trim() || dept || '--';
+
   function renderEditableJobs() {
     ensureToolbar();
 
     const header = document.querySelector('#tab-jobs thead tr');
     if (header) {
       header.innerHTML = [
-        '<th>Position</th>',
-        '<th>Department</th>',
-        '<th>Open Slots</th>',
-        '<th>Urgency</th>',
-        '<th>Candidates</th>',
-        '<th>Status</th>',
-        '<th>Notes</th>',
-        '<th class="text-right">Actions</th>',
+        '<th>部門</th>',
+        '<th>職缺名稱</th>',
+        '<th class="text-center">缺額</th>',
+        '<th class="text-center">急迫度</th>',
+        '<th class="text-center">候選人</th>',
+        '<th>狀態</th>',
+        '<th>備註</th>',
+        '<th class="text-right">操作</th>',
       ].join('');
     }
 
@@ -263,33 +275,41 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
 
     const normalized = filterJobRequisitions(bridge.getJobs(), bridge.getJobFilter());
     if (!normalized.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">No job requisitions</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">目前沒有職缺資料</td></tr>';
       return;
     }
 
-    tbody.innerHTML = normalized.map(job => {
-      const item = normalizeJobRequisition(job);
-      const notes = item.noteText || '--';
-      const urgency = Number(job.urgency ?? 3);
-      const candidateCount = Number(job.candidateCount ?? job.cands ?? 0);
-      const displayStatus = item.displayStatus === 'closed' ? 'cancelled' : item.displayStatus;
-      return `
-        <tr>
+    const groups = {};
+    GROUP_ORDER.forEach(g => { groups[g] = []; });
+    normalized.forEach(job => { (groups[getGroup(job.dept)] = groups[getGroup(job.dept)] || []).push(job); });
+
+    let html = '';
+    GROUP_ORDER.forEach(groupName => {
+      const list = groups[groupName];
+      if (!list || !list.length) return;
+      html += `<tr style="background:rgba(22,58,99,0.06);border-top:1px solid rgba(22,58,99,0.1)"><td colspan="8" style="padding:8px 24px 6px"><span style="font-size:11px;font-weight:700;color:#163a63;letter-spacing:0.06em;text-transform:uppercase">${groupName}</span></td></tr>`;
+      list.forEach(job => {
+        const item = normalizeJobRequisition(job);
+        const notes = item.noteText || '--';
+        const urgency = Number(job.urgency ?? 3);
+        const candidateCount = Number(job.candidateCount ?? job.cands ?? 0);
+        const displayStatus = item.displayStatus === 'closed' ? 'cancelled' : item.displayStatus;
+        const urgencyDots = '●'.repeat(Math.min(urgency,5)) + '○'.repeat(Math.max(0,5-urgency));
+        html += `<tr>
+          <td class="text-gray-500 text-[12px]">${getSubDept(item.dept)}</td>
           <td class="font-semibold text-gray-900">${item.pos}</td>
-          <td>${item.dept}</td>
-          <td class="font-semibold text-brand">${item.displayOpenSlots}</td>
-          <td>${urgency}</td>
-          <td>${candidateCount}</td>
+          <td class="text-center font-semibold text-brand">${item.displayOpenSlots}</td>
+          <td class="text-center text-[10px] tracking-tighter text-amber-500">${urgencyDots}</td>
+          <td class="text-center">${candidateCount}</td>
           <td><span class="badge ${statusBadgeClasses[displayStatus] || 'badge-gray'}">${statusLabels[job.status] || statusLabels[item.displayStatus] || job.status}</span></td>
-          <td class="max-w-[240px] truncate" title="${notes}">${notes}</td>
+          <td class="max-w-[200px] truncate text-gray-400" title="${notes}">${notes}</td>
           <td class="text-right">
-            <button type="button" class="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" data-job-edit="${job.id ?? ''}">
-              Edit
-            </button>
+            <button type="button" class="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" data-job-edit="${job.id ?? ''}">Edit</button>
           </td>
-        </tr>
-      `;
-    }).join('');
+        </tr>`;
+      });
+    });
+    tbody.innerHTML = html;
 
     tbody.querySelectorAll('[data-job-edit]').forEach(button => {
       button.addEventListener('click', () => {

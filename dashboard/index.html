@@ -1417,19 +1417,20 @@ function renderAll() {
 // ============================================================
 // OVERVIEW TAB (DASHBOARD)
 // ============================================================
+let _overviewMonthlyChartInst = null;
 function renderOverviewMonthlyChart() {
   const months = (monthlyTrend || []).slice(-6);
+  const ctx = document.getElementById('overview-monthly-chart');
+  if (!ctx) return;
+  if (_overviewMonthlyChartInst) { _overviewMonthlyChartInst.destroy(); _overviewMonthlyChartInst = null; }
   if (!months.length) return;
-  renderOrUpdate('overview-monthly-chart', {
+  _overviewMonthlyChartInst = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: months.map(m => {
-        const parts = String(m.month || '').split('-');
-        return parts[1] ? parts[1] + '月' : m.month;
-      }),
+      labels: months.map(m => { const p = String(m.month||'').split('-'); return p[1] ? p[1]+'月' : m.month; }),
       datasets: [
-        { label: '面試', data: months.map(m => m.interviews || 0), backgroundColor: '#2B5282', borderRadius: 4 },
-        { label: '到職', data: months.map(m => m.onboarded || 0), backgroundColor: '#38A169', borderRadius: 4 }
+        { label: '面試', data: months.map(m => m.interviews||0), backgroundColor: '#2B5282', borderRadius: 4 },
+        { label: '到職', data: months.map(m => m.onboarded||0), backgroundColor: '#38A169', borderRadius: 4 }
       ]
     },
     options: {
