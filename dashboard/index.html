@@ -1885,7 +1885,11 @@ function openDrawer(name){
   `;
 
   const tlDiv=document.getElementById('dr-timeline');
-  const hist=Array.isArray(c.history)?c.history:[];
+  const hist=Array.isArray(c.history)?[...c.history]:[];
+  if(c.firstSignalAt&&!hist.some(h=>h.type==='resume')){
+    hist.unshift({date:c.firstSignalAt,type:'resume',title:'履歷推薦',note:'',color:'gray'});
+  }
+  hist.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
   tlDiv.innerHTML=hist.length
     ?hist.map(h=>`
       <div class="relative pb-4 last:pb-0">
@@ -1896,8 +1900,9 @@ function openDrawer(name){
       </div>`).join('')
     :'<div class="text-xs text-gray-400">尚無歷程記錄</div>';
 
-  document.getElementById('dr-notes').textContent=c.note||'尚無備註';
-  document.getElementById('dr-notes-section').style.display=c.note?'block':'none';
+  const cleanNote=(c.note||'').replace(/\s*\[SYS_STAGE:[^\]]+\]/g,'').trim();
+  document.getElementById('dr-notes').textContent=cleanNote||'尚無備註';
+  document.getElementById('dr-notes-section').style.display=cleanNote?'block':'none';
   
   document.getElementById('overlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
