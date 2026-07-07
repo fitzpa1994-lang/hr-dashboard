@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS onboardings (
     expected_date   DATE        NOT NULL,
     actual_date     DATE,
     status          TEXT        DEFAULT 'pending'
-                    CHECK(status IN ('pending','onboarded','cancelled')),
+                    CHECK(status IN ('pending','onboarded','cancelled','no_show')),
     email_subject   TEXT,
     email_msg_id    TEXT        UNIQUE,
     email_web_link  TEXT,
