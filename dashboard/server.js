@@ -284,6 +284,34 @@ async function proxyJobRequisitionWrite(req, res, action, id = null) {
   }
 }
 
+async function proxyOnboardingStatusUpdate(req, res, id) {
+  if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
+  if (!writeEnvReady()) return sendJson(res, 500, { error: 'Write API is not configured' });
+
+  const body = await readBody(req);
+  const allowed = ['onboarded', 'no_show', 'pending', 'cancelled'];
+  if (!allowed.includes(body.status)) return sendJson(res, 400, { error: 'Invalid status' });
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), getProxyTimeoutMs());
+  try {
+    const upstream = await fetch(buildWebhookUrl(N8N_WRITE_WEBHOOK_URL), {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${N8N_TOKEN}` },
+      body: JSON.stringify({ action: 'update_onboard', onboardId: id, onboardStatus: body.status })
+    });
+    const text = await upstream.text();
+    res.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(text);
+  } catch (error) {
+    if (error.name === 'AbortError') return sendJson(res, 504, { error: 'Upstream timed out' });
+    return sendJson(res, 502, { error: 'Upstream unavailable' });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -326,6 +354,11 @@ export const server = http.createServer(async (req, res) => {
 
     if (req.method === 'PATCH' && match?.[1]) {
       return proxyJobRequisitionWrite(req, res, 'update', Number(match[1]));
+    }
+
+    const onboardMatch = url.pathname.match(/^\/api\/onboardings\/(\d+)$/);
+    if (req.method === 'PATCH' && onboardMatch) {
+      return proxyOnboardingStatusUpdate(req, res, Number(onboardMatch[1]));
     }
 
     if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);

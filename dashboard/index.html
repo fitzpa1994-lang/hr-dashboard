@@ -613,7 +613,7 @@
                 <i data-lucide="user-check" class="w-4 h-4 text-gray-500"></i><h2 class="text-[14px] font-semibold text-gray-800">近期到職名單</h2>
              </div>
              <table class="w-full tbl-compact">
-               <thead><tr><th>姓名</th><th>職位 / 部門</th><th>預計到職日</th><th>狀態</th></tr></thead>
+               <thead><tr><th>姓名</th><th>職位 / 部門</th><th>預計到職日</th><th colspan="2">狀態 / 確認</th></tr></thead>
                <tbody id="onboard-list"></tbody>
              </table>
           </div>
@@ -679,6 +679,14 @@
           <div class="surface-panel-strong p-6 col-span-2">
             <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i>HR 面試工作量</h2>
             <div class="relative h-64"><canvas id="hrWorkChart"></canvas></div>
+          </div>
+          <!-- 月度歷史報表 -->
+          <div class="surface-panel-strong p-6 col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4"></i>月度到職 / 離職報表</h2>
+              <input type="month" id="monthly-report-picker" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand" onchange="renderMonthlyReport(this.value)">
+            </div>
+            <div id="monthly-report-content" class="text-xs text-gray-400">← 選擇月份以查看報表</div>
           </div>
         </div>
       </div>
@@ -1328,6 +1336,7 @@ async function loadData() {
       .map(normalizeDashboardCandidate);
     jobsData = d.jobsData || [];
     monthlyTrend = d.monthlyTrend || [];
+    window._monthlyHistory = d.monthlyHistory || [];
     departmentStats = d.departmentStats || [];
     stats = d.stats || {};
     lastGeneratedAt = d.generatedAt || null;
@@ -1662,14 +1671,16 @@ function calNext(){calDate.setMonth(calDate.getMonth()+1);renderCalendar();}
 // ============================================================
 function renderOnboardResign(){
   function weekLater(){ const d=new Date(TODAY); d.setDate(d.getDate()+6); return d.toISOString().split('T')[0]; }
-  function groupByTime(items, dateKey){
+  function groupByTime(items, dateKey, statusKey){
     const wEnd=weekLater();
-    const g={today:[],week:[],upcoming:[],past:[]};
+    const g={today:[],week:[],upcoming:[],overdue:[],past:[]};
     items.forEach(item=>{
       const d=item[dateKey]||'';
+      const s=item[statusKey]||'';
       if(d===TODAY) g.today.push(item);
       else if(d>TODAY&&d<=wEnd) g.week.push(item);
       else if(d>TODAY) g.upcoming.push(item);
+      else if(d<TODAY&&s==='pending') g.overdue.push(item); // 逾期未確認
       else g.past.push(item);
     });
     const asc=(a,b)=>String(a[dateKey]||'').localeCompare(String(b[dateKey]||''));
@@ -1694,29 +1705,44 @@ function renderOnboardResign(){
     </table></td></tr>`;
   }
 
+  function onboardActionBtns(o){
+    if(!o.id) return getBadge(o.status);
+    return `<div class="flex gap-1">
+      <button onclick="updateOnboardStatus(${o.id},'onboarded',this)" class="px-2 py-0.5 text-[10px] font-medium rounded bg-green-100 text-green-700 hover:bg-green-200 border border-green-200">已到職</button>
+      <button onclick="updateOnboardStatus(${o.id},'no_show',this)" class="px-2 py-0.5 text-[10px] font-medium rounded bg-red-100 text-red-700 hover:bg-red-200 border border-red-200">放鳥</button>
+    </div>`;
+  }
+
   const oBody=document.getElementById('onboard-list');
-  const og=groupByTime(onboardData.filter(o=>o.status!=='cancelled'),'date');
+  const og=groupByTime(onboardData.filter(o=>o.status!=='cancelled'),'date','status');
   let oHtml='';
+  if(og.overdue.length) oHtml+=`<tr><td colspan="5" class="py-1.5 px-3 bg-orange-50 border-t border-orange-100 text-[10px] font-semibold text-orange-600 uppercase tracking-wider">⚠ 逾期未確認 <span class="font-normal normal-case">${og.overdue.length} 人</span></td></tr>`+og.overdue.map(o=>`
+    <tr class="bg-orange-50">
+      <td class="font-semibold text-gray-900">${o.name}</td>
+      <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
+      <td class="text-orange-500 font-medium">${fmtDateWeek(o.date)}</td>
+      <td colspan="2">${onboardActionBtns(o)}</td>
+    </tr>`).join('');
   if(og.today.length) oHtml+=secHead('今天',og.today.length)+og.today.map(o=>`
     <tr class="bg-blue-50">
       <td class="font-semibold text-gray-900">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td class="font-semibold text-blue-600">${fmtDateWeek(o.date)}</td>
-      <td>${getBadge(o.status)}</td>
+      <td colspan="2">${onboardActionBtns(o)}</td>
     </tr>`).join('');
   if(og.week.length) oHtml+=secHead('本週',og.week.length)+og.week.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
-      <td>${getBadge(o.status)}</td>
+      <td colspan="2">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.upcoming.length) oHtml+=secHead('之後',og.upcoming.length)+og.upcoming.map(o=>`
     <tr>
       <td class="font-semibold text-gray-900">${o.name}</td>
       <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
       <td>${fmtDateWeek(o.date)}</td>
-      <td>${getBadge(o.status)}</td>
+      <td colspan="2">${getBadge(o.status)}</td>
     </tr>`).join('');
   if(og.past.length){
     const pastRowsHtml=og.past.map(o=>`
@@ -1724,14 +1750,14 @@ function renderOnboardResign(){
         <td class="font-semibold text-gray-900">${o.name}</td>
         <td>${o.pos} <span class="text-gray-400 text-[11px] ml-1">${o.dept}</span></td>
         <td>${fmtDateWeek(o.date)}</td>
-        <td>${getBadge(o.status)}</td>
+        <td colspan="2">${o.status==='no_show'?'<span class="badge badge-red">放鳥</span>':getBadge(o.status)}</td>
       </tr>`).join('');
     oHtml+=pastToggleHead('已完成',og.past.length,'onboard-past')+pastRows(pastRowsHtml,'onboard-past');
   }
-  oBody.innerHTML=oHtml||`<tr><td colspan="4" class="text-center py-6 text-gray-400">目前沒有到職資料</td></tr>`;
+  oBody.innerHTML=oHtml||`<tr><td colspan="5" class="text-center py-6 text-gray-400">目前沒有到職資料</td></tr>`;
 
   const rBody=document.getElementById('resign-list');
-  const rg=groupByTime(resignData.filter(r=>r.status!=='cancelled'),'lastDay');
+  const rg=groupByTime(resignData.filter(r=>r.status!=='cancelled'),'lastDay','status');
   let rHtml='';
   if(rg.today.length) rHtml+=secHead('今天',rg.today.length)+rg.today.map(r=>`
     <tr class="bg-red-50">
@@ -1771,6 +1797,22 @@ function togglePastRows(id){
   const icon=document.getElementById(id+'-icon');
   const hidden=rows.classList.toggle('hidden');
   icon.textContent=hidden?'▶':'▼';
+}
+async function updateOnboardStatus(id, status, btn){
+  const row=btn.closest('tr');
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const res=await fetch(`/api/onboardings/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+    if(!res.ok) throw new Error(await res.text());
+    // update local data and re-render
+    const item=onboardData.find(o=>o.id===id);
+    if(item) item.status=status;
+    renderOnboardResign();
+  }catch(e){
+    btn.disabled=false;
+    btn.textContent=status==='onboarded'?'已到職':'放鳥';
+    alert('更新失敗：'+e.message);
+  }
 }
 
 // ============================================================
@@ -1838,6 +1880,41 @@ function renderJobs(){
       <td>${getBadge(j.status)}</td>
     </tr>`;
   }).join('');
+}
+
+// ============================================================
+// ============================================================
+// MONTHLY REPORT
+// ============================================================
+function renderMonthlyReport(ym){
+  const el=document.getElementById('monthly-report-content');
+  if(!ym){ el.innerHTML='<span class="text-gray-400">← 選擇月份以查看報表</span>'; return; }
+  const rows=(window._monthlyHistory||[]).filter(r=>r.month===ym);
+  // aggregate (onboard + resign may be separate rows from UNION ALL)
+  let onboarded=0, no_show=0, resigned=0;
+  rows.forEach(r=>{ onboarded+=Number(r.onboarded||0); no_show+=Number(r.no_show||0); resigned+=Number(r.resigned||0); });
+  const total=onboarded+no_show;
+  const noData=total===0&&resigned===0;
+  el.innerHTML=noData
+    ?`<div class="text-gray-400 py-4 text-center">此月無資料</div>`
+    :`<div class="grid grid-cols-4 gap-4 mt-2">
+        <div class="rounded-lg bg-green-50 border border-green-100 p-4 text-center">
+          <div class="text-2xl font-bold text-green-700">${onboarded}</div>
+          <div class="text-[11px] text-green-600 mt-1">確認到職</div>
+        </div>
+        <div class="rounded-lg bg-red-50 border border-red-100 p-4 text-center">
+          <div class="text-2xl font-bold text-red-500">${no_show}</div>
+          <div class="text-[11px] text-red-400 mt-1">放鳥未到</div>
+        </div>
+        <div class="rounded-lg bg-gray-50 border border-gray-200 p-4 text-center">
+          <div class="text-2xl font-bold text-gray-700">${resigned}</div>
+          <div class="text-[11px] text-gray-500 mt-1">離職人數</div>
+        </div>
+        <div class="rounded-lg bg-blue-50 border border-blue-100 p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700">${total>0?Math.round(onboarded/total*100):'-'}${total>0?'%':''}</div>
+          <div class="text-[11px] text-blue-500 mt-1">到職率</div>
+        </div>
+      </div>`;
 }
 
 // ============================================================
