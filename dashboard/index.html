@@ -159,7 +159,7 @@
   }
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
   }
   .kpi-card {
@@ -435,26 +435,7 @@
               <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-today-intv-subtext">今日排程</span>
             </div>
           </div>
-          <div class="kpi-card">
-            <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">今日離職人員</span>
-              <i data-lucide="user-minus" class="w-4 h-4 text-rose-600"></i>
-            </div>
-            <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-today-resign">0</span>
-              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-today-resign-subtext">今日離職</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">今日到職人員</span>
-              <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
-            </div>
-            <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-today-onboard">0</span>
-              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-today-onboard-subtext">今日到職</span>
-            </div>
-          </div>
+
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
               <span class="kpi-label">待安排面試</span>
@@ -521,29 +502,7 @@
               </div>
             </div>
 
-            <div class="surface-panel-strong flex flex-col">
-              <div class="section-head">
-                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>今日到職人員</h2>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full tbl-compact">
-                  <thead><tr><th>姓名</th><th>職位 / 部門</th><th>負責 HR</th></tr></thead>
-                  <tbody id="overview-today-onboard-tbody"></tbody>
-                </table>
-              </div>
-            </div>
 
-            <div class="surface-panel-strong flex flex-col">
-              <div class="section-head">
-                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="user-minus" class="w-4 h-4 text-rose-600"></i>今日離職人員</h2>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full tbl-compact">
-                  <thead><tr><th>姓名</th><th>職位 / 部門</th><th>負責 HR</th></tr></thead>
-                  <tbody id="overview-today-resign-tbody"></tbody>
-                </table>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -551,7 +510,7 @@
         <div class="grid grid-cols-12 gap-6">
           <div class="col-span-5 surface-panel-strong flex flex-col">
             <div class="section-head">
-              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-500"></i>每月面試趨勢</h2>
+              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-500"></i>每月面試／到職趨勢</h2>
             </div>
             <div class="p-5" style="height:220px">
               <canvas id="overview-monthly-chart"></canvas>
@@ -1370,7 +1329,7 @@ async function loadData() {
     unmappedCandidates = (d.unmappedCandidates || [])
       .filter(candidate => !isDashboardNoiseCandidate(candidate))
       .map(normalizeDashboardCandidate);
-    jobsData = d.jobsData || [];
+    jobsData = (d.jobsData || []).map(normalizeJobDept);
     monthlyTrend = d.monthlyTrend || [];
     window._monthlyHistory = d.monthlyHistory || [];
     departmentStats = d.departmentStats || [];
@@ -1502,12 +1461,8 @@ function renderDeptBreakdown() {
 function initOverview() {
   const overviewKpis = getOverviewKpis();
   document.getElementById('kpi-today-intv').textContent = overviewKpis.todayInterviewCount;
-  document.getElementById('kpi-today-resign').textContent = overviewKpis.todayResignCount;
-  document.getElementById('kpi-today-onboard').textContent = overviewKpis.todayOnboardCount;
   document.getElementById('kpi-pending-arrangement').textContent = overviewKpis.pendingArrangementCount;
   document.getElementById('kpi-today-intv-subtext').textContent = overviewKpis.todayInterviewCount ? '今日排程' : '今日無面試';
-  document.getElementById('kpi-today-resign-subtext').textContent = overviewKpis.todayResignCount ? '今日離職' : '今日無離職';
-  document.getElementById('kpi-today-onboard-subtext').textContent = overviewKpis.todayOnboardCount ? '今日到職' : '今日無到職';
   document.getElementById('kpi-pending-arrangement-subtext').textContent = overviewKpis.pendingArrangementOverdueCount
     ? `${overviewKpis.pendingArrangementOverdueCount} 筆超過 3 天`
     : (overviewKpis.pendingArrangementCount ? '待安排面試' : '目前無待安排');
@@ -1527,30 +1482,6 @@ function initOverview() {
       <td style="white-space:nowrap">${getBadge(st)}</td>
     </tr>
   `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試排程</td></tr>`;
-
-  const todayOnboards = sortByPrimaryDate(
-    onboardData.filter(item => item.date === TODAY && item.status !== 'cancelled'),
-    item => item.date
-  );
-  document.getElementById('overview-today-onboard-tbody').innerHTML = todayOnboards.length ? todayOnboards.map(item => `
-    <tr>
-      <td class="font-semibold text-brand">${item.name}</td>
-      <td>${item.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${item.dept || '--'}</span></td>
-      <td class="text-gray-500">${item.hr || '--'}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="3" class="text-center py-6 text-gray-400">今日無到職人員</td></tr>`;
-
-  const todayResigns = sortByPrimaryDate(
-    resignData.filter(item => item.lastDay === TODAY && item.status !== 'cancelled'),
-    item => item.lastDay
-  );
-  document.getElementById('overview-today-resign-tbody').innerHTML = todayResigns.length ? todayResigns.map(item => `
-    <tr>
-      <td class="font-semibold text-brand">${item.name}</td>
-      <td>${item.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${item.dept || '--'}</span></td>
-      <td class="text-gray-500">${item.hr || '--'}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="3" class="text-center py-6 text-gray-400">今日無離職人員</td></tr>`;
 
   renderDeptBreakdown();
   renderOverviewMonthlyChart();
@@ -2000,6 +1931,16 @@ function setJobF(f,btn){
   btns.forEach(b => { b.className = 'px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50'; });
   btn.className = 'px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white';
   renderJobs();
+}
+function normalizeJobDept(job) {
+  const pos = String(job.pos || '');
+  if (/RF測試/.test(pos) || /RF.*工程師/.test(pos) || pos === 'RF測試工程師') {
+    return { ...job, dept: 'WBU/RF工程一部' };
+  }
+  if (/SAR/.test(pos)) {
+    return { ...job, dept: 'WBU/SAR工程部' };
+  }
+  return job;
 }
 function getJobGroup(dept) {
   if (!dept) return '其他';
