@@ -1446,7 +1446,7 @@ function renderDeptBreakdown(month) {
   GROUP_ORDER.forEach(g => { groupMap[g] = {}; });
 
   const filtered = month
-    ? candidatesData.filter(c => (c.firstSignalAt || '').startsWith(month))
+    ? candidatesData.filter(c => (c.latestDate || c.date || c.firstSignalAt || '').substring(0, 7) === month)
     : candidatesData;
 
   for (const c of filtered) {
@@ -1491,6 +1491,19 @@ function renderDeptBreakdown(month) {
       });
   });
   document.getElementById('overview-dept-tbody').innerHTML = html || '<tr><td colspan="5" class="text-center py-6 text-gray-400">目前無招募中資料</td></tr>';
+}
+
+function getDeptAbbr(dept) {
+  if (!dept) return '?';
+  if (/\bICC\b/.test(dept)) return 'ICC';
+  if (/SAR/.test(dept)) return 'SAR';
+  if (/WBU[^\/]*RF|RF.*WBU/.test(dept)) return 'RF';
+  if (/WBU/.test(dept)) return 'WBU';
+  if (/新竹/.test(dept)) return '新竹';
+  if (/新華/.test(dept)) return '新華';
+  if (/安規/.test(dept)) return '安規';
+  if (/行政/.test(dept)) return '行政';
+  return dept.replace(/[\/\s]/g, '').substring(0, 2);
 }
 
 function renderDeptMonthTabs() {
@@ -1550,18 +1563,16 @@ function initOverview() {
   document.getElementById('today-stat-interviews').textContent = todayActivity.interviewsArranged ?? '--';
   document.getElementById('today-stat-inserted').textContent = todayActivity.inserted ?? '--';
   document.getElementById('today-stat-total').textContent = todayActivity.totalMails ?? '--';
-  const skipped = todayActivity.skipped ?? 0;
-  const errors = todayActivity.errors ?? 0;
-  if (skipped || errors) {
-    document.getElementById('today-progress-subtitle').textContent = `今日 HR 活動彙整（跳過 ${skipped} 封${errors ? '，錯誤 ' + errors + ' 封' : ''}）`;
-  }
+  document.getElementById('today-progress-subtitle').textContent =
+    `今日 HR 活動彙整 · 更新於 ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
+
 
   // 今日進度 — 推薦明細
   const recList = todayActivity.recommendList || [];
   document.getElementById('today-recommend-list').innerHTML = recList.length
     ? recList.map(r => `
       <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
-        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-blue-700">${escHtml((r.name||'?')[0])}</div>
+        <div class="h-6 px-1.5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-[9px] font-bold text-blue-700 min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
         <div class="min-w-0 flex-1">
           <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
           <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
@@ -1575,7 +1586,7 @@ function initOverview() {
   document.getElementById('today-interview-list').innerHTML = intList.length
     ? intList.map(r => `
       <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
-        <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-indigo-700">${escHtml((r.name||'?')[0])}</div>
+        <div class="h-6 px-1.5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-[9px] font-bold text-indigo-700 min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
         <div class="min-w-0 flex-1">
           <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
           <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
