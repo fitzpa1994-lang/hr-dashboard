@@ -469,15 +469,28 @@
             <div class="surface-panel-strong flex flex-col">
               <div class="section-head">
                 <div>
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="workflow" class="w-4 h-4 text-gray-500"></i>招募進度追蹤</h2>
-                  <div class="section-subtitle">依 HR 推薦、面試時間、確認到職日排列近期進度。</div>
+                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-gray-500"></i>今日進度</h2>
+                  <div class="section-subtitle" id="today-progress-subtitle">今日 HR 活動彙整</div>
                 </div>
               </div>
-              <div class="overflow-x-auto">
-                <table class="w-full tbl-compact">
-                  <thead><tr><th>候選人</th><th>應徵職缺</th><th>HR 推薦</th><th>面試時間</th><th>確認到職日</th><th>目前狀態</th></tr></thead>
-                  <tbody id="overview-progress-tbody"></tbody>
-                </table>
+              <div class="p-5">
+                <div class="grid grid-cols-3 gap-4">
+                  <div class="rounded-xl p-4 text-center" style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.14)">
+                    <div class="text-[28px] font-extrabold text-blue-700 leading-none" id="today-stat-recommended">--</div>
+                    <div class="text-[11px] font-bold text-blue-600 mt-1.5 tracking-wide">履歷推薦</div>
+                    <div class="text-[10px] text-gray-400 mt-0.5">人選推薦給用人單位</div>
+                  </div>
+                  <div class="rounded-xl p-4 text-center" style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.14)">
+                    <div class="text-[28px] font-extrabold text-indigo-700 leading-none" id="today-stat-interviews">--</div>
+                    <div class="text-[11px] font-bold text-indigo-600 mt-1.5 tracking-wide">排定面試</div>
+                    <div class="text-[10px] text-gray-400 mt-0.5">面試時間通知寫入</div>
+                  </div>
+                  <div class="rounded-xl p-4 text-center" style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.14)">
+                    <div class="text-[28px] font-extrabold text-emerald-700 leading-none" id="today-stat-inserted">--</div>
+                    <div class="text-[11px] font-bold text-emerald-600 mt-1.5 tracking-wide">成功寫入</div>
+                    <div class="text-[10px] text-gray-400 mt-0.5">共 <span id="today-stat-total">--</span> 封 mail 處理</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -517,11 +530,12 @@
             </div>
           </div>
           <div class="col-span-7 surface-panel-strong flex flex-col">
-            <div class="section-head">
+            <div class="section-head flex-wrap gap-y-2">
               <div>
                 <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-gray-500"></i>各單位招募進度</h2>
-                <div class="section-subtitle">依母公司分組，不含已淘汰人選</div>
+                <div class="section-subtitle">依該月新增人選分組，不含已淘汰</div>
               </div>
+              <div class="flex gap-1.5 flex-wrap" id="dept-month-tabs"></div>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full tbl-compact">
@@ -873,6 +887,7 @@
 const API_URL = '/api/hr-dashboard';
 let TODAY = new Date().toISOString().split('T')[0];
 let schedEvents = [], onboardData = [], resignData  = [], candidatesData = [], unmappedCandidates = [], jobsData = [], monthlyTrend = [], departmentStats = [], stats = {};
+let todayActivity = {}, deptMonthFilter = null;
 let lastGeneratedAt = null;
 window.hrDashboardBridge = {
   getJobs: () => jobsData,
@@ -1334,6 +1349,7 @@ async function loadData() {
     window._monthlyHistory = d.monthlyHistory || [];
     departmentStats = d.departmentStats || [];
     stats = d.stats || {};
+    todayActivity = d.todayActivity || {};
     lastGeneratedAt = d.generatedAt || null;
 
     const dt = new Date(TODAY + 'T00:00:00');
@@ -1409,12 +1425,16 @@ function renderOverviewMonthlyChart() {
   });
 }
 
-function renderDeptBreakdown() {
+function renderDeptBreakdown(month) {
   const GROUP_ORDER = ['WBU', 'ICC', '新華／新竹', '安規', '行政', '其他'];
   const groupMap = {};
   GROUP_ORDER.forEach(g => { groupMap[g] = {}; });
 
-  for (const c of candidatesData) {
+  const filtered = month
+    ? candidatesData.filter(c => (c.firstSignalAt || '').startsWith(month))
+    : candidatesData;
+
+  for (const c of filtered) {
     const stage = getCandidateStageKey(c);
     if (stage === 'rejected') continue;
     const group = getJobGroup(c.dept);
@@ -1458,6 +1478,33 @@ function renderDeptBreakdown() {
   document.getElementById('overview-dept-tbody').innerHTML = html || '<tr><td colspan="5" class="text-center py-6 text-gray-400">目前無招募中資料</td></tr>';
 }
 
+function renderDeptMonthTabs() {
+  const el = document.getElementById('dept-month-tabs');
+  if (!el) return;
+  const months = new Set();
+  candidatesData.forEach(c => { if (c.firstSignalAt) months.add(c.firstSignalAt.substring(0, 7)); });
+  const currentMonth = TODAY.substring(0, 7);
+  if (!deptMonthFilter) deptMonthFilter = currentMonth;
+  const monthList = [];
+  for (let i = 5; i >= 0; i--) {
+    const ref = new Date(TODAY + 'T00:00:00');
+    ref.setDate(1);
+    ref.setMonth(ref.getMonth() - i);
+    monthList.push(ref.toISOString().substring(0, 7));
+  }
+  el.innerHTML = monthList.filter(m => months.has(m)).map(m => {
+    const active = m === deptMonthFilter;
+    const label = m.split('-')[1].replace(/^0/, '') + '月';
+    return `<button onclick="setDeptMonth('${m}')" class="px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all ${active ? 'bg-brand text-white border-brand' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-400 hover:text-blue-600'}">${label}</button>`;
+  }).join('');
+}
+
+function setDeptMonth(month) {
+  deptMonthFilter = month;
+  renderDeptMonthTabs();
+  renderDeptBreakdown(deptMonthFilter);
+}
+
 function initOverview() {
   const overviewKpis = getOverviewKpis();
   document.getElementById('kpi-today-intv').textContent = overviewKpis.todayInterviewCount;
@@ -1483,20 +1530,20 @@ function initOverview() {
     </tr>
   `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試排程</td></tr>`;
 
-  renderDeptBreakdown();
-  renderOverviewMonthlyChart();
+  // 今日進度
+  document.getElementById('today-stat-recommended').textContent = todayActivity.recommended ?? '--';
+  document.getElementById('today-stat-interviews').textContent = todayActivity.interviewsArranged ?? '--';
+  document.getElementById('today-stat-inserted').textContent = todayActivity.inserted ?? '--';
+  document.getElementById('today-stat-total').textContent = todayActivity.totalMails ?? '--';
+  const skipped = todayActivity.skipped ?? 0;
+  const errors = todayActivity.errors ?? 0;
+  if (skipped || errors) {
+    document.getElementById('today-progress-subtitle').textContent = `今日 HR 活動彙整（跳過 ${skipped} 封，錯誤 ${errors} 封）`;
+  }
 
-  const progressRows = sortByPrimaryDate(candidatesData, candidate => candidate.onboardDate || candidate.date || candidate.latestDate).slice(0, 10);
-  document.getElementById('overview-progress-tbody').innerHTML = progressRows.length ? progressRows.map(candidate => `
-    <tr class="cursor-pointer" onclick="openDrawer('${candidate.name}')">
-      <td class="font-semibold text-brand" style="white-space:nowrap">${candidate.name}</td>
-      <td style="white-space:nowrap">${candidate.pos || '--'} <span class="text-gray-400 text-[11px] ml-1">${candidate.dept || '--'}</span></td>
-      <td class="text-gray-500" style="white-space:nowrap">${fmtDate(candidate.firstSignalAt)}</td>
-      <td class="text-gray-500" style="white-space:nowrap">${candidate.date ? `${fmtDateWeek(candidate.date)}${candidate.time ? ' ' + candidate.time : ''}` : '--'}</td>
-      <td class="text-gray-500" style="white-space:nowrap">${candidate.onboardDate ? fmtDateWeek(candidate.onboardDate) : '--'}</td>
-      <td style="white-space:nowrap">${getBadge(candidate)}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">目前沒有可顯示的招募進度</td></tr>`;
+  renderDeptMonthTabs();
+  renderDeptBreakdown(deptMonthFilter);
+  renderOverviewMonthlyChart();
 }
 
 function updateFunnel() {
@@ -1805,26 +1852,27 @@ function renderOnboardResign(){
   const rBody=document.getElementById('resign-list');
   const rg=groupByTime(resignData.filter(r=>r.status!=='cancelled'),'lastDay','status');
   let rHtml='';
+  function resignBadge(r){return r.status==='pending'?'<span class="badge badge-orange">申請中</span>':'<span class="badge badge-red">待離職</span>';}
   if(rg.today.length) rHtml+=secHead('今天',rg.today.length)+rg.today.map(r=>`
-    <tr class="bg-red-50">
+    <tr class="${r.status==='pending'?'bg-orange-50':'bg-red-50'}">
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td style="white-space:nowrap">${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
-      <td class="font-semibold text-red-500">${fmtDateWeek(r.lastDay)}</td>
-      <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
+      <td class="${r.status==='pending'?'font-semibold text-orange-500':'font-semibold text-red-500'}">${fmtDateWeek(r.lastDay)}</td>
+      <td style="white-space:nowrap">${resignBadge(r)}</td>
     </tr>`).join('');
   if(rg.week.length) rHtml+=secHead('本週',rg.week.length)+rg.week.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td style="white-space:nowrap">${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
-      <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
+      <td style="white-space:nowrap">${resignBadge(r)}</td>
     </tr>`).join('');
   if(rg.upcoming.length) rHtml+=secHead('之後',rg.upcoming.length)+rg.upcoming.map(r=>`
     <tr>
       <td class="font-semibold text-gray-900" style="white-space:nowrap">${r.name}</td>
       <td style="white-space:nowrap">${r.pos} <span class="text-gray-400 text-[11px] ml-1">${r.dept}</span></td>
       <td>${fmtDateWeek(r.lastDay)}</td>
-      <td style="white-space:nowrap"><span class="badge badge-red">待離職</span></td>
+      <td style="white-space:nowrap">${resignBadge(r)}</td>
     </tr>`).join('');
   if(rg.past.length){
     const pastRowsHtml=rg.past.map(r=>`
