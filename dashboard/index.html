@@ -474,21 +474,36 @@
                 </div>
               </div>
               <div class="p-5">
-                <div class="grid grid-cols-3 gap-4">
-                  <div class="rounded-xl p-4 text-center" style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.14)">
-                    <div class="text-[28px] font-extrabold text-blue-700 leading-none" id="today-stat-recommended">--</div>
-                    <div class="text-[11px] font-bold text-blue-600 mt-1.5 tracking-wide">履歷推薦</div>
-                    <div class="text-[10px] text-gray-400 mt-0.5">人選推薦給用人單位</div>
+                <!-- Summary numbers -->
+                <div class="grid grid-cols-3 gap-3 mb-5">
+                  <div class="rounded-xl p-3 text-center" style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.14)">
+                    <div class="text-[26px] font-extrabold text-blue-700 leading-none" id="today-stat-recommended">--</div>
+                    <div class="text-[11px] font-bold text-blue-600 mt-1 tracking-wide">履歷推薦</div>
                   </div>
-                  <div class="rounded-xl p-4 text-center" style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.14)">
-                    <div class="text-[28px] font-extrabold text-indigo-700 leading-none" id="today-stat-interviews">--</div>
-                    <div class="text-[11px] font-bold text-indigo-600 mt-1.5 tracking-wide">排定面試</div>
-                    <div class="text-[10px] text-gray-400 mt-0.5">面試時間通知寫入</div>
+                  <div class="rounded-xl p-3 text-center" style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.14)">
+                    <div class="text-[26px] font-extrabold text-indigo-700 leading-none" id="today-stat-interviews">--</div>
+                    <div class="text-[11px] font-bold text-indigo-600 mt-1 tracking-wide">排定面試</div>
                   </div>
-                  <div class="rounded-xl p-4 text-center" style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.14)">
-                    <div class="text-[28px] font-extrabold text-emerald-700 leading-none" id="today-stat-inserted">--</div>
-                    <div class="text-[11px] font-bold text-emerald-600 mt-1.5 tracking-wide">成功寫入</div>
-                    <div class="text-[10px] text-gray-400 mt-0.5">共 <span id="today-stat-total">--</span> 封 mail 處理</div>
+                  <div class="rounded-xl p-3 text-center" style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.14)">
+                    <div class="text-[26px] font-extrabold text-emerald-700 leading-none" id="today-stat-inserted">--</div>
+                    <div class="text-[11px] font-bold text-emerald-600 mt-1 tracking-wide">寫入 / <span id="today-stat-total" class="font-normal">--</span> 封</div>
+                  </div>
+                </div>
+                <!-- Detail lists -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                      <span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>
+                      <span class="text-[11px] font-bold text-blue-700">今日推薦人選</span>
+                    </div>
+                    <div id="today-recommend-list"></div>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                      <span class="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></span>
+                      <span class="text-[11px] font-bold text-indigo-700">今日排定面試</span>
+                    </div>
+                    <div id="today-interview-list"></div>
                   </div>
                 </div>
               </div>
@@ -1530,7 +1545,7 @@ function initOverview() {
     </tr>
   `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試排程</td></tr>`;
 
-  // 今日進度
+  // 今日進度 — 數字
   document.getElementById('today-stat-recommended').textContent = todayActivity.recommended ?? '--';
   document.getElementById('today-stat-interviews').textContent = todayActivity.interviewsArranged ?? '--';
   document.getElementById('today-stat-inserted').textContent = todayActivity.inserted ?? '--';
@@ -1538,8 +1553,36 @@ function initOverview() {
   const skipped = todayActivity.skipped ?? 0;
   const errors = todayActivity.errors ?? 0;
   if (skipped || errors) {
-    document.getElementById('today-progress-subtitle').textContent = `今日 HR 活動彙整（跳過 ${skipped} 封，錯誤 ${errors} 封）`;
+    document.getElementById('today-progress-subtitle').textContent = `今日 HR 活動彙整（跳過 ${skipped} 封${errors ? '，錯誤 ' + errors + ' 封' : ''}）`;
   }
+
+  // 今日進度 — 推薦明細
+  const recList = todayActivity.recommendList || [];
+  document.getElementById('today-recommend-list').innerHTML = recList.length
+    ? recList.map(r => `
+      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
+        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-blue-700">${escHtml((r.name||'?')[0])}</div>
+        <div class="min-w-0 flex-1">
+          <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
+          <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
+        </div>
+        <div class="text-[10px] text-gray-400 flex-shrink-0">${r.rcvTime||''}</div>
+      </div>`).join('')
+    : '<div class="text-[11px] text-gray-400 py-1">今日尚無推薦</div>';
+
+  // 今日進度 — 面試明細
+  const intList = todayActivity.interviewList || [];
+  document.getElementById('today-interview-list').innerHTML = intList.length
+    ? intList.map(r => `
+      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
+        <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-indigo-700">${escHtml((r.name||'?')[0])}</div>
+        <div class="min-w-0 flex-1">
+          <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
+          <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
+        </div>
+        <div class="text-[10px] font-semibold text-indigo-600 flex-shrink-0">${r.intDate||'--'}${r.intTime?' '+r.intTime:''}</div>
+      </div>`).join('')
+    : '<div class="text-[11px] text-gray-400 py-1">今日尚無面試安排</div>';
 
   renderDeptMonthTabs();
   renderDeptBreakdown(deptMonthFilter);
