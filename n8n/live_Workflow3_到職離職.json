@@ -118,7 +118,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const item = $input.item.json;\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst subject = item.subject || '';\nconst fallbackYear = String(new Date(item.receivedDateTime || Date.now()).getFullYear());\n\nconst clean = (value) => String(value || '')\n  .replace(/\\s+/g, ' ')\n  .replace(/[□]/g, '')\n  .trim();\n\nconst parseDate = (raw) => {\n  const text = clean(raw).replace(/[()（）一二三四五六日]/g, '');\n  const ymd = text.match(/(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (ymd) return ymd[1] + '-' + ymd[2].padStart(2, '0') + '-' + ymd[3].padStart(2, '0');\n  const md = text.match(/(\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (md) return fallbackYear + '-' + md[1].padStart(2, '0') + '-' + md[2].padStart(2, '0');\n  return null;\n};\n\nconst deptMatch = body.match(/單\\s*位\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst nameMatch = body.match(/姓\\s*名\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst titleMatch = body.match(/職\\s*稱\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst effectiveMatch = body.match(/離\\s*職\\s*生\\s*效\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\nconst lastDayMatch = body.match(/最\\s*後\\s*上\\s*班\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\n\nlet department = clean(deptMatch?.[1] || '');\nlet name = clean(nameMatch?.[1] || '');\nlet position = clean(titleMatch?.[1] || '');\nlet last_day = parseDate(effectiveMatch?.[1] || lastDayMatch?.[1] || '');\n\nconst subjectDateMatch = subject.match(/(?:將於|於)\\s*(\\d{4}\\/\\d{1,2}\\/\\d{1,2}|\\d{4}-\\d{1,2}-\\d{1,2})/);\nif (!last_day && subjectDateMatch) {\n  last_day = parseDate(subjectDateMatch[1]);\n}\n\nif (!department || !name) {\n  const subjectMatch = subject.match(/(?:今日)?離職人員通知\\s*[-：:]\\s*([^\\s]+)\\s+([^\\s，,]+)/);\n  if (subjectMatch) {\n    department ||= clean(subjectMatch[1]);\n    name ||= clean(subjectMatch[2]);\n  }\n}\n\nif (!last_day && subject.includes('今日離職人員通知')) {\n  const today = new Date(item.receivedDateTime || Date.now());\n  last_day = [\n    today.getFullYear(),\n    String(today.getMonth() + 1).padStart(2, '0'),\n    String(today.getDate()).padStart(2, '0'),\n  ].join('-');\n}\n\nif (!position) {\n  if (department.includes('文件')) position = '文件專員';\n  else if (department.includes('業務')) position = '業務專員';\n  else if (department.includes('工程')) position = '工程師';\n  else position = '未知職位';\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || item.from || null,\n  received_at: item.receivedDateTime,\n  source_type: 'resignation',\n  name: name || '未知姓名',\n  department: department || '未分類',\n  position,\n  last_day,\n};"
+        "jsCode": "const item = $input.item.json;\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst subject = item.subject || '';\nconst fallbackYear = String(new Date(item.receivedDateTime || Date.now()).getFullYear());\n\nconst clean = (value) => String(value || '')\n  .replace(/\\s+/g, ' ')\n  .replace(/[□]/g, '')\n  .trim();\n\nconst parseDate = (raw) => {\n  const text = clean(raw).replace(/[()（）一二三四五六日]/g, '');\n  const ymd = text.match(/(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (ymd) return ymd[1] + '-' + ymd[2].padStart(2, '0') + '-' + ymd[3].padStart(2, '0');\n  const md = text.match(/(\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (md) return fallbackYear + '-' + md[1].padStart(2, '0') + '-' + md[2].padStart(2, '0');\n  return null;\n};\n\nconst deptMatch = body.match(/單\\s*位\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst nameMatch = body.match(/姓\\s*名\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst titleMatch = body.match(/職\\s*稱\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst effectiveMatch = body.match(/離\\s*職\\s*生\\s*效\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\nconst lastDayMatch = body.match(/最\\s*後\\s*上\\s*班\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\n\nlet department = clean(deptMatch?.[1] || '');\nlet name = clean(nameMatch?.[1] || '');\nlet position = clean(titleMatch?.[1] || '');\nlet last_day = parseDate(effectiveMatch?.[1] || lastDayMatch?.[1] || '');\n\nconst subjectDateMatch = subject.match(/(?:將於|於)\\s*(\\d{4}\\/\\d{1,2}\\/\\d{1,2}|\\d{4}-\\d{1,2}-\\d{1,2})/);\nif (!last_day && subjectDateMatch) {\n  last_day = parseDate(subjectDateMatch[1]);\n}\n\nif (!department || !name) {\n  const wSubjectMatch = subject.match(/離職人員通知[：:]\\s*(.*?)\\s+W\\d+\\s+([^\\s，,]+)/);\n  if (wSubjectMatch) {\n    department ||= clean(wSubjectMatch[1]);\n    name ||= clean(wSubjectMatch[2]);\n  } else {\n    const subjectMatch = subject.match(/(?:今日)?離職人員通知\\s*[-：:]\\s*([^\\s]+)\\s+([^\\s，,]+)/);\n    if (subjectMatch) {\n      department ||= clean(subjectMatch[1]);\n      name ||= clean(subjectMatch[2]);\n    }\n  }\n}\n\nif (!last_day) {\n  const subjEffMatch = subject.match(/生效日[：:]\\s*([0-9/]+)/);\n  if (subjEffMatch) last_day = parseDate(subjEffMatch[1]);\n}\n\nif (!last_day && subject.includes('今日離職人員通知')) {\n  const today = new Date(item.receivedDateTime || Date.now());\n  last_day = [\n    today.getFullYear(),\n    String(today.getMonth() + 1).padStart(2, '0'),\n    String(today.getDate()).padStart(2, '0'),\n  ].join('-');\n}\n\nif (!position) {\n  if (department.includes('文件')) position = '文件專員';\n  else if (department.includes('業務')) position = '業務專員';\n  else if (department.includes('工程')) position = '工程師';\n  else position = '未知職位';\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || item.from || null,\n  received_at: item.receivedDateTime,\n  source_type: 'resignation',\n  name: name || '未知姓名',\n  department: department || '未分類',\n  position,\n  last_day,\n};"
       },
       "id": "71f201ca-926d-4ce8-bfcd-9b2e7dc709c1",
       "name": "Code：萃取離職資訊",
@@ -153,7 +153,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO resignations (name, department, position, resign_date, last_day, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.position || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  'active',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+        "query": "WITH upsert AS (\n  UPDATE resignations\n  SET\n    status = 'active',\n    department = COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), department),\n    position  = COALESCE(NULLIF('{{ ($json.position  || '').replace(/'/g, \"''\") }}', ''), position),\n    email_msg_id   = '{{ $json.email_msg_id || '' }}',\n    email_subject  = '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n    email_web_link = COALESCE(NULLIF('{{ $json.email_web_link || '' }}', ''), email_web_link),\n    updated_at = NOW()\n  WHERE name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n    AND status = 'pending'\n    AND last_day BETWEEN\n      COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE) - 14\n      AND COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE) + 14\n  RETURNING id\n)\nINSERT INTO resignations (name, department, position, resign_date, last_day, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n  COALESCE(NULLIF('{{ ($json.position  || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  'active',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nWHERE NOT EXISTS (SELECT 1 FROM upsert)\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
         "options": {}
       },
       "id": "64110571-f499-4045-ac05-25982d1ab97e",
@@ -536,6 +536,137 @@
           "name": "Microsoft Outlook account"
         }
       }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "foldersToInclude": [
+            "AAMkADA2Y2U5Yzc0LTMwZjgtNGU1MS1hYWU5LTFjMjA5MDFhM2Q1OQAuAAAAAAATwHe72s8cTYU6NTzQdTNsAQCddaHEqpeLSJK4gY8M9T9SAAAA-bMBAAA="
+          ]
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "id": "resign-pre-trigger-001",
+      "name": "Outlook 收信觸發：單位離職預通知 (收件匣)",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        480
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "gRnSdH5u4gDyDZzB",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "subj-pre-resign-a",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "離職人員通知",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "subj-pre-resign-b",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "人員離職申請",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "resign-pre-if-001",
+      "name": "IF：過濾單位離職預通知",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst subject = item.subject || '';\nconst receivedAt = item.receivedDateTime;\nconst fallbackYear = String(new Date(receivedAt || Date.now()).getFullYear());\n\nfunction clean(v) { return String(v || '').replace(/\\s+/g, ' ').trim(); }\n\nfunction rocToWestern(dateStr) {\n  if (!dateStr) return null;\n  const s = String(dateStr).replace(/[()（）一二三四五六日週]/g, '').trim();\n  const m = s.match(/^(\\d{2,3})[/\\-](\\d{1,2})[/\\-](\\d{1,2})$/);\n  if (!m) return null;\n  const rocYear = Number(m[1]);\n  const year = rocYear < 200 ? rocYear + 1911 : rocYear;\n  return year + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');\n}\n\nfunction parseDate(raw) {\n  if (!raw) return null;\n  const text = clean(raw).replace(/[()（）一二三四五六日週]/g, '');\n  const ymd4 = text.match(/(\\d{4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})/);\n  if (ymd4) return ymd4[1] + '-' + ymd4[2].padStart(2,'0') + '-' + ymd4[3].padStart(2,'0');\n  const roc = text.match(/(\\d{2,3})[/\\-](\\d{1,2})[/\\-](\\d{1,2})/);\n  if (roc) { const d = rocToWestern(roc[0]); if (d) return d; }\n  const md = text.match(/(\\d{1,2})[/\\-](\\d{1,2})/);\n  if (md) return fallbackYear + '-' + md[1].padStart(2,'0') + '-' + md[2].padStart(2,'0');\n  return null;\n}\n\nlet name = '', department = '未分類', position = '未知職位', last_day = null;\n\n// Pattern B: 人員離職申請\nif (/人員離職申請/.test(subject)) {\n  const wMatch = body.match(/W\\d+[_\\s]([^\\s_，,（(]{2,5})[_\\s]([^，,（(\\r\\n]{2,15})/);\n  if (wMatch) { name = clean(wMatch[1]); position = clean(wMatch[2]); }\n  const effM = body.match(/離職生效日[：:]\\s*([^\\r\\n，,(（]+)/);\n  const lastM = body.match(/最後(?:上班|工作)日[：:]\\s*([^\\r\\n，,(（]+)/);\n  last_day = parseDate((effM || lastM)?.[1] || '');\n\n// Pattern A1: 離職人員通知: ... (without 【】)\n} else if (/離職人員通知[：:]/.test(subject)) {\n  const sm = subject.match(/離職人員通知[：:]\\s*(.*?)，.*?生效日[：:]\\s*([0-9/]+)/);\n  if (sm) {\n    last_day = parseDate(sm[2]);\n    const parts = sm[1].trim().split(/\\s+/);\n    const wIdx = parts.findIndex(p => /^W\\d+/.test(p));\n    if (wIdx >= 0) {\n      name = clean(parts.slice(wIdx + 1).join(' '));\n      department = clean(parts.slice(0, wIdx).join(' '));\n    } else {\n      name = clean(parts[parts.length - 1]);\n      department = clean(parts.slice(0, -1).join(' '));\n    }\n  }\n  const bodyName = body.match(/工號\\s*[/\\\\]\\s*姓名[：:]\\s*W\\d+\\s+([^\\s\\r\\n，,（(]+)/);\n  if (bodyName) name = clean(bodyName[1]) || name;\n  const bodyEff = body.match(/離職生效日[：:]\\s*([^\\r\\n（(]+)/);\n  if (bodyEff && !last_day) last_day = parseDate(bodyEff[1]);\n\n// Pattern A2: 【離職人員通知】部門：姓名，預計於ROC_date離職\n} else if (/【離職人員通知】/.test(subject)) {\n  const sm = subject.match(/【離職人員通知】(.*?)[：:]\\s*([^，,]+)，.*?(?:預計於|於)\\s*([0-9/]+)/);\n  if (sm) {\n    department = clean(sm[1]);\n    name = clean(sm[2]);\n    last_day = rocToWestern(sm[3]) || parseDate(sm[3]);\n  }\n  const bodyEff = body.match(/離職生效日[：:]\\s*([^\\r\\n（(]+)/);\n  const bodyLastDay = body.match(/離職日[：:]\\s*([^\\r\\n（(]+)/);\n  if (bodyEff) last_day = parseDate(bodyEff[1]) || last_day;\n  else if (bodyLastDay && !last_day) last_day = parseDate(bodyLastDay[1]);\n}\n\n// Fallback body extraction\nif (!name) { const m = body.match(/姓\\s*名\\s*[：:]\\s*([^\\r\\n□]+)/); if (m) name = clean(m[1]); }\nif (!department || department === '未分類') { const m = body.match(/單\\s*位\\s*[：:]\\s*([^\\r\\n□]+)/); if (m) department = clean(m[1]); }\nif (!position || position === '未知職位') { const m = body.match(/職\\s*稱\\s*[：:]\\s*([^\\r\\n□]+)/); if (m) position = clean(m[1]); }\nif (!last_day) { const m = body.match(/離\\s*職\\s*生\\s*效\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/); if (m) last_day = parseDate(m[1]); }\nif (!last_day) {\n  const t = new Date(receivedAt || Date.now());\n  last_day = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || null,\n  received_at: receivedAt,\n  source_type: 'resignation_pending',\n  name: name || '未知姓名',\n  department: department || '未分類',\n  position: position || '未知職位',\n  last_day,\n};"
+      },
+      "id": "resign-pre-code-001",
+      "name": "Code：萃取單位離職預通知",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO resignations (name, department, position, resign_date, last_day, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n  COALESCE(NULLIF('{{ ($json.position  || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  'pending',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nWHERE NOT EXISTS (\n  SELECT 1 FROM resignations r\n  WHERE r.name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n    AND r.status IN ('pending', 'active')\n    AND r.last_day BETWEEN\n      COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE) - 14\n      AND COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE) + 14\n)\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'pending_inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+        "options": {}
+      },
+      "id": "resign-pre-pg-001",
+      "name": "PG：寫入 resignations (pending)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2864,
+        480
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO email_logs (email_msg_id, email_subject, sender, received_at, action, candidate_id)\nSELECT\n  '{{ $json.email_msg_id || '' }}',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  NULLIF('{{ $json.sender || '' }}', ''),\n  COALESCE(NULLIF('{{ $json.received_at || '' }}', '')::TIMESTAMPTZ, NOW()),\n  '{{ $json.action || ''pending_inserted'' }}',\n  NULL\nON CONFLICT (email_msg_id) DO UPDATE SET\n  action = EXCLUDED.action, processed_at = NOW();\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'log_inserted' AS status;",
+        "options": {}
+      },
+      "id": "resign-pre-log-001",
+      "name": "PG：離職預通知 email_logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3088,
+        480
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NGdDfE2F1YFXGcmn",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
   "connections": {
@@ -756,6 +887,56 @@
           }
         ]
       ]
+    },
+    "Outlook 收信觸發：單位離職預通知 (收件匣)": {
+      "main": [
+        [
+          {
+            "node": "IF：過濾單位離職預通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF：過濾單位離職預通知": {
+      "main": [
+        [
+          {
+            "node": "Code：萃取單位離職預通知",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Code：萃取單位離職預通知": {
+      "main": [
+        [
+          {
+            "node": "PG：寫入 resignations (pending)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG：寫入 resignations (pending)": {
+      "main": [
+        [
+          {
+            "node": "PG：離職預通知 email_logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG：離職預通知 email_logs": {
+      "main": [
+        []
+      ]
     }
   },
   "settings": {
@@ -768,7 +949,7 @@
   "pinData": {},
   "versionId": "616c261d-be93-4ed1-81c1-1820d35df599",
   "activeVersionId": "616c261d-be93-4ed1-81c1-1820d35df599",
-  "triggerCount": 3,
+  "triggerCount": 4,
   "shared": [
     {
       "updatedAt": "2026-05-20T07:04:02.300Z",
@@ -913,7 +1094,7 @@
       {
         "parameters": {
           "mode": "runOnceForEachItem",
-          "jsCode": "const item = $input.item.json;\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst subject = item.subject || '';\nconst fallbackYear = String(new Date(item.receivedDateTime || Date.now()).getFullYear());\n\nconst clean = (value) => String(value || '')\n  .replace(/\\s+/g, ' ')\n  .replace(/[□]/g, '')\n  .trim();\n\nconst parseDate = (raw) => {\n  const text = clean(raw).replace(/[()（）一二三四五六日]/g, '');\n  const ymd = text.match(/(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (ymd) return ymd[1] + '-' + ymd[2].padStart(2, '0') + '-' + ymd[3].padStart(2, '0');\n  const md = text.match(/(\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (md) return fallbackYear + '-' + md[1].padStart(2, '0') + '-' + md[2].padStart(2, '0');\n  return null;\n};\n\nconst deptMatch = body.match(/單\\s*位\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst nameMatch = body.match(/姓\\s*名\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst titleMatch = body.match(/職\\s*稱\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst effectiveMatch = body.match(/離\\s*職\\s*生\\s*效\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\nconst lastDayMatch = body.match(/最\\s*後\\s*上\\s*班\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\n\nlet department = clean(deptMatch?.[1] || '');\nlet name = clean(nameMatch?.[1] || '');\nlet position = clean(titleMatch?.[1] || '');\nlet last_day = parseDate(effectiveMatch?.[1] || lastDayMatch?.[1] || '');\n\nconst subjectDateMatch = subject.match(/(?:將於|於)\\s*(\\d{4}\\/\\d{1,2}\\/\\d{1,2}|\\d{4}-\\d{1,2}-\\d{1,2})/);\nif (!last_day && subjectDateMatch) {\n  last_day = parseDate(subjectDateMatch[1]);\n}\n\nif (!department || !name) {\n  const subjectMatch = subject.match(/(?:今日)?離職人員通知\\s*[-：:]\\s*([^\\s]+)\\s+([^\\s，,]+)/);\n  if (subjectMatch) {\n    department ||= clean(subjectMatch[1]);\n    name ||= clean(subjectMatch[2]);\n  }\n}\n\nif (!last_day && subject.includes('今日離職人員通知')) {\n  const today = new Date(item.receivedDateTime || Date.now());\n  last_day = [\n    today.getFullYear(),\n    String(today.getMonth() + 1).padStart(2, '0'),\n    String(today.getDate()).padStart(2, '0'),\n  ].join('-');\n}\n\nif (!position) {\n  if (department.includes('文件')) position = '文件專員';\n  else if (department.includes('業務')) position = '業務專員';\n  else if (department.includes('工程')) position = '工程師';\n  else position = '未知職位';\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || item.from || null,\n  received_at: item.receivedDateTime,\n  source_type: 'resignation',\n  name: name || '未知姓名',\n  department: department || '未分類',\n  position,\n  last_day,\n};"
+          "jsCode": "const item = $input.item.json;\nconst rawBody = item.body?.content || item.bodyPreview || '';\nconst body = rawBody\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&#\\d+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst subject = item.subject || '';\nconst fallbackYear = String(new Date(item.receivedDateTime || Date.now()).getFullYear());\n\nconst clean = (value) => String(value || '')\n  .replace(/\\s+/g, ' ')\n  .replace(/[□]/g, '')\n  .trim();\n\nconst parseDate = (raw) => {\n  const text = clean(raw).replace(/[()（）一二三四五六日]/g, '');\n  const ymd = text.match(/(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (ymd) return ymd[1] + '-' + ymd[2].padStart(2, '0') + '-' + ymd[3].padStart(2, '0');\n  const md = text.match(/(\\d{1,2})[\\/\\-](\\d{1,2})/);\n  if (md) return fallbackYear + '-' + md[1].padStart(2, '0') + '-' + md[2].padStart(2, '0');\n  return null;\n};\n\nconst deptMatch = body.match(/單\\s*位\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst nameMatch = body.match(/姓\\s*名\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst titleMatch = body.match(/職\\s*稱\\s*[：:]\\s*([^\\r\\n□]+)/);\nconst effectiveMatch = body.match(/離\\s*職\\s*生\\s*效\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\nconst lastDayMatch = body.match(/最\\s*後\\s*上\\s*班\\s*日\\s*[：:]\\s*([^\\r\\n□（(]+)/);\n\nlet department = clean(deptMatch?.[1] || '');\nlet name = clean(nameMatch?.[1] || '');\nlet position = clean(titleMatch?.[1] || '');\nlet last_day = parseDate(effectiveMatch?.[1] || lastDayMatch?.[1] || '');\n\nconst subjectDateMatch = subject.match(/(?:將於|於)\\s*(\\d{4}\\/\\d{1,2}\\/\\d{1,2}|\\d{4}-\\d{1,2}-\\d{1,2})/);\nif (!last_day && subjectDateMatch) {\n  last_day = parseDate(subjectDateMatch[1]);\n}\n\nif (!department || !name) {\n  const wSubjectMatch = subject.match(/離職人員通知[：:]\\s*(.*?)\\s+W\\d+\\s+([^\\s，,]+)/);\n  if (wSubjectMatch) {\n    department ||= clean(wSubjectMatch[1]);\n    name ||= clean(wSubjectMatch[2]);\n  } else {\n    const subjectMatch = subject.match(/(?:今日)?離職人員通知\\s*[-：:]\\s*([^\\s]+)\\s+([^\\s，,]+)/);\n    if (subjectMatch) {\n      department ||= clean(subjectMatch[1]);\n      name ||= clean(subjectMatch[2]);\n    }\n  }\n}\n\nif (!last_day) {\n  const subjEffMatch = subject.match(/生效日[：:]\\s*([0-9/]+)/);\n  if (subjEffMatch) last_day = parseDate(subjEffMatch[1]);\n}\n\nif (!last_day && subject.includes('今日離職人員通知')) {\n  const today = new Date(item.receivedDateTime || Date.now());\n  last_day = [\n    today.getFullYear(),\n    String(today.getMonth() + 1).padStart(2, '0'),\n    String(today.getDate()).padStart(2, '0'),\n  ].join('-');\n}\n\nif (!position) {\n  if (department.includes('文件')) position = '文件專員';\n  else if (department.includes('業務')) position = '業務專員';\n  else if (department.includes('工程')) position = '工程師';\n  else position = '未知職位';\n}\n\nreturn {\n  email_msg_id: item.id,\n  email_subject: subject,\n  email_web_link: item.webLink || null,\n  sender: item.from?.emailAddress?.address || item.from || null,\n  received_at: item.receivedDateTime,\n  source_type: 'resignation',\n  name: name || '未知姓名',\n  department: department || '未分類',\n  position,\n  last_day,\n};"
         },
         "id": "71f201ca-926d-4ce8-bfcd-9b2e7dc709c1",
         "name": "Code：萃取離職資訊",
@@ -948,7 +1129,7 @@
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "INSERT INTO resignations (name, department, position, resign_date, last_day, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.department || '').replace(/'/g, \"''\") }}',\n  '{{ ($json.position || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  'active',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
+          "query": "WITH upsert AS (\n  UPDATE resignations\n  SET\n    status = 'active',\n    department = COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), department),\n    position  = COALESCE(NULLIF('{{ ($json.position  || '').replace(/'/g, \"''\") }}', ''), position),\n    email_msg_id   = '{{ $json.email_msg_id || '' }}',\n    email_subject  = '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n    email_web_link = COALESCE(NULLIF('{{ $json.email_web_link || '' }}', ''), email_web_link),\n    updated_at = NOW()\n  WHERE name = '{{ ($json.name || '').replace(/'/g, \"''\") }}'\n    AND status = 'pending'\n    AND last_day BETWEEN\n      COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE) - 14\n      AND COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE) + 14\n  RETURNING id\n)\nINSERT INTO resignations (name, department, position, resign_date, last_day, status, email_subject, email_msg_id, email_web_link)\nSELECT\n  '{{ ($json.name || '').replace(/'/g, \"''\") }}',\n  COALESCE(NULLIF('{{ ($json.department || '').replace(/'/g, \"''\") }}', ''), '未分類'),\n  COALESCE(NULLIF('{{ ($json.position  || '').replace(/'/g, \"''\") }}', ''), '未知職位'),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  COALESCE(NULLIF('{{ $json.last_day || '' }}', '')::DATE, CURRENT_DATE),\n  'active',\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}',\n  '{{ $json.email_msg_id || '' }}',\n  NULLIF('{{ $json.email_web_link || '' }}', '')\nWHERE NOT EXISTS (SELECT 1 FROM upsert)\nON CONFLICT (email_msg_id) DO NOTHING;\n\nSELECT '{{ $json.email_msg_id || '' }}' AS email_msg_id, 'inserted' AS action, NULL::INTEGER AS candidate_id,\n  '{{ ($json.email_subject || '').replace(/'/g, \"''\") }}' AS email_subject,\n  NULLIF('{{ $json.sender || '' }}', '') AS sender,\n  '{{ $json.received_at || '' }}' AS received_at;",
           "options": {}
         },
         "id": "64110571-f499-4045-ac05-25982d1ab97e",

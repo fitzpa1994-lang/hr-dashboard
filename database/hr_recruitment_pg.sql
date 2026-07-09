@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS resignations (
     last_day        DATE        NOT NULL,
     reason          TEXT,
     status          TEXT        DEFAULT 'active'
-                    CHECK(status IN ('active','done','cancelled')),
+                    CHECK(status IN ('pending','active','done','cancelled')),
     email_subject   TEXT,
     email_msg_id    TEXT        UNIQUE,
     email_web_link  TEXT,
