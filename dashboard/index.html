@@ -548,16 +548,17 @@
             <div class="section-head flex-wrap gap-y-2">
               <div>
                 <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-gray-500"></i>各單位招募進度</h2>
-                <div class="section-subtitle">依該月新增人選分組，不含已淘汰</div>
+                <div class="section-subtitle">依該月有活動人選分組，不含已淘汰</div>
               </div>
               <div class="flex gap-1.5 flex-wrap" id="dept-month-tabs"></div>
             </div>
-            <div class="overflow-x-auto">
-              <table class="w-full tbl-compact">
-                <thead><tr><th>單位</th><th class="text-center">待安排</th><th class="text-center">面試中</th><th class="text-center">確認到職</th><th class="text-center">合計</th></tr></thead>
-                <tbody id="overview-dept-tbody"></tbody>
-              </table>
+            <!-- stage legend -->
+            <div class="flex items-center gap-4 px-5 pb-3 border-b border-gray-100">
+              <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>待安排</div>
+              <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0"></span>面試中</div>
+              <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>確認到職</div>
             </div>
+            <div class="flex-1 overflow-y-auto" id="overview-dept-tbody"></div>
           </div>
         </div>
       </div>
@@ -1442,6 +1443,7 @@ function renderOverviewMonthlyChart() {
 
 function renderDeptBreakdown(month) {
   const GROUP_ORDER = ['WBU', 'ICC', '新華／新竹', '安規', '行政', '其他'];
+  const DEPT_DOT = { 'WBU': '#1d4ed8', 'ICC': '#7c3aed', '新華／新竹': '#0d9488', '安規': '#ea580c', '行政': '#475569', '其他': '#9ca3af' };
   const groupMap = {};
   GROUP_ORDER.forEach(g => { groupMap[g] = {}; });
 
@@ -1451,7 +1453,7 @@ function renderDeptBreakdown(month) {
 
   for (const c of filtered) {
     const stage = getCandidateStageKey(c);
-    if (stage === 'rejected') continue;
+    if (stage === 'rejected' || stage === 'withdrawn') continue;
     const group = getJobGroup(c.dept);
     const sub = c.dept || '未分類';
     if (!groupMap[group][sub]) groupMap[group][sub] = { arranging: 0, interviewing: 0, onboarded: 0 };
@@ -1459,6 +1461,12 @@ function renderDeptBreakdown(month) {
     else if (stage === 'interviewing') groupMap[group][sub].interviewing++;
     else if (stage === 'onboarded') groupMap[group][sub].onboarded++;
   }
+
+  const pill = (count, color, label) => count
+    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border" style="background:${color}18;border-color:${color}40;color:${color}">
+         <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:${color}"></span>${count} ${label}
+       </span>`
+    : '';
 
   let html = '';
   GROUP_ORDER.forEach(groupName => {
@@ -1468,29 +1476,37 @@ function renderDeptBreakdown(month) {
     Object.values(subs).forEach(v => { gA += v.arranging; gI += v.interviewing; gO += v.onboarded; });
     const gTotal = gA + gI + gO;
     if (!gTotal) return;
-    html += `<tr style="background:rgba(22,58,99,0.06);border-top:1px solid rgba(22,58,99,0.1)">
-      <td class="px-6 py-2 font-bold text-[12px] text-brand tracking-wide">${groupName}</td>
-      <td class="text-center py-2 font-semibold text-gray-700 text-[12px]">${gA || '--'}</td>
-      <td class="text-center py-2 font-semibold text-gray-700 text-[12px]">${gI || '--'}</td>
-      <td class="text-center py-2 font-semibold text-gray-700 text-[12px]">${gO || '--'}</td>
-      <td class="text-center py-2 font-bold text-brand text-[13px]">${gTotal}</td>
-    </tr>`;
-    Object.entries(subs)
-      .map(([dept, v]) => ({ dept, ...v, total: v.arranging + v.interviewing + v.onboarded }))
+    const dot = DEPT_DOT[groupName] || '#9ca3af';
+
+    const subRows = Object.entries(subs)
+      .map(([dept, v]) => ({ label: getJobSubDept(dept), ...v, total: v.arranging + v.interviewing + v.onboarded }))
       .filter(r => r.total > 0)
-      .sort((a, b) => b.total - a.total)
-      .forEach(r => {
-        const label = getJobSubDept(r.dept);
-        html += `<tr>
-          <td class="pl-10 pr-4 py-2 text-gray-500 text-[12px]">${label}</td>
-          <td class="text-center text-gray-400 text-[12px]">${r.arranging || '--'}</td>
-          <td class="text-center text-gray-400 text-[12px]">${r.interviewing || '--'}</td>
-          <td class="text-center text-gray-400 text-[12px]">${r.onboarded || '--'}</td>
-          <td class="text-center font-medium text-gray-600 text-[12px]">${r.total}</td>
-        </tr>`;
-      });
+      .sort((a, b) => b.total - a.total);
+    const showSubs = subRows.length > 1;
+
+    html += `<div class="px-5 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+      <div class="flex items-center gap-3">
+        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${dot}"></span>
+        <span class="text-[13px] font-bold text-gray-800 w-16 flex-shrink-0">${groupName}</span>
+        <div class="flex-1 flex flex-wrap items-center gap-1.5">
+          ${pill(gA, '#d97706', '待安排')}
+          ${pill(gI, '#4f46e5', '面試中')}
+          ${pill(gO, '#059669', '到職')}
+        </div>
+        <span class="text-[15px] font-extrabold flex-shrink-0" style="color:${dot}">${gTotal}</span>
+      </div>
+      ${showSubs ? `<div class="mt-2 ml-5 space-y-1">` + subRows.map(r => `
+        <div class="flex items-center gap-2">
+          <span class="text-gray-300 text-[11px]">└</span>
+          <span class="text-[11px] text-gray-500 flex-1 truncate">${escHtml(r.label)}</span>
+          ${r.arranging ? `<span class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 rounded">${r.arranging}</span>` : ''}
+          ${r.interviewing ? `<span class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 rounded">${r.interviewing}</span>` : ''}
+          ${r.onboarded ? `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 rounded">${r.onboarded}</span>` : ''}
+          <span class="text-[11px] font-bold text-gray-600 w-5 text-right">${r.total}</span>
+        </div>`).join('') + `</div>` : ''}
+    </div>`;
   });
-  document.getElementById('overview-dept-tbody').innerHTML = html || '<tr><td colspan="5" class="text-center py-6 text-gray-400">目前無招募中資料</td></tr>';
+  document.getElementById('overview-dept-tbody').innerHTML = html || '<div class="text-center py-8 text-[13px] text-gray-400">目前無招募中資料</div>';
 }
 
 function getDeptAbbr(dept) {
@@ -1509,10 +1525,14 @@ function getDeptAbbr(dept) {
 function renderDeptMonthTabs() {
   const el = document.getElementById('dept-month-tabs');
   if (!el) return;
+  // Use latestDate (most recent activity) so the current month always appears for active candidates
   const months = new Set();
-  candidatesData.forEach(c => { if (c.firstSignalAt) months.add(c.firstSignalAt.substring(0, 7)); });
+  candidatesData.forEach(c => {
+    const d = (c.latestDate || c.date || c.firstSignalAt || '').substring(0, 7);
+    if (d) months.add(d);
+  });
   const currentMonth = TODAY.substring(0, 7);
-  if (!deptMonthFilter) deptMonthFilter = currentMonth;
+  if (!deptMonthFilter || !months.has(deptMonthFilter)) deptMonthFilter = currentMonth;
   const monthList = [];
   for (let i = 5; i >= 0; i--) {
     const ref = new Date(TODAY + 'T00:00:00');
