@@ -1567,32 +1567,49 @@ function initOverview() {
     `今日 HR 活動彙整 · 更新於 ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
 
 
-  // 今日進度 — 推薦明細
+  // 今日進度 — 推薦明細 × 面試明細（交叉勾稽）
   const recList = todayActivity.recommendList || [];
+  const intList = todayActivity.interviewList || [];
+
+  // Build cross-reference: interview keyed by candidate name
+  const intByName = {};
+  intList.forEach(r => { if (r.name) intByName[r.name] = r; });
+  const recNames = new Set(recList.map(r => r.name).filter(Boolean));
+
   document.getElementById('today-recommend-list').innerHTML = recList.length
-    ? recList.map(r => `
-      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
-        <div class="h-6 px-1.5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-[9px] font-bold text-blue-700 min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
+    ? recList.map(r => {
+        const linked = intByName[r.name];
+        return `
+      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0${linked ? ' rounded-lg bg-indigo-50/50 px-1 -mx-1' : ''}">
+        <div class="h-6 px-1.5 rounded-full ${linked ? 'bg-indigo-200' : 'bg-blue-100'} flex items-center justify-center flex-shrink-0 text-[9px] font-bold ${linked ? 'text-indigo-700' : 'text-blue-700'} min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
         <div class="min-w-0 flex-1">
           <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
           <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
         </div>
-        <div class="text-[10px] text-gray-400 flex-shrink-0">${r.rcvTime||''}</div>
-      </div>`).join('')
+        <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
+          <div class="text-[10px] text-gray-400">${r.rcvTime||''}</div>
+          ${linked ? `<div class="text-[9px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full leading-tight">▶ ${linked.intDate||''}${linked.intTime?' '+linked.intTime:''}</div>` : ''}
+        </div>
+      </div>`;
+      }).join('')
     : '<div class="text-[11px] text-gray-400 py-1">今日尚無推薦</div>';
 
-  // 今日進度 — 面試明細
-  const intList = todayActivity.interviewList || [];
   document.getElementById('today-interview-list').innerHTML = intList.length
-    ? intList.map(r => `
-      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
-        <div class="h-6 px-1.5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-[9px] font-bold text-indigo-700 min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
+    ? intList.map(r => {
+        const wasRec = recNames.has(r.name);
+        return `
+      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0${wasRec ? ' rounded-lg bg-blue-50/50 px-1 -mx-1' : ''}">
+        <div class="h-6 px-1.5 rounded-full ${wasRec ? 'bg-blue-200' : 'bg-indigo-100'} flex items-center justify-center flex-shrink-0 text-[9px] font-bold ${wasRec ? 'text-blue-700' : 'text-indigo-700'} min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
         <div class="min-w-0 flex-1">
-          <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
+          <div class="flex items-center gap-1 flex-wrap">
+            <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
+            ${wasRec ? '<span class="text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full leading-tight">今日推薦</span>' : ''}
+          </div>
           <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
         </div>
         <div class="text-[10px] font-semibold text-indigo-600 flex-shrink-0">${r.intDate||'--'}${r.intTime?' '+r.intTime:''}</div>
-      </div>`).join('')
+      </div>`;
+      }).join('')
     : '<div class="text-[11px] text-gray-400 py-1">今日尚無面試安排</div>';
 
   renderDeptMonthTabs();
