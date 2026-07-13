@@ -1,6 +1,7 @@
 ﻿import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { createReadStream, existsSync, statSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +16,7 @@ const N8N_TOKEN = process.env.N8N_HR_TOKEN;
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 8 * 60 * 60 * 1000);
 const IS_PROD = process.env.NODE_ENV === 'production';
 const DEFAULT_N8N_PROXY_TIMEOUT_MS = 10_000;
+const DEFAULT_OUTLOOK_OPEN_TIMEOUT_MS = 20_000;
 
 const sessions = new Map();
 const mimeTypes = new Map([
@@ -96,6 +98,23 @@ function sendJson(res, status, body, headers = {}) {
     ...headers
   });
   res.end(JSON.stringify(body));
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sendHtml(res, status, body) {
+  res.writeHead(status, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store'
+  });
+  res.end(body);
 }
 
 function setSessionCookie(res, sid) {
@@ -181,6 +200,264 @@ function normalizeJobRequisitionPayload(body, { requireId = false } = {}) {
 function getProxyTimeoutMs() {
   const configured = Number(process.env.N8N_PROXY_TIMEOUT_MS || DEFAULT_N8N_PROXY_TIMEOUT_MS);
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_N8N_PROXY_TIMEOUT_MS;
+}
+
+function getOutlookOpenTimeoutMs() {
+  const configured = Number(process.env.OUTLOOK_OPEN_TIMEOUT_MS || DEFAULT_OUTLOOK_OPEN_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_OUTLOOK_OPEN_TIMEOUT_MS;
+}
+
+function normalizeQueryText(value, maxLength) {
+  const text = String(value || '').trim();
+  return text.length > maxLength ? text.slice(0, maxLength) : text;
+}
+
+function getSafeFallbackUrl(value) {
+  const text = normalizeQueryText(value, 2048);
+  if (!text) return '';
+  try {
+    const url = new URL(text);
+    return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+const OUTLOOK_OPEN_SCRIPT = String.raw`& {
+param(
+  [string]$MessageId,
+  [string]$Subject,
+  [string]$ReceivedAt
+)
+
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+function Normalize-Text([string]$Value) {
+  if ($null -eq $Value) { return '' }
+  return ($Value -replace '\s+', ' ').Trim()
+}
+
+function Escape-Dasl([string]$Value) {
+  return $Value.Replace("'", "''")
+}
+
+function Get-MailFolders($Folder) {
+  if ($null -eq $Folder) { return }
+  try {
+    if ($Folder.DefaultItemType -eq 0) { $Folder }
+    foreach ($Child in @($Folder.Folders)) {
+      Get-MailFolders $Child
+    }
+  } catch {}
+}
+
+function Restrict-BySubject($Items, [string]$SubjectText) {
+  if ([string]::IsNullOrWhiteSpace($SubjectText)) { return @() }
+  $EscapedSubject = Escape-Dasl $SubjectText
+  $Filter = "@SQL=""http://schemas.microsoft.com/mapi/proptag/0x0037001f"" = '$EscapedSubject'"
+  try {
+    return @($Items.Restrict($Filter))
+  } catch {
+    return @()
+  }
+}
+
+function Score-Mail($Mail, [string]$SubjectText, [Nullable[datetime]]$ReceivedDate) {
+  $Score = 0
+  $MailSubject = Normalize-Text ([string]$Mail.Subject)
+  $TargetSubject = Normalize-Text $SubjectText
+  if ($TargetSubject -and $MailSubject -eq $TargetSubject) {
+    $Score += 1000
+  } elseif ($TargetSubject -and $MailSubject.Contains($TargetSubject)) {
+    $Score += 500
+  }
+  if ($ReceivedDate.HasValue) {
+    try {
+      $Minutes = [math]::Abs((([datetime]$Mail.ReceivedTime) - $ReceivedDate.Value).TotalMinutes)
+      $Score += [math]::Max(0, 300 - [int]$Minutes)
+    } catch {}
+  }
+  return $Score
+}
+
+$TargetSubject = Normalize-Text $Subject
+if ([string]::IsNullOrWhiteSpace($TargetSubject)) {
+  throw '缺少履歷推薦郵件主旨，無法在 Outlook 搜尋。'
+}
+
+$TargetReceivedAt = $null
+if (-not [string]::IsNullOrWhiteSpace($ReceivedAt)) {
+  try {
+    $TargetReceivedAt = [datetime]::Parse(
+      $ReceivedAt,
+      [Globalization.CultureInfo]::InvariantCulture,
+      [Globalization.DateTimeStyles]::AssumeLocal
+    )
+  } catch {
+    $TargetReceivedAt = $null
+  }
+}
+
+$Outlook = New-Object -ComObject Outlook.Application
+$Session = $Outlook.Session
+$BestMail = $null
+$BestScore = -1
+
+foreach ($Store in @($Session.Stores)) {
+  try {
+    $Root = $Store.GetRootFolder()
+  } catch {
+    continue
+  }
+
+  foreach ($Folder in @(Get-MailFolders $Root)) {
+    try {
+      $Items = $Folder.Items
+      $Items.Sort('[ReceivedTime]', $true)
+      foreach ($Mail in @(Restrict-BySubject $Items $TargetSubject)) {
+        if ($null -eq $Mail) { continue }
+        if ($Mail.Class -ne 43) { continue }
+        $Score = Score-Mail $Mail $TargetSubject $TargetReceivedAt
+        if ($Score -gt $BestScore) {
+          $BestScore = $Score
+          $BestMail = $Mail
+        }
+      }
+    } catch {}
+  }
+}
+
+if ($null -eq $BestMail) {
+  throw ('找不到對應的 Outlook 郵件：' + $TargetSubject)
+}
+
+$BestMail.Display($false)
+try { $BestMail.Activate() } catch {}
+
+@{
+  ok = $true
+  subject = [string]$BestMail.Subject
+  receivedAt = [string]$BestMail.ReceivedTime
+  folder = [string]$BestMail.Parent.FolderPath
+  messageId = [string]$MessageId
+} | ConvertTo-Json -Compress
+}`;
+
+function runPowerShell(script, args, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      script,
+      ...args
+    ], { windowsHide: true });
+
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill();
+      reject(new Error('Opening Outlook timed out'));
+    }, timeoutMs);
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.on('error', error => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on('close', code => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (code !== 0) {
+        reject(new Error(stderr.trim() || stdout.trim() || `PowerShell exited with code ${code}`));
+        return;
+      }
+      resolve(stdout.trim());
+    });
+  });
+}
+
+function outlookResultPage({ title, message, fallbackUrl = '', isError = false }) {
+  const fallback = getSafeFallbackUrl(fallbackUrl);
+  const fallbackHtml = fallback
+    ? `<p><a href="${escapeHtml(fallback)}" target="_blank" rel="noopener">改用 Outlook Web 開啟</a></p>`
+    : '';
+  return `<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body{font-family:system-ui,"Noto Sans TC",sans-serif;margin:32px;color:#1C1917;background:#F7F6F3}
+    main{max-width:560px;background:#fff;border:1px solid #E7E5E1;border-radius:8px;padding:24px}
+    h1{font-size:18px;margin:0 0 10px;color:${isError ? '#C2410C' : '#1E3A5F'}}
+    p{font-size:13px;line-height:1.65;color:#57534E}
+    a{color:#1E3A5F;font-weight:600}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>${escapeHtml(title)}</h1>
+    <p>${escapeHtml(message)}</p>
+    ${fallbackHtml}
+  </main>
+</body>
+</html>`;
+}
+
+async function openOutlookMail(req, res, url) {
+  if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
+
+  const messageId = normalizeQueryText(url.searchParams.get('messageId'), 512).replace(/#\d+$/, '');
+  const subject = normalizeQueryText(url.searchParams.get('subject'), 500);
+  const receivedAt = normalizeQueryText(url.searchParams.get('receivedAt'), 64);
+  const fallbackUrl = getSafeFallbackUrl(url.searchParams.get('fallback'));
+
+  if (!subject && !messageId) {
+    return sendHtml(res, 400, outlookResultPage({
+      title: '無法開啟 Outlook 郵件',
+      message: '缺少履歷推薦郵件定位資訊。',
+      fallbackUrl,
+      isError: true
+    }));
+  }
+
+  if (process.platform !== 'win32') {
+    return sendHtml(res, 501, outlookResultPage({
+      title: '此環境無法開啟本機 Outlook',
+      message: '本機 Outlook 開信功能只能在 Windows 本機 dashboard server 上使用。',
+      fallbackUrl,
+      isError: true
+    }));
+  }
+
+  try {
+    await runPowerShell(OUTLOOK_OPEN_SCRIPT, [messageId, subject, receivedAt], getOutlookOpenTimeoutMs());
+    return sendHtml(res, 200, outlookResultPage({
+      title: '已送出 Outlook 開信指令',
+      message: '如果 Outlook 已安裝並登入同一個信箱，指定的履歷推薦郵件應該已經開啟。'
+    }));
+  } catch (error) {
+    return sendHtml(res, 404, outlookResultPage({
+      title: '找不到 Outlook 郵件',
+      message: error.message || 'Outlook 沒有回傳可用的錯誤訊息。',
+      fallbackUrl,
+      isError: true
+    }));
+  }
 }
 
 async function proxyDashboard(req, res) {
@@ -360,6 +637,10 @@ export const server = http.createServer(async (req, res) => {
       return proxyDashboard(req, res);
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/outlook/open') {
+      return openOutlookMail(req, res, url);
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/job-requisitions') {
       return proxyJobRequisitionWrite(req, res, 'create');
     }
@@ -389,4 +670,3 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
   });
 }
-

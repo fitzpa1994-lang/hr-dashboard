@@ -44,6 +44,9 @@ DASHBOARD_API_REQUIRED = (
     "has_reply_thread_subject",
     "has_recommend_subject",
     "'latestEmailSubject'",
+    "'recommendEmailMsgId'",
+    "'recommendEmailSubject'",
+    "'recommendEmailReceivedAt'",
 )
 
 LEGACY_EXPORTS = {

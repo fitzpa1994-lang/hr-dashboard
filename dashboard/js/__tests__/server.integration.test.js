@@ -153,6 +153,12 @@ describe('dashboard server auth flow', () => {
     expect(dashboard.status).toBe(401);
   });
 
+  test('protects local Outlook opener without a session', async () => {
+    const response = await fetch(`${baseUrl}/api/outlook/open?subject=${encodeURIComponent('履歷推薦')}`);
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+  });
+
   test('creates and updates job requisitions through the write webhook', async () => {
     const login = await fetch(`${baseUrl}/api/login`, {
       method: 'POST',

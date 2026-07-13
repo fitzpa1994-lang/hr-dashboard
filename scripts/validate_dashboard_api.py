@@ -56,7 +56,17 @@ def validate_payload(data: dict) -> list[str]:
 
     if data.get("candidatesData"):
         candidate = data["candidatesData"][0]
-        for field in ["name", "pos", "dept", "status", "emailLink", "resumeLink"]:
+        for field in [
+            "name",
+            "pos",
+            "dept",
+            "status",
+            "emailLink",
+            "resumeLink",
+            "recommendEmailMsgId",
+            "recommendEmailSubject",
+            "recommendEmailReceivedAt",
+        ]:
             if field not in candidate:
                 errors.append(f"candidatesData 缺少欄位：{field}")
         if "history" not in candidate:

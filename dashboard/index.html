@@ -1091,6 +1091,49 @@ function normalizeDashboardText(value) {
   return String(value || '').trim();
 }
 
+function isUsableLink(value) {
+  const text = normalizeDashboardText(value);
+  return Boolean(text && text !== '#' && text !== 'null' && text !== 'undefined');
+}
+
+function isLocalDashboardOrigin() {
+  return ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+}
+
+function getOutlookOpenUrl(record) {
+  if (!record) return '';
+  const messageId = normalizeDashboardText(record.recommendEmailMsgId || '').replace(/#\d+$/, '');
+  const subject = normalizeDashboardText(record.recommendEmailSubject || '');
+  const receivedAt = normalizeDashboardText(record.recommendEmailReceivedAt || '');
+  const fallback = normalizeDashboardText(record.recommendEmailLink || record.emailLink || '');
+
+  if (messageId || subject) {
+    const params = new URLSearchParams();
+    if (messageId) params.set('messageId', messageId);
+    if (subject) params.set('subject', subject);
+    if (receivedAt) params.set('receivedAt', receivedAt);
+    if (isUsableLink(fallback)) params.set('fallback', fallback);
+    if (isLocalDashboardOrigin()) return `/api/outlook/open?${params.toString()}`;
+    return `sporton-outlook://open?${params.toString()}`;
+  }
+
+  return isUsableLink(fallback) ? fallback : '';
+}
+
+function setOutlookAnchor(anchor, record) {
+  if (!anchor) return;
+  const url = getOutlookOpenUrl(record);
+  if (url) {
+    anchor.href = url;
+    anchor.title = '開啟履歷推薦第一封 Outlook 郵件';
+    anchor.classList.remove('opacity-50', 'pointer-events-none', 'disabled');
+  } else {
+    anchor.href = '#';
+    anchor.title = '沒有可開啟的 Outlook 郵件';
+    anchor.classList.add('opacity-50', 'pointer-events-none');
+  }
+}
+
 function normalizeLikelyStaleYear(dateString, referenceDateString) {
   const dateText = String(dateString || '').trim().slice(0, 10);
   const referenceText = String(referenceDateString || '').trim().slice(0, 10);
@@ -1922,7 +1965,8 @@ function renderFocusPanel() {
   hist.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
   const recent = [...hist].reverse();
   const cleanNote = (c.note || '').replace(/\s*\[SYS_STAGE:[^\]]+\]/g, '').trim();
-  const emailOk = c.emailLink && c.emailLink !== 'null';
+  const outlookUrl = getOutlookOpenUrl(c);
+  const emailOk = Boolean(outlookUrl);
 
   body.innerHTML = `
     <div class="text-[16px] font-bold text-gray-900 leading-tight">${escHtml(c.name)}</div>
@@ -1936,7 +1980,7 @@ function renderFocusPanel() {
     </div>
     <div class="focus-caption">快速連結</div>
     <div class="flex gap-2">
-      <a class="focus-link flex-1 justify-center ${emailOk ? '' : 'disabled'}" href="${escHtml(emailOk ? c.emailLink : '#')}" target="_blank"><i data-lucide="mail" class="w-3.5 h-3.5"></i>Outlook</a>
+      <a class="focus-link flex-1 justify-center ${emailOk ? '' : 'disabled'}" href="${escHtml(outlookUrl || '#')}" target="_blank" title="${emailOk ? '開啟履歷推薦第一封 Outlook 郵件' : '沒有可開啟的 Outlook 郵件'}"><i data-lucide="mail" class="w-3.5 h-3.5"></i>Outlook</a>
       <a class="focus-link flex-1 justify-center ${c.resumeLink ? '' : 'disabled'}" href="${escHtml(c.resumeLink || '#')}" target="_blank"><i data-lucide="file-text" class="w-3.5 h-3.5"></i>履歷附件</a>
     </div>
     ${cleanNote ? `<div class="focus-caption">HR 備註</div><div class="text-[12px] text-gray-600 leading-relaxed border rounded-md p-2.5" style="background:#FBFAF8;border-color:var(--line-soft)">${escHtml(cleanNote)}</div>` : ''}
@@ -2608,8 +2652,7 @@ function openDrawer(name){
   document.getElementById('dr-pos').innerHTML=`${c.pos||'--'} <span class="mx-2 text-gray-300">|</span> ${c.dept||'--'} <span class="mx-2 text-gray-300">|</span> ${getBadge(c)}`;
 
   const emailBtn=document.getElementById('dr-email-btn');
-  if(c.emailLink&&c.emailLink!=='null'){emailBtn.href=c.emailLink; emailBtn.classList.remove('opacity-50','pointer-events-none');}
-  else{emailBtn.href='#'; emailBtn.classList.add('opacity-50','pointer-events-none');}
+  setOutlookAnchor(emailBtn, c);
 
   const resumeBtn=document.getElementById('dr-resume-btn');
   if(c.resumeLink){resumeBtn.href=c.resumeLink; resumeBtn.classList.remove('opacity-50','pointer-events-none');}
@@ -2671,6 +2714,3 @@ if (location.hash) {
 <script type="module" src="js/jobsEditor.js?v=6"></script>
 </body>
 </html>
-
-
-
