@@ -5,6 +5,20 @@ param(
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$SearchTimeoutSeconds = 20
+$RecentScanLimitPerFolder = 600
+$LogDir = Join-Path $env:LOCALAPPDATA 'SportonHR'
+$LogPath = Join-Path $LogDir 'outlook-protocol.log'
+
+function Write-Log([string]$Message) {
+  try {
+    if (-not (Test-Path -LiteralPath $LogDir)) {
+      New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
+    }
+    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    Add-Content -LiteralPath $LogPath -Encoding UTF8 -Value "[$stamp] $Message"
+  } catch {}
+}
 
 function Show-Error([string]$Message) {
   try {
@@ -55,6 +69,58 @@ function Get-MailFolders($Folder) {
   } catch {}
 }
 
+function Get-ChildMailFolders($Folder, [int]$Depth) {
+  if ($null -eq $Folder -or $Depth -le 0) { return }
+  foreach ($child in @($Folder.Folders)) {
+    try {
+      if ($child.DefaultItemType -eq 0) { $child }
+      Get-ChildMailFolders $child ($Depth - 1)
+    } catch {}
+  }
+}
+
+function Get-SearchFolders($Session) {
+  $seen = @{}
+  $folders = New-Object System.Collections.Generic.List[object]
+  $defaultFolderIds = @(6, 5)
+
+  foreach ($folderId in $defaultFolderIds) {
+    try {
+      $folder = $Session.GetDefaultFolder($folderId)
+      if ($null -ne $folder -and -not $seen.ContainsKey($folder.EntryID)) {
+        $seen[$folder.EntryID] = $true
+        $folders.Add($folder)
+      }
+      foreach ($child in @(Get-ChildMailFolders $folder 1)) {
+        if ($null -ne $child -and -not $seen.ContainsKey($child.EntryID)) {
+          $seen[$child.EntryID] = $true
+          $folders.Add($child)
+        }
+      }
+    } catch {}
+  }
+
+  foreach ($store in @($Session.Stores)) {
+    foreach ($folderId in $defaultFolderIds) {
+      try {
+        $folder = $store.GetDefaultFolder($folderId)
+        if ($null -ne $folder -and -not $seen.ContainsKey($folder.EntryID)) {
+          $seen[$folder.EntryID] = $true
+          $folders.Add($folder)
+        }
+        foreach ($child in @(Get-ChildMailFolders $folder 1)) {
+          if ($null -ne $child -and -not $seen.ContainsKey($child.EntryID)) {
+            $seen[$child.EntryID] = $true
+            $folders.Add($child)
+          }
+        }
+      } catch {}
+    }
+  }
+
+  return $folders
+}
+
 function Restrict-BySubject($Items, [string]$SubjectText) {
   if ([string]::IsNullOrWhiteSpace($SubjectText)) { return @() }
   $escapedSubject = Escape-Dasl $SubjectText
@@ -87,6 +153,56 @@ function Score-Mail($Mail, [string]$SubjectText, [Nullable[datetime]]$ReceivedDa
   return $score
 }
 
+function Test-SearchDeadline([datetime]$Deadline) {
+  if ((Get-Date) -gt $Deadline) {
+    throw "Outlook search timed out after $SearchTimeoutSeconds seconds."
+  }
+}
+
+function Find-BestMailInFolder($Folder, [string]$Subject, [Nullable[datetime]]$ReceivedAt, [datetime]$Deadline) {
+  $bestMail = $null
+  $bestScore = -1
+  $items = $Folder.Items
+  $items.Sort('[ReceivedTime]', $true)
+
+  foreach ($mail in @(Restrict-BySubject $items $Subject)) {
+    Test-SearchDeadline $Deadline
+    if ($null -eq $mail) { continue }
+    if ($mail.Class -ne 43) { continue }
+    $score = Score-Mail $mail $Subject $ReceivedAt
+    if ($score -gt $bestScore) {
+      $bestScore = $score
+      $bestMail = $mail
+    }
+  }
+
+  if ($bestMail) {
+    return @{ Mail = $bestMail; Score = $bestScore }
+  }
+
+  $max = [math]::Min([int]$items.Count, $RecentScanLimitPerFolder)
+  for ($i = 1; $i -le $max; $i++) {
+    Test-SearchDeadline $Deadline
+    try {
+      $mail = $items.Item($i)
+      if ($null -eq $mail -or $mail.Class -ne 43) { continue }
+      $mailSubject = Normalize-Text ([string]$mail.Subject)
+      if (-not $mailSubject.Contains($Subject)) { continue }
+      $score = Score-Mail $mail $Subject $ReceivedAt
+      if ($score -gt $bestScore) {
+        $bestScore = $score
+        $bestMail = $mail
+      }
+    } catch {}
+  }
+
+  if ($bestMail) {
+    return @{ Mail = $bestMail; Score = $bestScore }
+  }
+
+  return $null
+}
+
 function Open-OutlookMail([hashtable]$Params) {
   $messageId = Normalize-Text $Params.messageId
   $messageId = $messageId -replace '#\d+$', ''
@@ -114,35 +230,32 @@ function Open-OutlookMail([hashtable]$Params) {
   $session = $outlook.Session
   $bestMail = $null
   $bestScore = -1
+  $deadline = (Get-Date).AddSeconds($SearchTimeoutSeconds)
+  $folders = @(Get-SearchFolders $session)
 
-  foreach ($store in @($session.Stores)) {
+  Write-Log "Searching Outlook subject='$subject' receivedAt='$receivedAt' folders=$($folders.Count)"
+
+  foreach ($folder in $folders) {
+    Test-SearchDeadline $deadline
     try {
-      $root = $store.GetRootFolder()
+      Write-Log "Checking folder '$($folder.FolderPath)'"
+      $result = Find-BestMailInFolder $folder $subject $targetReceivedAt $deadline
+      if ($result -and $result.Score -gt $bestScore) {
+        $bestScore = $result.Score
+        $bestMail = $result.Mail
+      }
+      if ($bestScore -ge 1000) { break }
     } catch {
-      continue
-    }
-
-    foreach ($folder in @(Get-MailFolders $root)) {
-      try {
-        $items = $folder.Items
-        $items.Sort('[ReceivedTime]', $true)
-        foreach ($mail in @(Restrict-BySubject $items $subject)) {
-          if ($null -eq $mail) { continue }
-          if ($mail.Class -ne 43) { continue }
-          $score = Score-Mail $mail $subject $targetReceivedAt
-          if ($score -gt $bestScore) {
-            $bestScore = $score
-            $bestMail = $mail
-          }
-        }
-      } catch {}
+      Write-Log "Folder skipped: $($_.Exception.Message)"
     }
   }
 
   if ($null -eq $bestMail) {
+    Write-Log "Mail not found subject='$subject'"
     throw "Outlook mail not found: $subject"
   }
 
+  Write-Log "Opening mail subject='$($bestMail.Subject)' received='$($bestMail.ReceivedTime)' folder='$($bestMail.Parent.FolderPath)' score=$bestScore"
   $bestMail.Display($false)
   try { $bestMail.Activate() } catch {}
 }
@@ -153,8 +266,10 @@ try {
   }
 
   $params = Get-QueryParameters $ProtocolUri
+  Write-Log "Protocol invoked"
   Open-OutlookMail $params
 } catch {
+  Write-Log "ERROR: $($_.Exception.Message)"
   Show-Error ($_.Exception.Message)
   exit 1
 }

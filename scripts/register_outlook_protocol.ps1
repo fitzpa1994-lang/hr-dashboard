@@ -13,7 +13,7 @@ $resolvedScriptPath = (Resolve-Path -LiteralPath $scriptPath).Path
 $powershellPath = Join-Path $PSHOME 'powershell.exe'
 $baseKey = "HKCU:\Software\Classes\$ProtocolName"
 $commandKey = Join-Path $baseKey 'shell\open\command'
-$command = '"' + $powershellPath + '" -NoProfile -STA -ExecutionPolicy Bypass -File "' + $resolvedScriptPath + '" "%1"'
+$command = '"' + $powershellPath + '" -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $resolvedScriptPath + '" "%1"'
 
 New-Item -Path $baseKey -Force | Out-Null
 New-Item -Path $commandKey -Force | Out-Null
