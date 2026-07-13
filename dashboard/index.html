@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HR 招募儀表板 - Sporton</title>
+<title>SPORTON 招募作業台</title>
 <link rel="icon" type="image/jpeg" href="/favicon2.jpg?v=2">
 
 <!-- Tailwind CSS -->
@@ -29,7 +29,6 @@
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
@@ -38,14 +37,15 @@
     --paper: #F7F6F3;
     --panel: #FFFFFF;
     --ink: #1C1917;
-    --muted: #6B7280;
-    --faint: #9CA3AF;
+    --muted: #57534E;
+    --faint: #A8A29E;
+    --line: #E7E5E1;
+    --line-soft: #F0EEEA;
     --navy: #1E3A5F;
     --green: #15803D;
     --orange: #C2410C;
+    --amber: #B45309;
     --shell-border: rgba(255, 255, 255, 0.08);
-    --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --panel-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -62,58 +62,57 @@
 
   .dashboard-shell { background: transparent; }
   .dashboard-sidebar {
-    width: 272px;
+    width: 228px;
     background: var(--ink);
     border-right: 1px solid var(--shell-border);
   }
   .brand-mark {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
     background: var(--navy);
   }
   .sidebar-caption {
-    font-size: 0.65rem;
-    color: var(--faint);
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.35);
     font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 0 14px;
-    margin-bottom: 10px;
+    letter-spacing: 0.06em;
+    padding: 0 12px;
+    margin-bottom: 6px;
   }
   .menu-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 11px 14px;
-    color: rgba(255, 255, 255, 0.72);
-    border-radius: 12px;
-    margin-bottom: 6px;
+    gap: 10px;
+    padding: 8px 12px;
+    color: rgba(255, 255, 255, 0.68);
+    border-radius: 6px;
+    margin-bottom: 2px;
     cursor: pointer;
-    transition: all 0.18s ease;
-    font-size: 13px;
-    font-weight: 600;
+    transition: background 0.15s ease, color 0.15s ease;
+    font-size: 12.5px;
+    font-weight: 500;
   }
   .menu-item:hover {
     background: rgba(255, 255, 255, 0.06);
     color: #ffffff;
   }
   .menu-item.active {
-    background: var(--navy);
+    background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
+    font-weight: 600;
   }
   .dashboard-main {
     min-width: 0;
     background: var(--paper);
   }
   .dashboard-topbar {
-    height: 76px;
-    background: rgba(247, 246, 243, 0.92);
-    border-bottom: 1px solid #F3F4F6;
-    backdrop-filter: blur(18px);
+    height: 64px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
   }
   .dashboard-content {
-    padding: 28px;
+    padding: 20px 24px 28px;
   }
   .page-shell {
     display: flex;
@@ -121,23 +120,21 @@
     gap: 20px;
   }
   .surface-card,
-  .surface-panel {
-    background: var(--panel);
-    border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  }
+  .surface-panel,
   .surface-panel-strong {
     background: var(--panel);
-    border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    box-shadow: none;
   }
   .section-head {
-    padding: 20px 24px 12px;
+    padding: 14px 20px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
   }
+  .section-head h2 { font-size: 14px; font-weight: 700; color: var(--ink); }
   .section-title {
     font-size: 15px;
     line-height: 1.2;
@@ -146,105 +143,148 @@
     letter-spacing: 0;
   }
   .section-subtitle {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--faint);
-    margin-top: 4px;
-  }
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-  }
-  .kpi-card {
-    position: relative;
-    overflow: hidden;
-    padding: 20px 22px 18px;
-    border-radius: 12px;
-    background: var(--panel);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  }
-  .kpi-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--faint);
-  }
-  .kpi-value {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 3.5rem;
-    line-height: 1;
-    font-weight: 800;
-    color: var(--navy);
-    letter-spacing: -0.02em;
-  }
-  .kpi-footnote {
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--faint);
+    margin-top: 3px;
   }
+  /* 今日作業列：數字連到下一步行動，不做大數字裝飾 */
+  .ops-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 0;
+  }
+  .ops-item {
+    padding: 14px 20px 12px;
+    min-width: 0;
+  }
+  .ops-item + .ops-item { border-left: 1px solid var(--line-soft); }
+  .ops-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .ops-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.15;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ops-num .ops-unit { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+  .ops-action { font-size: 12px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ops-action .ops-link { color: var(--navy); font-weight: 600; cursor: pointer; }
+  .ops-action .ops-link:hover { text-decoration: underline; }
+  .ops-action .ops-warn { color: var(--orange); font-weight: 600; }
   .dashboard-top-search {
-    width: 420px;
-    max-width: 42vw;
-    height: 44px;
-    border-radius: 12px;
-    border: none;
+    width: 340px;
+    max-width: 36vw;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
     background: var(--panel);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     font-size: 13px;
     color: var(--ink);
   }
   .dashboard-top-search::placeholder { color: var(--faint); }
   .ghost-button,
   .ghost-button-icon {
-    border: none;
+    border: 1px solid var(--line);
     background: var(--panel);
     color: var(--muted);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: all 0.18s ease;
+    transition: color 0.15s ease, border-color 0.15s ease;
   }
   .ghost-button:hover,
   .ghost-button-icon:hover {
-    background: var(--panel);
     color: var(--navy);
+    border-color: #D6D3CD;
   }
   .primary-chip {
     border: none;
     background: var(--navy);
     color: #fff;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .filter-chip {
-    border-radius: 12px;
-    padding: 9px 14px;
+    border-radius: 6px;
+    padding: 8px 12px;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
   }
   .tbl-compact th {
-    padding: 13px 16px;
-    font-size: 0.65rem;
+    padding: 9px 16px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--faint);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    text-align: left;
     white-space: nowrap;
-    border-bottom: 1px solid #F3F4F6;
+    border-bottom: 1px solid var(--line);
     background-color: transparent;
   }
   .tbl-compact td {
-    padding: 15px 16px;
+    padding: 11px 16px;
     font-size: 13px;
-    border-bottom: none;
+    border-bottom: 1px solid var(--line-soft);
     vertical-align: middle;
     color: var(--ink);
   }
   .tbl-compact tr:last-child td { border-bottom: none; }
-  .tbl-compact tr:hover td { background-color: var(--paper); }
+  .tbl-compact tr:hover td { background-color: #FBFAF8; }
+  /* 各單位招募進度表 */
+  .dept-table th {
+    padding: 9px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .dept-table th.num, .dept-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .dept-table td {
+    padding: 9px 16px;
+    font-size: 13px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .dept-table tr:last-child td { border-bottom: none; }
+  .dept-table tr.dept-group { cursor: default; }
+  .dept-table tr.dept-group.expandable { cursor: pointer; }
+  .dept-table tr.dept-group.expandable:hover td { background: #FBFAF8; }
+  .dept-table tr.dept-group td:first-child { font-weight: 600; }
+  .dept-table tr.dept-sub td {
+    font-size: 12px;
+    color: var(--muted);
+    padding-top: 6px;
+    padding-bottom: 6px;
+    background: #FBFAF8;
+  }
+  .dept-table tr.dept-sub td:first-child { padding-left: 38px; }
+  .dept-table .caret {
+    display: inline-block;
+    width: 14px;
+    color: var(--faint);
+    font-size: 10px;
+    margin-right: 4px;
+  }
+  .dept-table .zero { color: #D6D3CD; }
+  .dept-table .n-wait { color: var(--amber); font-weight: 600; }
+  .dept-table .n-intv { color: var(--navy); font-weight: 600; }
+  .dept-table .n-on { color: var(--green); font-weight: 600; }
+  .dept-table .n-total { font-weight: 700; }
+  .dept-table .dept-subhint { font-size: 11px; color: var(--faint); font-weight: 400; margin-left: 6px; }
+  /* 候選人焦點 */
+  .focus-kv { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
+  .focus-kv:last-child { border-bottom: none; }
+  .focus-kv .k { color: var(--muted); flex-shrink: 0; }
+  .focus-kv .v { color: var(--ink); font-weight: 500; text-align: right; min-width: 0; }
+  .focus-caption { font-size: 11px; font-weight: 600; color: var(--faint); margin: 14px 0 6px; }
+  .focus-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 12px; font-weight: 500; color: var(--ink); background: var(--panel);
+  }
+  .focus-link:hover { border-color: #D6D3CD; color: var(--navy); }
+  .focus-link.disabled { opacity: 0.4; pointer-events: none; }
 
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #F3F4F6; border-radius: 12px; overflow: hidden; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--line-soft); border-radius: 6px; overflow: hidden; }
   .cal-day { background: #FFFFFF; padding: 9px 7px; min-height: 62px; position: relative; cursor: pointer; transition: background 0.15s; }
   .cal-day:hover { background: var(--paper); }
   .cal-day.other { color: var(--faint); background: var(--paper); }
@@ -253,7 +293,7 @@
   .cal-dots { display: flex; flex-wrap: wrap; gap: 2px; }
   .cal-dot { width: 6px; height: 6px; border-radius: 2px; }
   .schedule-shell { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.82fr); gap: 0; }
-  .schedule-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: #F3F4F6; border-radius: 12px; overflow: hidden; }
+  .schedule-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--line-soft); border-radius: 6px; overflow: hidden; }
   .schedule-day { background: #FFFFFF; min-height: 144px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
   .schedule-day:hover { background: var(--paper); }
   .schedule-day.other { background: var(--paper); color: var(--faint); }
@@ -265,7 +305,7 @@
   .schedule-day.other .schedule-day-num { color: var(--faint); }
   .schedule-count { font-size: 10px; font-weight: 700; color: var(--muted); }
   .schedule-items { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-  .schedule-pill { border-radius: 12px; padding: 8px 8px 7px; font-size: 11px; line-height: 1.25; color: var(--ink); overflow: hidden; }
+  .schedule-pill { border-radius: 5px; padding: 7px 8px 6px; font-size: 11px; line-height: 1.25; color: var(--ink); overflow: hidden; }
   .schedule-pill-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .schedule-pill-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
   .schedule-pill-more { font-size: 10px; color: var(--muted); padding-top: 2px; }
@@ -288,33 +328,31 @@
   .drawer-panel { position: fixed; top: 0; right: 0; height: 100%; width: 440px; max-width: 100vw; background: white; box-shadow: -4px 0 24px rgba(0,0,0,0.1); z-index: 51; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
   .drawer-panel.open { transform: translateX(0); }
 
-  /* Utilities */
-  .badge { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.2; border: none; }
+  /* Utilities — 狀態樣式：待安排=琥珀、面試中=藏青、確認到職=綠、結案/不安排=灰 */
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; line-height: 1.2; border: none; }
   .badge-blue { background: rgba(30, 58, 95, 0.08); color: var(--navy); }
-  .badge-green { background: rgba(21, 128, 61, 0.08); color: var(--green); }
-  .badge-orange { background: rgba(194, 65, 12, 0.08); color: var(--orange); }
-  .badge-red { background: rgba(194, 65, 12, 0.08); color: var(--orange); }
-  .badge-gray { background: #F3F4F6; color: var(--muted); }
-  .badge-purple { background: rgba(30, 58, 95, 0.08); color: var(--navy); }
-  .badge-teal { background: rgba(21, 128, 61, 0.08); color: var(--green); }
+  .badge-green { background: rgba(21, 128, 61, 0.09); color: var(--green); }
+  .badge-amber { background: rgba(180, 83, 9, 0.10); color: var(--amber); }
+  .badge-orange { background: rgba(180, 83, 9, 0.10); color: var(--amber); }
+  .badge-red { background: rgba(194, 65, 12, 0.09); color: var(--orange); }
+  .badge-gray { background: #F1F0ED; color: var(--muted); }
+  .badge-purple { background: rgba(180, 83, 9, 0.10); color: var(--amber); }
+  .badge-teal { background: rgba(21, 128, 61, 0.09); color: var(--green); }
 
   .soft-note {
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 16px 18px;
     background: var(--paper);
   }
 
-  .page .rounded-lg { border-radius: 12px; }
-  .page .rounded-t-lg { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+  .page .rounded-lg { border-radius: 8px; }
+  .page .rounded-t-lg { border-top-left-radius: 8px; border-top-right-radius: 8px; }
   .page button {
-    transition: all 0.18s ease;
-  }
-  .page button:hover {
-    transform: translateY(-1px);
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   }
   .page select,
   .page input[type="text"] {
-    border-radius: 12px;
+    border-radius: 6px;
   }
   .page .text-brand {
     color: var(--navy);
@@ -329,7 +367,7 @@
     background: transparent;
   }
   .page .border-border {
-    border-color: #F3F4F6;
+    border-color: var(--line-soft);
   }
   .page .text-gray-800 { color: var(--ink); }
   .page .text-gray-700 { color: var(--ink); }
@@ -361,32 +399,23 @@
   body .border-blue-100, body .border-red-100, body .border-red-200,
   body .border-amber-200, body .border-green-100 { border-color: transparent; }
   body .hover\:border-blue-400:hover { border-color: var(--navy); }
-  body .border-gray-200 { border-color: #F3F4F6; }
+  body .border-gray-200 { border-color: var(--line); }
   body .text-slate-400 { color: var(--faint); }
   #global-results { border: none; border-radius: 12px; }
-  /* 今日進度：inline stats 一列 + 單一垂直 timeline */
-  .today-stats-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 2.75rem;
-    margin-bottom: 1.15rem;
+  /* 今日活動：一行統計 + 單一垂直 timeline */
+  .today-stats-line {
+    font-size: 12.5px;
+    color: var(--muted);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--line-soft);
   }
-  .today-stat-num {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 2.1rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    color: var(--navy);
+  .today-stats-line b {
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
   }
-  .today-stat-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--faint);
-    margin-top: 0.35rem;
-  }
+  .today-stats-line .sep { margin: 0 8px; color: var(--line); }
   .today-timeline { position: relative; }
   .today-timeline::before {
     content: '';
@@ -461,60 +490,53 @@
 
   <!-- Sidebar -->
   <aside class="dashboard-sidebar flex flex-col flex-shrink-0">
-    <div class="h-[76px] flex items-center px-6 border-b border-white/10">
-      <div class="brand-mark flex items-center justify-center mr-3">
-        <i data-lucide="boxes" class="w-5 h-5 text-white"></i>
+    <div class="h-[64px] flex items-center px-4 border-b border-white/10">
+      <div class="brand-mark flex items-center justify-center mr-2.5">
+        <i data-lucide="boxes" class="w-4 h-4 text-white"></i>
       </div>
       <div>
-        <div class="text-white font-extrabold text-sm tracking-[0.08em]">SPORTON HRIS</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">HR operations console</div>
+        <div class="text-white font-bold text-[13px] tracking-[0.04em]">SPORTON</div>
+        <div class="text-[11px] text-white/45 mt-0.5">招募作業台</div>
       </div>
     </div>
-    <div class="p-4 flex-1 overflow-y-auto">
-      <div class="text-[10px] text-gray-500 font-semibold mb-2 px-3 uppercase tracking-wider">總覽</div>
+    <div class="p-3 flex-1 overflow-y-auto">
+      <div class="sidebar-caption">日常作業</div>
       <div class="menu-item active" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> 招募總覽</div>
       <div class="menu-item" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
       <div class="menu-item" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人資料</div>
       <div class="menu-item" onclick="showTab('jobs', this)"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
-      
-      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">流程作業</div>
-      <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 異動作業（到職 / 離職）</div>
-      
-      <div class="text-[10px] text-gray-500 font-semibold mt-6 mb-2 px-3 uppercase tracking-wider">分析設定</div>
+
+      <div class="sidebar-caption mt-5">流程作業</div>
+      <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 到職／離職作業</div>
+
+      <div class="sidebar-caption mt-5">分析設定</div>
       <div class="menu-item" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 分析報表</div>
       <div class="menu-item"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
     </div>
-    <div class="p-5 border-t border-white/10 flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white font-semibold text-xs border border-white/10">HR</div>
-      <div>
-        <div class="text-white text-xs font-semibold tracking-[0.02em]">System Admin</div>
-        <div class="text-slate-400 text-[11px]">HR Department</div>
-      </div>
+    <div class="px-4 py-3 border-t border-white/10">
+      <div class="text-white/60 text-[11px]">人資部 · 內部系統</div>
     </div>
   </aside>
 
   <!-- Main Content -->
   <main class="dashboard-main flex-1 flex flex-col min-w-0">
     <!-- Topbar -->
-    <header class="dashboard-topbar flex items-center justify-between px-8 flex-shrink-0">
+    <header class="dashboard-topbar flex items-center justify-between px-6 flex-shrink-0">
       <div class="flex items-center gap-4 flex-shrink-0">
-        <div>
-          <div class="text-[11px] uppercase tracking-[0.12em] text-slate-400 font-bold">Dashboard</div>
-          <h1 class="text-[24px] leading-none font-extrabold text-text-primary mt-1 whitespace-nowrap" id="page-title">招募總覽</h1>
-        </div>
+        <h1 class="text-[19px] leading-none font-bold text-text-primary whitespace-nowrap" id="page-title">招募總覽</h1>
       </div>
-      <div class="flex items-center gap-5">
+      <div class="flex items-center gap-4">
         <div class="relative">
-          <i data-lucide="search" class="w-4 h-4 absolute left-4 top-[14px] text-gray-400"></i>
-          <input id="global-search" type="text" placeholder="搜尋候選人、職缺..." class="dashboard-top-search pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-[10px] text-gray-400"></i>
+          <input id="global-search" type="text" placeholder="搜尋候選人、職缺…" class="dashboard-top-search pl-9 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/20">
           <div id="global-results" class="hidden absolute top-9 left-0 w-80 max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-30"></div>
         </div>
-        <div class="text-right min-w-[180px]">
-          <div class="text-sm text-gray-600 font-semibold tracking-[0.02em]" id="hdr-date">讀取中...</div>
-          <div class="text-[10px] text-gray-400 mt-0.5" id="last-updated">最後更新中...</div>
+        <div class="text-right min-w-[170px]">
+          <div class="text-[13px] text-gray-600 font-semibold" id="hdr-date">讀取中…</div>
+          <div class="text-[10px] text-gray-400 mt-0.5" id="last-updated">最後同步中…</div>
         </div>
-        <button id="refresh-btn" class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="refreshDashboard()">重新整理</button>
-        <button class="ghost-button px-4 py-2 text-xs font-semibold rounded-2xl" onclick="logoutDashboard()">登出</button>
+        <button id="refresh-btn" class="ghost-button px-3.5 py-2 text-xs font-semibold rounded-md" onclick="refreshDashboard()">重新整理</button>
+        <button class="ghost-button px-3.5 py-2 text-xs font-semibold rounded-md" onclick="logoutDashboard()">登出</button>
       </div>
     </header>
 
@@ -523,82 +545,99 @@
       
       <!-- ===== TAB: 招募總覽 ===== -->
       <div id="tab-overview" class="page page-shell block">
-        <!-- KPI Row -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">今日面試排程</span>
-              <i data-lucide="users" class="w-4 h-4 text-brand"></i>
-            </div>
-            <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-today-intv">0</span>
-              <span class="kpi-footnote mb-1 flex items-center" id="kpi-today-intv-subtext">今日排程</span>
-            </div>
-          </div>
+        <div class="grid grid-cols-12 gap-5 items-start">
 
-          <div class="kpi-card">
-            <div class="flex items-center justify-between mb-2">
-              <span class="kpi-label">待安排面試</span>
-              <i data-lucide="calendar-plus" class="w-4 h-4 text-brand"></i>
-            </div>
-            <div class="flex items-end gap-2">
-              <span class="kpi-value" id="kpi-pending-arrangement">0</span>
-              <span class="kpi-footnote mb-1 flex items-center" id="kpi-pending-arrangement-subtext">待安排面試</span>
-            </div>
-          </div>
-        </div>
+          <!-- 主工作區 -->
+          <div class="col-span-9 flex flex-col gap-5 min-w-0">
 
-        <!-- Layout Grid -->
-        <div class="grid grid-cols-12 gap-6">
-          <!-- Left Column (Span 8) -->
-          <div class="col-span-8 flex flex-col gap-6">
-            <!-- 今日面試排程 -->
+            <!-- 一、今日作業 -->
+            <div class="surface-panel-strong ops-strip">
+              <div class="ops-item">
+                <div class="ops-label">今日面試</div>
+                <div class="ops-num"><span id="kpi-today-intv">0</span><span class="ops-unit">場</span></div>
+                <div class="ops-action" id="kpi-today-intv-subtext">—</div>
+              </div>
+              <div class="ops-item">
+                <div class="ops-label">待安排面試</div>
+                <div class="ops-num"><span id="kpi-pending-arrangement">0</span><span class="ops-unit">人</span></div>
+                <div class="ops-action" id="kpi-pending-arrangement-subtext">—</div>
+              </div>
+              <div class="ops-item">
+                <div class="ops-label">今日到職／離職</div>
+                <div class="ops-num" id="ops-onboard-resign">—</div>
+                <div class="ops-action" id="ops-onboard-resign-sub">—</div>
+              </div>
+              <div class="ops-item">
+                <div class="ops-label">今日履歷推薦</div>
+                <div class="ops-num"><span id="ops-recommended">—</span><span class="ops-unit">位</span></div>
+                <div class="ops-action" id="ops-recommended-sub">—</div>
+              </div>
+            </div>
+
+            <!-- 二、今日面試 -->
             <div class="surface-panel-strong flex flex-col">
               <div class="section-head">
-                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i>今日面試排程</h2>
-                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule', document.querySelectorAll('.menu-item')[1])">查看全部</button>
+                <h2>今日面試</h2>
+                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule', document.querySelectorAll('.menu-item')[1])">查看完整排程</button>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full tbl-compact">
-                  <thead><tr><th>時間</th><th>候選人</th><th>應徵職缺</th><th>階段</th><th>負責 HR</th><th>狀態</th></tr></thead>
+                  <thead><tr><th>時間</th><th>候選人</th><th>職缺 / 部門</th><th>輪次</th><th>負責 HR</th><th>狀態</th></tr></thead>
                   <tbody id="overview-today-tbody"></tbody>
                 </table>
               </div>
             </div>
 
+            <!-- 今日活動 -->
             <div class="surface-panel-strong flex flex-col">
               <div class="section-head">
-                <div>
-                  <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-gray-500"></i>今日進度</h2>
-                  <div class="section-subtitle" id="today-progress-subtitle">今日 HR 活動彙整</div>
-                </div>
+                <h2>今日活動</h2>
+                <div class="text-[11px] text-gray-400" id="today-progress-subtitle"></div>
               </div>
-              <div class="p-5">
-                <!-- Inline stats -->
-                <div class="today-stats-row">
-                  <div>
-                    <div class="today-stat-num" id="today-stat-recommended">--</div>
-                    <div class="today-stat-label">履歷推薦</div>
-                  </div>
-                  <div>
-                    <div class="today-stat-num" id="today-stat-interviews">--</div>
-                    <div class="today-stat-label">排定面試</div>
-                  </div>
-                  <div>
-                    <div class="today-stat-num" id="today-stat-inserted">--</div>
-                    <div class="today-stat-label">寫入 / <span id="today-stat-total">--</span> 封</div>
-                  </div>
+              <div class="px-5 pb-4">
+                <div class="today-stats-line">
+                  履歷推薦 <b id="today-stat-recommended">–</b><span class="sep">·</span>排定面試 <b id="today-stat-interviews">–</b><span class="sep">·</span>信件寫入 <b id="today-stat-inserted">–</b> / <b id="today-stat-total">–</b> 封
                 </div>
-                <!-- Timeline -->
                 <div class="today-timeline" id="today-timeline"></div>
+              </div>
+            </div>
+
+            <!-- 三、招募管線 -->
+            <div class="grid grid-cols-12 gap-5">
+              <div class="col-span-8 surface-panel-strong flex flex-col min-w-0">
+                <div class="section-head flex-wrap gap-y-2">
+                  <div>
+                    <h2>各單位招募進度</h2>
+                    <div class="section-subtitle">依該月有活動人選分組，不含已淘汰；點單位可展開子部門</div>
+                  </div>
+                  <div class="flex gap-1.5 flex-wrap" id="dept-month-tabs"></div>
+                </div>
+                <div class="flex-1 overflow-y-auto" id="overview-dept-tbody"></div>
+              </div>
+              <div class="col-span-4 surface-panel-strong flex flex-col">
+                <div class="section-head">
+                  <h2>每月面試／到職</h2>
+                </div>
+                <div class="p-5" style="height:230px">
+                  <canvas id="overview-monthly-chart"></canvas>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Right Column (Span 4) -->
-          <div class="col-span-4 flex flex-col gap-6">
-            <!-- Calendar -->
-            <div class="surface-panel-strong p-5">
+          <!-- 右欄：候選人焦點 + 月曆 -->
+          <div class="col-span-3 flex flex-col gap-5 min-w-0">
+            <div class="surface-panel-strong flex flex-col">
+              <div class="section-head">
+                <h2>候選人焦點</h2>
+                <span class="text-[11px] text-gray-400">點名單可切換</span>
+              </div>
+              <div class="px-5 pb-5" id="focus-body">
+                <div class="text-[12px] text-gray-400 py-3">資料載入中…</div>
+              </div>
+            </div>
+
+            <div class="surface-panel-strong p-4">
               <div class="flex justify-between items-center mb-3">
                 <button class="p-1 hover:bg-gray-100 rounded border border-gray-200" onclick="calPrev()"><i data-lucide="chevron-left" class="w-4 h-4 text-gray-600"></i></button>
                 <div class="text-[13px] font-semibold text-gray-800" id="cal-month-label"></div>
@@ -609,40 +648,10 @@
               </div>
               <div class="cal-grid" id="cal-grid"></div>
               <div class="flex gap-3 justify-center mt-3">
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-blue-500"></div>面試</div>
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-green-500"></div>到職</div>
-                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm bg-red-400"></div>離職</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm" style="background:var(--navy)"></div>面試</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm" style="background:var(--green)"></div>到職</div>
+                <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><div class="w-2 h-2 rounded-sm" style="background:var(--orange)"></div>離職</div>
               </div>
-            </div>
-
-
-          </div>
-        </div>
-
-        <!-- 每月招募趨勢 + 各部門招募進度 -->
-        <div class="grid grid-cols-12 gap-6">
-          <div class="col-span-8 surface-panel-strong flex flex-col">
-            <div class="section-head flex-wrap gap-y-2">
-              <div>
-                <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-gray-500"></i>各單位招募進度</h2>
-                <div class="section-subtitle">依該月有活動人選分組，不含已淘汰</div>
-              </div>
-              <div class="flex gap-1.5 flex-wrap" id="dept-month-tabs"></div>
-            </div>
-            <!-- stage legend -->
-            <div class="flex items-center gap-4 px-5 pb-3 border-b border-gray-100">
-              <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>待安排</div>
-              <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0"></span>面試中</div>
-              <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>確認到職</div>
-            </div>
-            <div class="flex-1 overflow-y-auto" id="overview-dept-tbody"></div>
-          </div>
-          <div class="col-span-4 surface-panel-strong flex flex-col">
-            <div class="section-head">
-              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-500"></i>每月面試／到職趨勢</h2>
-            </div>
-            <div class="p-5" style="height:220px">
-              <canvas id="overview-monthly-chart"></canvas>
             </div>
           </div>
         </div>
@@ -906,15 +915,14 @@
       const overlay = document.createElement('div');
       overlay.id = 'login-overlay';
       overlay.style.cssText = [
-        'position:fixed;inset:0;background:linear-gradient(135deg,#0f2742,#1e3a5f)',
+        'position:fixed;inset:0;background:#1C1917',
         'display:flex;align-items:center;justify-content:center;z-index:99999'
       ].join(';');
 
       overlay.innerHTML = `
-        <div style="background:white;border-radius:16px;padding:40px 36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center">
-          <div style="font-size:28px;margin-bottom:12px">🔐</div>
-          <div style="font-size:18px;font-weight:700;color:#1e3a5f;margin-bottom:4px">SPORTON HRIS</div>
-          <div style="font-size:12px;color:#64748b;margin-bottom:28px">HR 儀表板登入</div>
+        <div style="background:white;border-radius:10px;padding:36px 32px;width:340px;border:1px solid #E7E5E1;text-align:center">
+          <div style="font-size:17px;font-weight:700;color:#1e3a5f;margin-bottom:4px">SPORTON 招募作業台</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:26px">內部系統，請輸入登入密碼</div>
           <input id="pw-input" type="password" placeholder="請輸入登入密碼"
             style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box"
             autocomplete="current-password"/>
@@ -1361,30 +1369,46 @@ const stLabelMap={
   filled:'已補滿',
   on_hold:'暫停'
 };
+// 狀態樣式規則：待安排=琥珀、面試中=藏青、到職相關=綠、離職/不安排=灰紅、結案=灰
 const badgeClassMap={
-  arranging:'badge-purple',
-  pending_review:'badge-purple',
-  approved_to_invite:'badge-orange',
+  arranging:'badge-amber',
+  pending_review:'badge-amber',
+  approved_to_invite:'badge-amber',
   pending:'badge-green',
   interviewing:'badge-blue',
   offer:'badge-blue',
   onboarded:'badge-green',
-  rejected:'badge-red',
-  withdrawn:'badge-red',
+  rejected:'badge-gray',
+  withdrawn:'badge-gray',
   active:'badge-red',
   done:'badge-gray',
   open:'badge-blue',
   filled:'badge-green',
-  on_hold:'badge-orange'
+  on_hold:'badge-amber'
 };
 
 function getBadge(statusOrCandidate) {
   const status = typeof statusOrCandidate === 'string'
     ? statusOrCandidate
     : getCandidateStageKey(statusOrCandidate);
-  const lbl = stLabelMap[status] || status || '--';
+  // 未知的後端狀態不直接曝光給使用者；非 ASCII（自訂中文）才原樣顯示
+  const lbl = stLabelMap[status] || (/[^\x00-\x7F]/.test(String(status || '')) ? status : '—');
   const cls = badgeClassMap[status] || 'badge-gray';
   return `<span class="badge ${cls}">${escHtml(lbl)}</span>`;
+}
+
+// 歷程標題／備註的後端狀態字轉中文（僅顯示層，不動資料）
+function formatHistoryText(text) {
+  return String(text || '')
+    .replace(/\s*[-–—]\s*scheduled\b/i, '（已排定）')
+    .replace(/\s*[-–—]\s*completed\b/i, '（已完成）')
+    .replace(/\s*[-–—]\s*cancelled\b/i, '（已取消）')
+    .replace(/\s*[-–—]\s*confirmed\b/i, '（已確認）')
+    .replace(/\s*[-–—]\s*pending\b/i, '')
+    .replace(/\bscheduled\b/i, '已排定')
+    .replace(/\bcompleted\b/i, '已完成')
+    .replace(/\bcancelled\b/i, '已取消')
+    .replace(/\bconfirmed\b/i, '已確認');
 }
 
 function getCandidateProgressText(candidate) {
@@ -1526,9 +1550,15 @@ function renderOverviewMonthlyChart() {
   });
 }
 
+let expandedDeptGroups = new Set();
+function toggleDeptGroup(groupName) {
+  if (expandedDeptGroups.has(groupName)) expandedDeptGroups.delete(groupName);
+  else expandedDeptGroups.add(groupName);
+  renderDeptBreakdown(deptMonthFilter);
+}
+
 function renderDeptBreakdown(month) {
   const GROUP_ORDER = ['WBU', 'ICC', '新華／新竹', '安規', '行政', '其他'];
-  const DEPT_DOT = { 'WBU': '#1d4ed8', 'ICC': '#7c3aed', '新華／新竹': '#0d9488', '安規': '#ea580c', '行政': '#475569', '其他': '#9ca3af' };
   const groupMap = {};
   GROUP_ORDER.forEach(g => { groupMap[g] = {}; });
 
@@ -1547,13 +1577,9 @@ function renderDeptBreakdown(month) {
     else if (stage === 'onboarded') groupMap[group][sub].onboarded++;
   }
 
-  const pill = (count, color, label) => count
-    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border" style="background:${color}18;border-color:${color}40;color:${color}">
-         <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:${color}"></span>${count} ${label}
-       </span>`
-    : '';
+  const num = (n, cls) => n ? `<span class="${cls}">${n}</span>` : '<span class="zero">—</span>';
 
-  let html = '';
+  let rows = '';
   GROUP_ORDER.forEach(groupName => {
     const subs = groupMap[groupName];
     if (!subs || !Object.keys(subs).length) return;
@@ -1561,37 +1587,45 @@ function renderDeptBreakdown(month) {
     Object.values(subs).forEach(v => { gA += v.arranging; gI += v.interviewing; gO += v.onboarded; });
     const gTotal = gA + gI + gO;
     if (!gTotal) return;
-    const dot = DEPT_DOT[groupName] || '#9ca3af';
 
     const subRows = Object.entries(subs)
       .map(([dept, v]) => ({ label: getJobSubDept(dept), ...v, total: v.arranging + v.interviewing + v.onboarded }))
       .filter(r => r.total > 0)
       .sort((a, b) => b.total - a.total);
     const showSubs = subRows.length > 1;
+    const expanded = expandedDeptGroups.has(groupName);
 
-    html += `<div class="px-5 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
-      <div class="flex items-center gap-3">
-        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${dot}"></span>
-        <span class="text-[13px] font-bold text-gray-800 w-16 flex-shrink-0">${groupName}</span>
-        <div class="flex-1 flex flex-wrap items-center gap-1.5">
-          ${pill(gA, '#d97706', '待安排')}
-          ${pill(gI, '#4f46e5', '面試中')}
-          ${pill(gO, '#059669', '到職')}
-        </div>
-        <span class="text-[15px] font-extrabold flex-shrink-0" style="color:${dot}">${gTotal}</span>
-      </div>
-      ${showSubs ? `<div class="mt-2 ml-5 space-y-1">` + subRows.map(r => `
-        <div class="flex items-center gap-2">
-          <span class="text-gray-300 text-[11px]">└</span>
-          <span class="text-[11px] text-gray-500 flex-1 truncate">${escHtml(r.label)}</span>
-          ${r.arranging ? `<span class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 rounded">${r.arranging}</span>` : ''}
-          ${r.interviewing ? `<span class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 rounded">${r.interviewing}</span>` : ''}
-          ${r.onboarded ? `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 rounded">${r.onboarded}</span>` : ''}
-          <span class="text-[11px] font-bold text-gray-600 w-5 text-right">${r.total}</span>
-        </div>`).join('') + `</div>` : ''}
-    </div>`;
+    rows += `<tr class="dept-group ${showSubs ? 'expandable' : ''}" ${showSubs ? `onclick="toggleDeptGroup('${jsArg(groupName)}')"` : ''}>
+      <td><span class="caret">${showSubs ? (expanded ? '▾' : '▸') : ''}</span>${escHtml(groupName)}${showSubs ? `<span class="dept-subhint">${subRows.length} 個子單位</span>` : (subRows.length === 1 ? `<span class="dept-subhint">${escHtml(subRows[0].label)}</span>` : '')}</td>
+      <td class="num">${num(gA, 'n-wait')}</td>
+      <td class="num">${num(gI, 'n-intv')}</td>
+      <td class="num">${num(gO, 'n-on')}</td>
+      <td class="num n-total">${gTotal}</td>
+    </tr>`;
+
+    if (showSubs && expanded) {
+      rows += subRows.map(r => `<tr class="dept-sub">
+        <td>${escHtml(r.label)}</td>
+        <td class="num">${num(r.arranging, 'n-wait')}</td>
+        <td class="num">${num(r.interviewing, 'n-intv')}</td>
+        <td class="num">${num(r.onboarded, 'n-on')}</td>
+        <td class="num">${r.total}</td>
+      </tr>`).join('');
+    }
   });
-  document.getElementById('overview-dept-tbody').innerHTML = html || '<div class="text-center py-8 text-[13px] text-gray-400">目前無招募中資料</div>';
+
+  document.getElementById('overview-dept-tbody').innerHTML = rows
+    ? `<table class="w-full dept-table">
+        <thead><tr>
+          <th class="text-left">單位</th>
+          <th class="num">待安排</th>
+          <th class="num">面試中</th>
+          <th class="num">確認到職</th>
+          <th class="num">合計</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`
+    : '<div class="text-center py-8 text-[13px] text-gray-400">此月份無招募中人選</div>';
 }
 
 function getDeptAbbr(dept) {
@@ -1638,38 +1672,79 @@ function setDeptMonth(month) {
   renderDeptBreakdown(deptMonthFilter);
 }
 
+function gotoArrangingList() {
+  showTab('candidates', document.querySelectorAll('.menu-item')[2]);
+  const btn = document.getElementById('cand-filter-arranging');
+  if (btn) setCandF('arranging', btn);
+}
+
 function initOverview() {
   const overviewKpis = getOverviewKpis();
-  document.getElementById('kpi-today-intv').textContent = overviewKpis.todayInterviewCount;
-  document.getElementById('kpi-pending-arrangement').textContent = overviewKpis.pendingArrangementCount;
-  document.getElementById('kpi-today-intv-subtext').textContent = overviewKpis.todayInterviewCount ? '今日排程' : '今日無面試';
-  document.getElementById('kpi-pending-arrangement-subtext').textContent = overviewKpis.pendingArrangementOverdueCount
-    ? `${overviewKpis.pendingArrangementOverdueCount} 筆超過 3 天`
-    : (overviewKpis.pendingArrangementCount ? '待安排面試' : '目前無待安排');
+  const todayList = schedEvents
+    .filter(e => e.date === TODAY && e.type === 'interview')
+    .sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
 
-  // Today Interviews Table
-  const todayList = schedEvents.filter(e=>e.date===TODAY&&e.type==='interview');
+  // 今日面試：數字直接連到下一場
+  document.getElementById('kpi-today-intv').textContent = overviewKpis.todayInterviewCount;
+  const nowHm = new Date().toTimeString().slice(0, 5);
+  const nextIntv = todayList.find(e => String(e.time || '') >= nowHm) || null;
+  const intvSub = document.getElementById('kpi-today-intv-subtext');
+  if (nextIntv) {
+    intvSub.innerHTML = `下一場 <span class="ops-link" onclick="focusCandidate('${jsArg(nextIntv.name)}')">${escHtml(nextIntv.time || '')} ${escHtml(nextIntv.name)}</span>`;
+  } else if (todayList.length) {
+    intvSub.textContent = '今日場次皆已開始';
+  } else {
+    intvSub.textContent = '今日無面試';
+  }
+
+  // 待安排：逾 3 天者優先浮出
+  document.getElementById('kpi-pending-arrangement').textContent = overviewKpis.pendingArrangementCount;
+  const pendSub = document.getElementById('kpi-pending-arrangement-subtext');
+  if (overviewKpis.pendingArrangementOverdueCount) {
+    pendSub.innerHTML = `<span class="ops-warn">${overviewKpis.pendingArrangementOverdueCount} 位超過 3 天</span>　<span class="ops-link" onclick="gotoArrangingList()">查看名單</span>`;
+  } else if (overviewKpis.pendingArrangementCount) {
+    pendSub.innerHTML = `<span class="ops-link" onclick="gotoArrangingList()">查看名單</span>`;
+  } else {
+    pendSub.textContent = '目前沒有待安排人選';
+  }
+
+  // 今日到職／離職
+  document.getElementById('ops-onboard-resign').innerHTML =
+    `${overviewKpis.todayOnboardCount}<span class="ops-unit">到職</span>　${overviewKpis.todayResignCount}<span class="ops-unit">離職</span>`;
+  document.getElementById('ops-onboard-resign-sub').innerHTML =
+    (overviewKpis.todayOnboardCount || overviewKpis.todayResignCount)
+      ? `<span class="ops-link" onclick="showTab('hr-events', document.querySelectorAll('.menu-item')[4])">前往到職／離職作業</span>`
+      : '今日無到離職異動';
+
+  // 今日履歷推薦
+  document.getElementById('ops-recommended').textContent = todayActivity.recommended ?? '—';
+  document.getElementById('ops-recommended-sub').textContent =
+    (todayActivity.interviewsArranged || 0) > 0
+      ? `其中 ${todayActivity.interviewsArranged} 位已排定面試`
+      : (todayActivity.recommended ? '尚未排定面試' : '今日尚無新推薦');
+
+  // 今日面試表格
   document.getElementById('overview-today-tbody').innerHTML = todayList.length ? todayList.map(e=>{
     const cand = candidatesData.find(c => c.name === e.name);
     const st = cand || 'interviewing';
     return `
-    <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
-      <td class="font-medium text-gray-900" style="white-space:nowrap">${e.time||'--'}</td>
-      <td class="font-semibold text-brand" style="white-space:nowrap">${e.name}</td>
-      <td style="white-space:nowrap">${e.pos} <span class="text-gray-400 text-[11px] ml-1">${e.dept}</span></td>
+    <tr class="cursor-pointer" onclick="focusCandidate('${jsArg(e.name)}')">
+      <td class="font-semibold text-gray-900" style="white-space:nowrap;font-variant-numeric:tabular-nums">${escHtml(e.time||'--')}</td>
+      <td class="font-semibold text-brand" style="white-space:nowrap">${escHtml(e.name)}</td>
+      <td style="white-space:nowrap">${escHtml(e.pos||'--')} <span class="text-gray-400 text-[11px] ml-1">${escHtml(e.dept||'')}</span></td>
       <td style="white-space:nowrap">第 ${e.round||1} 輪</td>
-      <td class="text-gray-500" style="white-space:nowrap">${e.hr}</td>
+      <td class="text-gray-500" style="white-space:nowrap">${escHtml(e.hr||'--')}</td>
       <td style="white-space:nowrap">${getBadge(st)}</td>
     </tr>
-  `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試排程</td></tr>`;
+  `}).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-400">今日無面試，可先處理待安排名單</td></tr>`;
 
-  // 今日進度 — 數字
-  document.getElementById('today-stat-recommended').textContent = todayActivity.recommended ?? '--';
-  document.getElementById('today-stat-interviews').textContent = todayActivity.interviewsArranged ?? '--';
-  document.getElementById('today-stat-inserted').textContent = todayActivity.inserted ?? '--';
-  document.getElementById('today-stat-total').textContent = todayActivity.totalMails ?? '--';
+  // 今日活動 — 一行統計
+  document.getElementById('today-stat-recommended').textContent = todayActivity.recommended ?? '–';
+  document.getElementById('today-stat-interviews').textContent = todayActivity.interviewsArranged ?? '–';
+  document.getElementById('today-stat-inserted').textContent = todayActivity.inserted ?? '–';
+  document.getElementById('today-stat-total').textContent = todayActivity.totalMails ?? '–';
   document.getElementById('today-progress-subtitle').textContent =
-    `今日 HR 活動彙整 · 更新於 ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
+    `更新於 ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
 
 
   // 今日進度 — 單一垂直 timeline（以人為單位合併：推薦 × 面試交叉勾稽）
@@ -1721,7 +1796,7 @@ function initOverview() {
           ? `${row.rec ? '<span class="text-[11px] text-gray-400">推薦</span><span class="text-[11px] text-gray-400 mx-1">→</span>' : ''}<span class="text-[11px] font-semibold text-brand whitespace-nowrap">面試 ${escHtml(intvAt)}</span>`
           : '';
         return `
-      <div class="today-tl-row" title="${escHtml(p.dept || p.pos || '')}">
+      <div class="today-tl-row cursor-pointer" title="${escHtml(p.dept || p.pos || '')}" onclick="focusCandidate('${jsArg(p.name || '')}')">
         <span class="today-tl-dot" style="background:${dotColor}"></span>
         <span class="today-tl-time">${escHtml(leftTime)}</span>
         <div class="min-w-0 flex-1 flex items-baseline gap-1.5">
@@ -1736,6 +1811,95 @@ function initOverview() {
   renderDeptMonthTabs();
   renderDeptBreakdown(deptMonthFilter);
   renderOverviewMonthlyChart();
+  renderFocusPanel();
+}
+
+// ============================================================
+// 候選人焦點（總覽右欄）
+// ============================================================
+let focusName = null;
+
+function focusCandidate(name) {
+  focusName = name;
+  renderFocusPanel();
+}
+
+function getNextStepText(c) {
+  const stage = getCandidateStageKey(c);
+  if (stage === 'arranging') return '安排面試時間';
+  if (stage === 'interviewing') {
+    const d = String(c.date || '');
+    if (d && d >= TODAY) return `${fmtDateWeek(d)}${c.time ? ' ' + c.time : ''} 面試`;
+    return '追蹤面試結果';
+  }
+  if (stage === 'onboarded') return c.onboardDate ? `${fmtDateWeek(c.onboardDate)} 報到` : '確認報到日';
+  return '—';
+}
+
+function pickDefaultFocus() {
+  const todayList = schedEvents
+    .filter(e => e.date === TODAY && e.type === 'interview')
+    .sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+  const nowHm = new Date().toTimeString().slice(0, 5);
+  const next = todayList.find(e => String(e.time || '') >= nowHm) || todayList[0];
+  if (next) return next.name;
+  const active = candidatesData
+    .filter(c => ['arranging', 'interviewing'].includes(getCandidateStageKey(c)))
+    .sort((a, b) => String(b.latestDate || b.date || '').localeCompare(String(a.latestDate || a.date || '')));
+  return active[0]?.name || null;
+}
+
+function findFocusRecord(name) {
+  if (!name) return null;
+  return candidatesData.find(x => x.name === name) || schedEvents.find(x => x.name === name) || null;
+}
+
+function renderFocusPanel() {
+  const body = document.getElementById('focus-body');
+  if (!body) return;
+  let c = findFocusRecord(focusName);
+  if (!c) {
+    focusName = pickDefaultFocus();
+    c = findFocusRecord(focusName);
+  }
+  if (!c) {
+    body.innerHTML = '<div class="text-[12px] text-gray-400 py-3">目前沒有進行中的人選。點名單中任一候選人即可在此查看。</div>';
+    return;
+  }
+
+  const hist = Array.isArray(c.history) ? [...c.history] : [];
+  if (c.firstSignalAt && !hist.some(h => h.type === 'resume')) {
+    hist.unshift({ date: c.firstSignalAt, type: 'resume', title: '履歷推薦', note: '', color: 'gray' });
+  }
+  hist.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+  const recent = hist.slice(-4).reverse();
+  const cleanNote = (c.note || '').replace(/\s*\[SYS_STAGE:[^\]]+\]/g, '').trim();
+  const emailOk = c.emailLink && c.emailLink !== 'null';
+
+  body.innerHTML = `
+    <div class="text-[16px] font-bold text-gray-900 leading-tight">${escHtml(c.name)}</div>
+    <div class="text-[12px] text-gray-500 mt-1">${escHtml(c.pos || '—')}｜${escHtml(c.dept || '—')}</div>
+    <div class="mt-3">
+      <div class="focus-kv"><span class="k">目前階段</span><span class="v">${getBadge(c)}</span></div>
+      <div class="focus-kv"><span class="k">下一步</span><span class="v">${escHtml(getNextStepText(c))}</span></div>
+      <div class="focus-kv"><span class="k">負責 HR</span><span class="v">${escHtml(c.hr || '—')}</span></div>
+      <div class="focus-kv"><span class="k">安排進度</span><span class="v">${escHtml(getCandidateProgressText(c))}</span></div>
+    </div>
+    <div class="focus-caption">快速連結</div>
+    <div class="flex gap-2">
+      <a class="focus-link flex-1 justify-center ${emailOk ? '' : 'disabled'}" href="${escHtml(emailOk ? c.emailLink : '#')}" target="_blank"><i data-lucide="mail" class="w-3.5 h-3.5"></i>Outlook</a>
+      <a class="focus-link flex-1 justify-center ${c.resumeLink ? '' : 'disabled'}" href="${escHtml(c.resumeLink || '#')}" target="_blank"><i data-lucide="file-text" class="w-3.5 h-3.5"></i>履歷附件</a>
+    </div>
+    ${cleanNote ? `<div class="focus-caption">HR 備註</div><div class="text-[12px] text-gray-600 leading-relaxed border rounded-md p-2.5" style="background:#FBFAF8;border-color:var(--line-soft)">${escHtml(cleanNote)}</div>` : ''}
+    <div class="focus-caption">歷程</div>
+    ${recent.length ? recent.map(h => `
+      <div class="flex gap-2 py-1">
+        <span class="text-[11px] text-gray-400 w-[68px] flex-shrink-0" style="font-variant-numeric:tabular-nums">${escHtml(h.date || '')}</span>
+        <span class="text-[12px] text-gray-700 min-w-0">${escHtml(formatHistoryText(h.title))}${h.note ? `<span class="text-gray-400"> · ${escHtml(formatHistoryText(h.note))}</span>` : ''}</span>
+      </div>`).join('') : '<div class="text-[12px] text-gray-400">尚無歷程記錄</div>'}
+    <button class="mt-3 text-[11.5px] text-brand font-medium hover:underline" onclick="openDrawer('${jsArg(c.name)}')">查看完整資料</button>
+  `;
+  lucide.createIcons();
 }
 
 function updateFunnel() {
@@ -1880,7 +2044,7 @@ function renderScheduleCalendar(items, monthStart){
               <div class="schedule-pill-time">${escHtml(item.time || getScheduleTypeLabel(item.type))}</div>
             </div>
           `).join('')}
-          ${moreCount > 0 ? `<div class="schedule-pill-more">+${moreCount} more</div>` : ''}
+          ${moreCount > 0 ? `<div class="schedule-pill-more">還有 ${moreCount} 筆</div>` : ''}
         </div>
       </div>
     `;
@@ -2369,7 +2533,7 @@ function showTab(name, btn){
   document.getElementById('tab-'+name).classList.add('block');
   btn.classList.add('active');
   
-  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'異動作業', jobs:'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
+  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
   document.getElementById('page-title').textContent = titleMap[name] || '';
 
   if(name==='analytics') setTimeout(renderCharts, 50); // slight delay to ensure container is visible
@@ -2414,8 +2578,8 @@ function openDrawer(name){
       <div class="relative pb-4 last:pb-0">
         <div class="absolute -left-[17px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white bg-brand shadow-[0_0_0_1px_#E5E7EB]"></div>
         <div class="text-[10px] text-gray-400 mb-0.5">${h.date||''}</div>
-        <div class="text-[12px] font-semibold text-gray-800">${h.title||''}</div>
-        ${h.note?`<div class="text-[11px] text-gray-500 mt-0.5">${h.note}</div>`:''}
+        <div class="text-[12px] font-semibold text-gray-800">${escHtml(formatHistoryText(h.title))}</div>
+        ${h.note?`<div class="text-[11px] text-gray-500 mt-0.5">${escHtml(formatHistoryText(h.note))}</div>`:''}
       </div>`).join('')
     :'<div class="text-xs text-gray-400">尚無歷程記錄</div>';
 
