@@ -13,11 +13,11 @@
     theme: {
       extend: {
         colors: {
-          brand: { DEFAULT: '#163A63', dark: '#0A1B31', light: '#2E5B88' },
-          background: '#EEF2F7',
+          brand: { DEFAULT: '#1E3A5F', dark: '#1C1917', light: '#1E3A5F' },
+          background: '#F7F6F3',
           surface: '#FFFFFF',
-          border: '#D9E2EC',
-          text: { primary: '#132033', secondary: '#526277', muted: '#8A97A8' }
+          border: '#F3F4F6',
+          text: { primary: '#1C1917', secondary: '#6B7280', muted: '#9CA3AF' }
         },
         fontFamily: {
           sans: ['Plus Jakarta Sans', 'Noto Sans TC', 'system-ui', 'sans-serif']
@@ -29,52 +29,54 @@
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
 <style>
   :root {
-    --shell-bg: radial-gradient(circle at top left, rgba(53, 90, 135, 0.18), transparent 24%), linear-gradient(180deg, #0b1424 0%, #101a2d 100%);
+    --paper: #F7F6F3;
+    --panel: #FFFFFF;
+    --ink: #1C1917;
+    --muted: #6B7280;
+    --faint: #9CA3AF;
+    --navy: #1E3A5F;
+    --green: #15803D;
+    --orange: #C2410C;
     --shell-border: rgba(255, 255, 255, 0.08);
-    --shell-muted: rgba(203, 213, 225, 0.78);
-    --panel-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
-    --panel-shadow-soft: 0 12px 28px rgba(15, 23, 42, 0.06);
-    --panel-border: rgba(148, 163, 184, 0.2);
-    --panel-tint: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.985) 100%);
+    --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --panel-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #b4c1d1; border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background: #8ea1b7; }
+  ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
   body {
     font-size: 13px;
-    color: #132033;
-    background: var(--shell-bg);
+    color: var(--ink);
+    background: var(--paper);
     letter-spacing: 0;
   }
 
   .dashboard-shell { background: transparent; }
   .dashboard-sidebar {
     width: 272px;
-    background:
-      linear-gradient(180deg, rgba(18, 30, 51, 0.98) 0%, rgba(10, 20, 36, 0.98) 100%);
+    background: var(--ink);
     border-right: 1px solid var(--shell-border);
-    box-shadow: inset -1px 0 0 rgba(255,255,255,0.03);
   }
   .brand-mark {
     width: 34px;
     height: 34px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #2f6ea9 0%, #6ea6d8 100%);
-    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.3);
+    background: var(--navy);
   }
   .sidebar-caption {
-    font-size: 10px;
-    color: rgba(148, 163, 184, 0.72);
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-size: 0.65rem;
+    color: var(--faint);
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     padding: 0 14px;
     margin-bottom: 10px;
@@ -84,37 +86,31 @@
     align-items: center;
     gap: 12px;
     padding: 11px 14px;
-    color: rgba(226, 232, 240, 0.76);
-    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.72);
+    border-radius: 12px;
     margin-bottom: 6px;
     cursor: pointer;
     transition: all 0.18s ease;
     font-size: 13px;
     font-weight: 600;
-    border: 1px solid transparent;
   }
   .menu-item:hover {
-    background: rgba(59, 130, 246, 0.12);
-    color: #f8fafc;
-    border-color: rgba(96, 165, 250, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
   }
   .menu-item.active {
-    background: linear-gradient(180deg, rgba(38, 74, 111, 0.92) 0%, rgba(23, 53, 84, 0.92) 100%);
+    background: var(--navy);
     color: #ffffff;
-    border-color: rgba(125, 177, 226, 0.2);
-    box-shadow: 0 10px 24px rgba(8, 15, 28, 0.22);
   }
   .dashboard-main {
     min-width: 0;
-    background: linear-gradient(180deg, rgba(241,245,249,0.86) 0%, rgba(233,239,246,0.96) 100%);
-    backdrop-filter: blur(20px);
+    background: var(--paper);
   }
   .dashboard-topbar {
     height: 76px;
-    background: rgba(248, 250, 252, 0.76);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(247, 246, 243, 0.92);
+    border-bottom: 1px solid #F3F4F6;
     backdrop-filter: blur(18px);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.72);
   }
   .dashboard-content {
     padding: 28px;
@@ -126,20 +122,17 @@
   }
   .surface-card,
   .surface-panel {
-    background: var(--panel-tint);
-    border: 1px solid var(--panel-border);
-    border-radius: 22px;
-    box-shadow: var(--panel-shadow-soft);
+    background: var(--panel);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .surface-panel-strong {
-    background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,252,255,0.98) 100%);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 24px;
-    box-shadow: var(--panel-shadow);
+    background: var(--panel);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .section-head {
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    padding: 20px 24px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -149,12 +142,15 @@
     font-size: 15px;
     line-height: 1.2;
     font-weight: 700;
-    color: #132033;
+    color: var(--ink);
     letter-spacing: 0;
   }
   .section-subtitle {
-    font-size: 12px;
-    color: #6b7a8e;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
     margin-top: 4px;
   }
   .kpi-grid {
@@ -166,159 +162,150 @@
     position: relative;
     overflow: hidden;
     padding: 20px 22px 18px;
-    border-radius: 22px;
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,249,253,0.96) 100%);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    box-shadow: var(--panel-shadow-soft);
-  }
-  .kpi-card::after {
-    content: '';
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
-    height: 3px;
-    background: linear-gradient(90deg, rgba(22,58,99,0.92), rgba(80,128,181,0.6));
+    border-radius: 12px;
+    background: var(--panel);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .kpi-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #7a8796;
+    color: var(--faint);
   }
   .kpi-value {
-    font-size: 38px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 3.5rem;
     line-height: 1;
     font-weight: 800;
-    color: #132033;
+    color: var(--navy);
     letter-spacing: -0.02em;
   }
   .kpi-footnote {
-    font-size: 12px;
-    font-weight: 600;
-    color: #6b7a8e;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--faint);
   }
   .dashboard-top-search {
     width: 420px;
     max-width: 42vw;
     height: 44px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(255,255,255,0.8);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.64);
+    border-radius: 12px;
+    border: none;
+    background: var(--panel);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     font-size: 13px;
-    color: #132033;
+    color: var(--ink);
   }
-  .dashboard-top-search::placeholder { color: #8a97a8; }
+  .dashboard-top-search::placeholder { color: var(--faint); }
   .ghost-button,
   .ghost-button-icon {
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    background: rgba(255,255,255,0.78);
-    color: #425166;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+    border: none;
+    background: var(--panel);
+    color: var(--muted);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     transition: all 0.18s ease;
   }
   .ghost-button:hover,
   .ghost-button-icon:hover {
-    background: rgba(255,255,255,0.96);
-    border-color: rgba(96, 165, 250, 0.28);
-    color: #163a63;
+    background: var(--panel);
+    color: var(--navy);
   }
   .primary-chip {
-    border: 1px solid rgba(22, 58, 99, 0.18);
-    background: linear-gradient(180deg, #173e67 0%, #143553 100%);
+    border: none;
+    background: var(--navy);
     color: #fff;
-    box-shadow: 0 10px 22px rgba(20, 53, 83, 0.18);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .filter-chip {
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 9px 14px;
     font-size: 12px;
     font-weight: 700;
   }
   .tbl-compact th {
     padding: 13px 16px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #728196;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--faint);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     white-space: nowrap;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-    background-color: rgba(244, 247, 251, 0.9);
+    border-bottom: 1px solid #F3F4F6;
+    background-color: transparent;
   }
   .tbl-compact td {
     padding: 15px 16px;
     font-size: 13px;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    border-bottom: none;
     vertical-align: middle;
-    color: #223042;
+    color: var(--ink);
   }
   .tbl-compact tr:last-child td { border-bottom: none; }
-  .tbl-compact tr:hover td { background-color: rgba(246, 249, 252, 0.95); }
+  .tbl-compact tr:hover td { background-color: var(--paper); }
 
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #d7e0ea; border: 1px solid #d7e0ea; border-radius: 18px; overflow: hidden; }
-  .cal-day { background: rgba(255,255,255,0.96); padding: 9px 7px; min-height: 62px; position: relative; cursor: pointer; transition: background 0.15s; }
-  .cal-day:hover { background: #f6f9fc; }
-  .cal-day.other { color: #9CA3AF; background: #F8FAFC; }
-  .cal-day.today { background: #edf4fb; font-weight: 700; color: #163a63; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #F3F4F6; border-radius: 12px; overflow: hidden; }
+  .cal-day { background: #FFFFFF; padding: 9px 7px; min-height: 62px; position: relative; cursor: pointer; transition: background 0.15s; }
+  .cal-day:hover { background: var(--paper); }
+  .cal-day.other { color: var(--faint); background: var(--paper); }
+  .cal-day.today { background: #FFFFFF; font-weight: 700; color: var(--navy); box-shadow: inset 0 0 0 1px var(--navy); }
   .cal-day-num { font-size: 11px; margin-bottom: 4px; }
   .cal-dots { display: flex; flex-wrap: wrap; gap: 2px; }
   .cal-dot { width: 6px; height: 6px; border-radius: 2px; }
   .schedule-shell { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.82fr); gap: 0; }
-  .schedule-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: #d7e0ea; border: 1px solid #d7e0ea; border-radius: 18px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7); }
-  .schedule-day { background: rgba(255,255,255,0.98); min-height: 144px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
-  .schedule-day:hover { background: #f7fafe; }
-  .schedule-day.other { background: #f7f9fc; color: #9CA3AF; }
-  .schedule-day.today { background: #edf4fb; }
-  .schedule-day.selected { box-shadow: inset 0 0 0 2px #163a63; background: #f7fbff; }
+  .schedule-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: #F3F4F6; border-radius: 12px; overflow: hidden; }
+  .schedule-day { background: #FFFFFF; min-height: 144px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+  .schedule-day:hover { background: var(--paper); }
+  .schedule-day.other { background: var(--paper); color: var(--faint); }
+  .schedule-day.today { background: #FFFFFF; }
+  .schedule-day.today .schedule-day-num { color: var(--navy); }
+  .schedule-day.selected { box-shadow: inset 0 0 0 2px var(--navy); background: #FFFFFF; }
   .schedule-day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .schedule-day-num { font-size: 13px; font-weight: 800; color: #132033; }
-  .schedule-day.other .schedule-day-num { color: #9CA3AF; }
-  .schedule-count { font-size: 10px; font-weight: 700; color: #64748B; }
+  .schedule-day-num { font-size: 13px; font-weight: 800; color: var(--ink); }
+  .schedule-day.other .schedule-day-num { color: var(--faint); }
+  .schedule-count { font-size: 10px; font-weight: 700; color: var(--muted); }
   .schedule-items { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-  .schedule-pill { border-radius: 12px; padding: 8px 8px 7px; font-size: 11px; line-height: 1.25; color: #111827; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+  .schedule-pill { border-radius: 12px; padding: 8px 8px 7px; font-size: 11px; line-height: 1.25; color: var(--ink); overflow: hidden; }
   .schedule-pill-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .schedule-pill-time { font-size: 10px; color: #6B7280; margin-top: 2px; }
-  .schedule-pill-more { font-size: 10px; color: #6B7280; padding-top: 2px; }
-  .schedule-pane { border-left: 1px solid rgba(148, 163, 184, 0.16); background: linear-gradient(180deg, rgba(252,253,254,0.94) 0%, rgba(247,250,252,0.96) 100%); }
+  .schedule-pill-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .schedule-pill-more { font-size: 10px; color: var(--muted); padding-top: 2px; }
+  .schedule-pane { border-left: 1px solid #F3F4F6; background: transparent; }
   .schedule-pane-list { max-height: 760px; overflow-y: auto; }
-  .schedule-pane-empty { padding: 48px 24px; text-align: center; color: #9CA3AF; font-size: 12px; }
-  .schedule-type-interview { background: #EFF6FF; border: 1px solid #DBEAFE; }
-  .schedule-type-onboard { background: #F0FDF4; border: 1px solid #DCFCE7; }
-  .schedule-type-resign { background: #FEF2F2; border: 1px solid #FEE2E2; }
+  .schedule-pane-empty { padding: 48px 24px; text-align: center; color: var(--faint); font-size: 12px; }
+  .schedule-type-interview { background: var(--navy); }
+  .schedule-type-interview .schedule-pill-name { color: #fff; }
+  .schedule-type-interview .schedule-pill-time { color: rgba(255, 255, 255, 0.72); }
+  .schedule-type-onboard { background: rgba(21, 128, 61, 0.08); }
+  .schedule-type-resign { background: rgba(194, 65, 12, 0.08); }
   @media (max-width: 860px) {
     .schedule-shell { grid-template-columns: 1fr; }
-    .schedule-pane { border-left: 0; border-top: 1px solid #E5E7EB; }
+    .schedule-pane { border-left: 0; border-top: 1px solid #F3F4F6; }
   }
   
   /* Drawer */
   .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(17, 24, 39, 0.4); backdrop-filter: blur(2px); z-index: 50; }
   .drawer-overlay.open { display: block; }
-  .drawer-panel { position: fixed; top: 0; right: 0; height: 100%; width: 440px; max-width: 100vw; background: white; box-shadow: -4px 0 24px rgba(0,0,0,0.1); z-index: 51; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; border-left: 1px solid #E5E7EB; }
+  .drawer-panel { position: fixed; top: 0; right: 0; height: 100%; width: 440px; max-width: 100vw; background: white; box-shadow: -4px 0 24px rgba(0,0,0,0.1); z-index: 51; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
   .drawer-panel.open { transform: translateX(0); }
 
   /* Utilities */
-  .badge { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.2; border: 1px solid transparent; }
-  .badge-blue { background: #EFF6FF; color: #1D4ED8; border-color: #DBEAFE; }
-  .badge-green { background: #F0FDF4; color: #15803D; border-color: #DCFCE7; }
-  .badge-orange { background: #FFF7ED; color: #C2410C; border-color: #FFEDD5; }
-  .badge-red { background: #FEF2F2; color: #B91C1C; border-color: #FEE2E2; }
-  .badge-gray { background: #F3F4F6; color: #4B5563; border-color: #E5E7EB; }
-  .badge-purple { background: #F3E8FF; color: #7E22CE; border-color: #E9D5FF; }
-  .badge-teal { background: #F0FDFA; color: #0F766E; border-color: #CCFBF1; }
+  .badge { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.2; border: none; }
+  .badge-blue { background: rgba(30, 58, 95, 0.08); color: var(--navy); }
+  .badge-green { background: rgba(21, 128, 61, 0.08); color: var(--green); }
+  .badge-orange { background: rgba(194, 65, 12, 0.08); color: var(--orange); }
+  .badge-red { background: rgba(194, 65, 12, 0.08); color: var(--orange); }
+  .badge-gray { background: #F3F4F6; color: var(--muted); }
+  .badge-purple { background: rgba(30, 58, 95, 0.08); color: var(--navy); }
+  .badge-teal { background: rgba(21, 128, 61, 0.08); color: var(--green); }
 
   .soft-note {
-    border-radius: 18px;
+    border-radius: 12px;
     padding: 16px 18px;
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+    background: var(--paper);
   }
 
-  .page .rounded-lg { border-radius: 22px; }
-  .page .rounded-t-lg { border-top-left-radius: 22px; border-top-right-radius: 22px; }
-  .page canvas { filter: saturate(1.02); }
+  .page .rounded-lg { border-radius: 12px; }
+  .page .rounded-t-lg { border-top-left-radius: 12px; border-top-right-radius: 12px; }
   .page button {
     transition: all 0.18s ease;
   }
@@ -327,33 +314,146 @@
   }
   .page select,
   .page input[type="text"] {
-    border-radius: 14px;
+    border-radius: 12px;
   }
   .page .text-brand {
-    color: #163a63;
+    color: var(--navy);
   }
   .page .border-brand {
-    border-color: rgba(22, 58, 99, 0.2);
+    border-color: var(--navy);
   }
   .page .bg-brand {
-    background: linear-gradient(180deg, #173e67 0%, #143553 100%);
+    background: var(--navy);
   }
   .page .bg-gray-50\/50 {
     background: transparent;
   }
   .page .border-border {
-    border-color: rgba(148, 163, 184, 0.14);
+    border-color: #F3F4F6;
   }
-  .page .text-gray-800 { color: #132033; }
-  .page .text-gray-700 { color: #314155; }
-  .page .text-gray-600 { color: #56667a; }
-  .page .text-gray-500 { color: #748397; }
-  .page .text-gray-400 { color: #94a0af; }
+  .page .text-gray-800 { color: var(--ink); }
+  .page .text-gray-700 { color: var(--ink); }
+  .page .text-gray-600 { color: var(--muted); }
+  .page .text-gray-500 { color: var(--muted); }
+  .page .text-gray-400 { color: var(--faint); }
   .page .p-3.bg-purple-50,
   .page .p-3.bg-red-50,
   .page .p-3.bg-amber-50 {
-    border-radius: 18px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.56);
+    border-radius: 12px;
+    background: var(--paper);
+  }
+
+  /* ===== Editorial palette discipline：舊 utility 色一律映射到規範色 ===== */
+  body .text-blue-500, body .text-blue-600, body .text-blue-700,
+  body .text-indigo-600, body .text-indigo-700,
+  body .hover\:text-blue-600:hover { color: var(--navy); }
+  body .text-amber-500, body .text-amber-600, body .text-amber-800,
+  body .text-red-400, body .text-red-500, body .text-red-600 { color: var(--orange); }
+  body .text-emerald-600, body .text-emerald-700,
+  body .text-green-600, body .text-green-700 { color: var(--green); }
+  body .bg-blue-500, body .bg-indigo-400, body .bg-indigo-500 { background-color: var(--navy); }
+  body .bg-red-400, body .bg-amber-400 { background-color: var(--orange); }
+  body .bg-green-500, body .bg-emerald-400 { background-color: var(--green); }
+  body .bg-blue-50, body .bg-blue-100, body .bg-blue-200,
+  body .bg-indigo-50, body .bg-indigo-100, body .bg-indigo-200 { background-color: rgba(30, 58, 95, 0.08); }
+  body .bg-red-50, body .bg-amber-50, body .hover\:bg-red-100:hover { background-color: rgba(194, 65, 12, 0.08); }
+  body .bg-green-50, body .bg-emerald-50 { background-color: rgba(21, 128, 61, 0.08); }
+  body .border-blue-100, body .border-red-100, body .border-red-200,
+  body .border-amber-200, body .border-green-100 { border-color: transparent; }
+  body .hover\:border-blue-400:hover { border-color: var(--navy); }
+  body .border-gray-200 { border-color: #F3F4F6; }
+  body .text-slate-400 { color: var(--faint); }
+  #global-results { border: none; border-radius: 12px; }
+  /* 今日進度：inline stats 一列 + 單一垂直 timeline */
+  .today-stats-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 2.75rem;
+    margin-bottom: 1.15rem;
+  }
+  .today-stat-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--navy);
+  }
+  .today-stat-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-top: 0.35rem;
+  }
+  .today-timeline { position: relative; }
+  .today-timeline::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 12px;
+    bottom: 12px;
+    width: 1px;
+    background: #F3F4F6;
+  }
+  .today-tl-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.45rem 0.6rem 0.45rem 1.4rem;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .today-tl-row:hover { background: var(--paper); }
+  .today-tl-dot {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--faint);
+    box-shadow: 0 0 0 2px var(--panel);
+    flex-shrink: 0;
+  }
+  .today-tl-time {
+    font-size: 11px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+  .today-tl-dept {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+    flex-shrink: 0;
+  }
+  /* 月份 tab 導覽列：底線式 tab，active = navy 文字 + 2px navy 底線，整條去框線 */
+  #dept-month-tabs { border: none; }
+  #dept-month-tabs button {
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 4px 4px 7px;
+    color: var(--muted);
+  }
+  #dept-month-tabs button:hover {
+    color: var(--navy);
+    background: transparent;
+    transform: none;
+  }
+  #dept-month-tabs button.bg-brand {
+    background: transparent;
+    color: var(--navy);
+    border-bottom-color: var(--navy);
   }
 </style>
 </head>
@@ -432,18 +532,18 @@
             </div>
             <div class="flex items-end gap-2">
               <span class="kpi-value" id="kpi-today-intv">0</span>
-              <span class="text-xs text-gray-500 font-medium mb-1 flex items-center" id="kpi-today-intv-subtext">今日排程</span>
+              <span class="kpi-footnote mb-1 flex items-center" id="kpi-today-intv-subtext">今日排程</span>
             </div>
           </div>
 
           <div class="kpi-card">
             <div class="flex items-center justify-between mb-2">
               <span class="kpi-label">待安排面試</span>
-              <i data-lucide="calendar-plus" class="w-4 h-4 text-amber-500"></i>
+              <i data-lucide="calendar-plus" class="w-4 h-4 text-brand"></i>
             </div>
             <div class="flex items-end gap-2">
               <span class="kpi-value" id="kpi-pending-arrangement">0</span>
-              <span class="text-xs text-amber-600 font-medium mb-1 flex items-center" id="kpi-pending-arrangement-subtext">待安排面試</span>
+              <span class="kpi-footnote mb-1 flex items-center" id="kpi-pending-arrangement-subtext">待安排面試</span>
             </div>
           </div>
         </div>
@@ -474,38 +574,23 @@
                 </div>
               </div>
               <div class="p-5">
-                <!-- Summary numbers -->
-                <div class="grid grid-cols-3 gap-3 mb-5">
-                  <div class="rounded-xl p-3 text-center" style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.14)">
-                    <div class="text-[26px] font-extrabold text-blue-700 leading-none" id="today-stat-recommended">--</div>
-                    <div class="text-[11px] font-bold text-blue-600 mt-1 tracking-wide">履歷推薦</div>
-                  </div>
-                  <div class="rounded-xl p-3 text-center" style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.14)">
-                    <div class="text-[26px] font-extrabold text-indigo-700 leading-none" id="today-stat-interviews">--</div>
-                    <div class="text-[11px] font-bold text-indigo-600 mt-1 tracking-wide">排定面試</div>
-                  </div>
-                  <div class="rounded-xl p-3 text-center" style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.14)">
-                    <div class="text-[26px] font-extrabold text-emerald-700 leading-none" id="today-stat-inserted">--</div>
-                    <div class="text-[11px] font-bold text-emerald-600 mt-1 tracking-wide">寫入 / <span id="today-stat-total" class="font-normal">--</span> 封</div>
-                  </div>
-                </div>
-                <!-- Detail lists -->
-                <div class="grid grid-cols-2 gap-4">
+                <!-- Inline stats -->
+                <div class="today-stats-row">
                   <div>
-                    <div class="flex items-center gap-1.5 mb-2">
-                      <span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>
-                      <span class="text-[11px] font-bold text-blue-700">今日推薦人選</span>
-                    </div>
-                    <div id="today-recommend-list"></div>
+                    <div class="today-stat-num" id="today-stat-recommended">--</div>
+                    <div class="today-stat-label">履歷推薦</div>
                   </div>
                   <div>
-                    <div class="flex items-center gap-1.5 mb-2">
-                      <span class="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></span>
-                      <span class="text-[11px] font-bold text-indigo-700">今日排定面試</span>
-                    </div>
-                    <div id="today-interview-list"></div>
+                    <div class="today-stat-num" id="today-stat-interviews">--</div>
+                    <div class="today-stat-label">排定面試</div>
+                  </div>
+                  <div>
+                    <div class="today-stat-num" id="today-stat-inserted">--</div>
+                    <div class="today-stat-label">寫入 / <span id="today-stat-total">--</span> 封</div>
                   </div>
                 </div>
+                <!-- Timeline -->
+                <div class="today-timeline" id="today-timeline"></div>
               </div>
             </div>
           </div>
@@ -536,15 +621,7 @@
 
         <!-- 每月招募趨勢 + 各部門招募進度 -->
         <div class="grid grid-cols-12 gap-6">
-          <div class="col-span-5 surface-panel-strong flex flex-col">
-            <div class="section-head">
-              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-500"></i>每月面試／到職趨勢</h2>
-            </div>
-            <div class="p-5" style="height:220px">
-              <canvas id="overview-monthly-chart"></canvas>
-            </div>
-          </div>
-          <div class="col-span-7 surface-panel-strong flex flex-col">
+          <div class="col-span-8 surface-panel-strong flex flex-col">
             <div class="section-head flex-wrap gap-y-2">
               <div>
                 <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-gray-500"></i>各單位招募進度</h2>
@@ -559,6 +636,14 @@
               <div class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>確認到職</div>
             </div>
             <div class="flex-1 overflow-y-auto" id="overview-dept-tbody"></div>
+          </div>
+          <div class="col-span-4 surface-panel-strong flex flex-col">
+            <div class="section-head">
+              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-500"></i>每月面試／到職趨勢</h2>
+            </div>
+            <div class="p-5" style="height:220px">
+              <canvas id="overview-monthly-chart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -1587,50 +1672,66 @@ function initOverview() {
     `今日 HR 活動彙整 · 更新於 ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
 
 
-  // 今日進度 — 推薦明細 × 面試明細（交叉勾稽）
+  // 今日進度 — 單一垂直 timeline（以人為單位合併：推薦 × 面試交叉勾稽）
   const recList = todayActivity.recommendList || [];
   const intList = todayActivity.interviewList || [];
 
-  // Build cross-reference: interview keyed by candidate name
+  // 面試依姓名索引（同名取第一筆）
   const intByName = {};
-  intList.forEach(r => { if (r.name) intByName[r.name] = r; });
-  const recNames = new Set(recList.map(r => r.name).filter(Boolean));
+  intList.forEach(r => { if (r.name && !intByName[r.name]) intByName[r.name] = r; });
 
-  document.getElementById('today-recommend-list').innerHTML = recList.length
-    ? recList.map(r => {
-        const linked = intByName[r.name];
+  // 組列：推薦（含推薦＋面試合併列）在前，僅面試者在後
+  const timelineRows = [];
+  const seenNames = new Set();
+  recList.forEach(r => {
+    if (r.name) {
+      if (seenNames.has(r.name)) return;
+      seenNames.add(r.name);
+    }
+    timelineRows.push({ rec: r, intv: (r.name && intByName[r.name]) || null });
+  });
+  intList.forEach(r => {
+    if (r.name) {
+      if (seenNames.has(r.name)) return;
+      seenNames.add(r.name);
+    }
+    timelineRows.push({ rec: null, intv: r });
+  });
+
+  // 排序：推薦列依 rcvTime；僅面試列排在後面，依 intDate + intTime
+  timelineRows.sort((a, b) => {
+    if (!!a.rec !== !!b.rec) return a.rec ? -1 : 1;
+    if (a.rec && b.rec) return (a.rec.rcvTime || '').localeCompare(b.rec.rcvTime || '');
+    const byDate = (a.intv.intDate || '').localeCompare(b.intv.intDate || '');
+    return byDate !== 0 ? byDate : (a.intv.intTime || '').localeCompare(b.intv.intTime || '');
+  });
+
+  document.getElementById('today-timeline').innerHTML = timelineRows.length
+    ? timelineRows.map(row => {
+        const p = row.rec || row.intv;
+        const cand = candidatesData.find(c => c.name === p.name);
+        const dotColor = getCandidateStageKey(cand) === 'onboarded'
+          ? 'var(--green)'
+          : (row.intv ? 'var(--navy)' : 'var(--faint)');
+        const leftTime = (row.rec ? row.rec.rcvTime : row.intv.rcvTime) || '--';
+        const intvAt = row.intv
+          ? `${row.intv.intDate || '--'}${row.intv.intTime ? ' ' + row.intv.intTime : ''}`
+          : '';
+        const flow = row.intv
+          ? `${row.rec ? '<span class="text-[11px] text-gray-400">推薦</span><span class="text-[11px] text-gray-400 mx-1">→</span>' : ''}<span class="text-[11px] font-semibold text-brand whitespace-nowrap">面試 ${escHtml(intvAt)}</span>`
+          : '';
         return `
-      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0${linked ? ' rounded-lg bg-indigo-50/50 px-1 -mx-1' : ''}">
-        <div class="h-6 px-1.5 rounded-full ${linked ? 'bg-indigo-200' : 'bg-blue-100'} flex items-center justify-center flex-shrink-0 text-[9px] font-bold ${linked ? 'text-indigo-700' : 'text-blue-700'} min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
-        <div class="min-w-0 flex-1">
-          <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
-          <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
+      <div class="today-tl-row" title="${escHtml(p.dept || p.pos || '')}">
+        <span class="today-tl-dot" style="background:${dotColor}"></span>
+        <span class="today-tl-time">${escHtml(leftTime)}</span>
+        <div class="min-w-0 flex-1 flex items-baseline gap-1.5">
+          <span class="text-[12.5px] font-semibold text-gray-800 leading-tight truncate">${escHtml(p.name || '--')}</span>
+          <span class="today-tl-dept">${escHtml(getDeptAbbr(p.dept))}</span>
         </div>
-        <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
-          <div class="text-[10px] text-gray-400">${r.rcvTime||''}</div>
-          ${linked ? `<div class="text-[9px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full leading-tight">▶ ${linked.intDate||''}${linked.intTime?' '+linked.intTime:''}</div>` : ''}
-        </div>
+        <div class="flex-shrink-0">${flow}</div>
       </div>`;
       }).join('')
-    : '<div class="text-[11px] text-gray-400 py-1">今日尚無推薦</div>';
-
-  document.getElementById('today-interview-list').innerHTML = intList.length
-    ? intList.map(r => {
-        const wasRec = recNames.has(r.name);
-        return `
-      <div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0${wasRec ? ' rounded-lg bg-blue-50/50 px-1 -mx-1' : ''}">
-        <div class="h-6 px-1.5 rounded-full ${wasRec ? 'bg-blue-200' : 'bg-indigo-100'} flex items-center justify-center flex-shrink-0 text-[9px] font-bold ${wasRec ? 'text-blue-700' : 'text-indigo-700'} min-w-[24px]">${escHtml(getDeptAbbr(r.dept))}</div>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-1 flex-wrap">
-            <div class="text-[12px] font-semibold text-gray-800 leading-tight">${escHtml(r.name||'--')}</div>
-            ${wasRec ? '<span class="text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full leading-tight">今日推薦</span>' : ''}
-          </div>
-          <div class="text-[10px] text-gray-500 truncate">${escHtml(r.dept||r.pos||'--')}</div>
-        </div>
-        <div class="text-[10px] font-semibold text-indigo-600 flex-shrink-0">${r.intDate||'--'}${r.intTime?' '+r.intTime:''}</div>
-      </div>`;
-      }).join('')
-    : '<div class="text-[11px] text-gray-400 py-1">今日尚無面試安排</div>';
+    : '<div class="text-[11px] text-gray-400 py-1">今日尚無活動</div>';
 
   renderDeptMonthTabs();
   renderDeptBreakdown(deptMonthFilter);
