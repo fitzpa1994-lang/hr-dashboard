@@ -482,11 +482,12 @@
   }
   .today-tl-dept {
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     color: var(--faint);
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   /* 月份 tab 導覽列：底線式 tab，active = navy 文字 + 2px navy 底線，整條去框線 */
   #dept-month-tabs { border: none; }
@@ -644,7 +645,7 @@
               </div>
               <div class="px-5 pb-4">
                 <div class="today-stats-line">
-                  履歷推薦 <b id="today-stat-recommended">–</b><span class="sep">·</span>排定面試 <b id="today-stat-interviews">–</b><span class="sep">·</span>信件寫入 <b id="today-stat-inserted">–</b> / <b id="today-stat-total">–</b> 封
+                  履歷推薦 <b id="today-stat-recommended">–</b><span class="sep">·</span>排定面試 <b id="today-stat-interviews">–</b>
                 </div>
                 <div class="today-timeline" id="today-timeline"></div>
               </div>
@@ -1654,7 +1655,7 @@ function renderDeptBreakdown(month) {
   GROUP_ORDER.forEach(g => { groupMap[g] = {}; });
 
   const filtered = month
-    ? candidatesData.filter(c => (c.latestDate || c.date || c.firstSignalAt || '').substring(0, 7) === month)
+    ? candidatesData.filter(c => (c.firstSignalAt || c.latestDate || c.date || '').substring(0, 7) === month)
     : candidatesData;
 
   for (const c of filtered) {
@@ -1735,13 +1736,13 @@ function getDeptAbbr(dept) {
 function renderDeptMonthTabs() {
   const el = document.getElementById('dept-month-tabs');
   if (!el) return;
-  // Use latestDate (most recent activity) so the current month always appears for active candidates
   const months = new Set();
+  const currentMonth = TODAY.substring(0, 7);
   candidatesData.forEach(c => {
-    const d = (c.latestDate || c.date || c.firstSignalAt || '').substring(0, 7);
+    const d = (c.firstSignalAt || c.latestDate || c.date || '').substring(0, 7);
     if (d) months.add(d);
   });
-  const currentMonth = TODAY.substring(0, 7);
+  months.add(currentMonth); // always show current month tab
   if (!deptMonthFilter || !months.has(deptMonthFilter)) deptMonthFilter = currentMonth;
   const monthList = [];
   for (let i = 5; i >= 0; i--) {
@@ -1832,8 +1833,6 @@ function initOverview() {
   // 今日活動 — 一行統計
   document.getElementById('today-stat-recommended').textContent = todayActivity.recommended ?? '–';
   document.getElementById('today-stat-interviews').textContent = todayActivity.interviewsArranged ?? '–';
-  document.getElementById('today-stat-inserted').textContent = todayActivity.inserted ?? '–';
-  document.getElementById('today-stat-total').textContent = todayActivity.totalMails ?? '–';
   document.getElementById('today-progress-subtitle').textContent =
     `更新於 ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
 
@@ -1864,12 +1863,12 @@ function initOverview() {
     timelineRows.push({ rec: null, intv: r });
   });
 
-  // 排序：推薦列依 rcvTime；僅面試列排在後面，依 intDate + intTime
+  // 排序：推薦列優先（依 rcvTime）；僅面試列在後（依 rcvTime，與左欄時間一致）
   timelineRows.sort((a, b) => {
     if (!!a.rec !== !!b.rec) return a.rec ? -1 : 1;
-    if (a.rec && b.rec) return (a.rec.rcvTime || '').localeCompare(b.rec.rcvTime || '');
-    const byDate = (a.intv.intDate || '').localeCompare(b.intv.intDate || '');
-    return byDate !== 0 ? byDate : (a.intv.intTime || '').localeCompare(b.intv.intTime || '');
+    const ta = (a.rec ? a.rec.rcvTime : a.intv.rcvTime) || '';
+    const tb = (b.rec ? b.rec.rcvTime : b.intv.rcvTime) || '';
+    return ta.localeCompare(tb);
   });
 
   document.getElementById('today-timeline').innerHTML = timelineRows.length
@@ -1891,8 +1890,8 @@ function initOverview() {
         <span class="today-tl-dot" style="background:${dotColor}"></span>
         <span class="today-tl-time">${escHtml(leftTime)}</span>
         <div class="min-w-0 flex-1 flex items-baseline gap-1.5">
-          <span class="text-[12.5px] font-semibold text-gray-800 leading-tight truncate">${escHtml(p.name || '--')}</span>
-          <span class="today-tl-dept">${escHtml(getDeptAbbr(p.dept))}</span>
+          <span class="text-[12.5px] font-semibold text-gray-800 leading-tight flex-shrink-0">${escHtml(p.name || '--')}</span>
+          <span class="today-tl-dept">${escHtml([getDeptAbbr(p.dept), p.pos].filter(Boolean).join(' '))}</span>
         </div>
         <div class="flex-shrink-0">${flow}</div>
       </div>`;
