@@ -561,6 +561,36 @@ async function proxyJobRequisitionWrite(req, res, action, id = null) {
   }
 }
 
+async function proxyCandidateUpdate(req, res, id) {
+  if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
+  if (!writeEnvReady()) return sendJson(res, 500, { error: 'Write API is not configured' });
+
+  const body = await readBody(req);
+  const allowedStatuses = ['withdrawn', 'rejected'];
+  if (!body.status || !allowedStatuses.includes(body.status)) {
+    return sendJson(res, 400, { error: 'Invalid status. Allowed: withdrawn, rejected' });
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), getProxyTimeoutMs());
+  try {
+    const upstream = await fetch(buildWebhookUrl(N8N_WRITE_WEBHOOK_URL), {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${N8N_TOKEN}` },
+      body: JSON.stringify({ action: 'update_candidate_status', candidateId: id, candidateStatus: body.status })
+    });
+    const text = await upstream.text();
+    res.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(text);
+  } catch (error) {
+    if (error.name === 'AbortError') return sendJson(res, 504, { error: 'Upstream timed out' });
+    return sendJson(res, 502, { error: 'Upstream unavailable' });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function proxyOnboardingUpdate(req, res, id) {
   if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
   if (!writeEnvReady()) return sendJson(res, 500, { error: 'Write API is not configured' });
@@ -647,6 +677,11 @@ export const server = http.createServer(async (req, res) => {
 
     if (req.method === 'PATCH' && match?.[1]) {
       return proxyJobRequisitionWrite(req, res, 'update', Number(match[1]));
+    }
+
+    const candidateMatch = url.pathname.match(/^\/api\/candidates\/(\d+)$/);
+    if (req.method === 'PATCH' && candidateMatch) {
+      return proxyCandidateUpdate(req, res, Number(candidateMatch[1]));
     }
 
     const onboardMatch = url.pathname.match(/^\/api\/onboardings\/(\d+)$/);

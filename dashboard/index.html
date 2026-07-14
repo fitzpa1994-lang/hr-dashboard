@@ -606,7 +606,7 @@
                 <div class="ops-num"><span id="kpi-today-intv">0</span><span class="ops-unit">場</span></div>
                 <div class="ops-action" id="kpi-today-intv-subtext">—</div>
               </div>
-              <div class="ops-item">
+              <div class="ops-item" style="cursor:pointer" onclick="togglePendingPanel()">
                 <div class="ops-label">待安排面試</div>
                 <div class="ops-num"><span id="kpi-pending-arrangement">0</span><span class="ops-unit">人</span></div>
                 <div class="ops-action" id="kpi-pending-arrangement-subtext">—</div>
@@ -633,6 +633,20 @@
                 <table class="w-full tbl-compact">
                   <thead><tr><th>時間</th><th>候選人</th><th>職缺 / 部門</th><th>輪次</th><th>負責 HR</th><th>狀態</th></tr></thead>
                   <tbody id="overview-today-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 待安排面試名單（點擊展開） -->
+            <div id="pending-arrangement-panel" class="surface-panel-strong flex-col hidden">
+              <div class="section-head">
+                <h2>待安排面試</h2>
+                <span class="text-[11px] text-gray-400">依推薦日排序・有面試日期者已自動排除</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full tbl-compact">
+                  <thead><tr><th>推薦日</th><th>候選人</th><th>職缺 / 部門</th><th>等待</th><th></th></tr></thead>
+                  <tbody id="pending-arrangement-tbody"></tbody>
                 </table>
               </div>
             </div>
@@ -1303,8 +1317,9 @@ function mergeScheduleEvents(baseEvents, onboardings, resignations) {
 function getCandidateStageKey(candidate) {
   if (!candidate) return 'unknown';
   if (candidate.onboardDate) return 'onboarded';
-  if (candidate.status === 'interviewing') return 'interviewing';
-  if (candidate.status === 'offer') return 'interviewing';
+  if (candidate.status === 'interviewing' || candidate.status === 'offer') {
+    return candidate.date ? 'interviewing' : 'arranging';
+  }
   if (candidate.status === 'pending_review' || candidate.status === 'approved_to_invite') return 'arranging';
   if (candidate.status === 'withdrawn' || candidate.status === 'rejected') return 'rejected';
   if (candidate.status === 'onboarded') return 'onboarded';
@@ -1386,12 +1401,11 @@ function mergeCandidatesWithOnboardings(candidates, onboardings) {
 }
 
 function getOverviewKpis() {
-  const pendingArrangement = candidatesData.filter(candidate =>
-    getCandidateStageKey(candidate) === 'arranging' &&
-    isRecentWithin(getCandidatePrimaryDate(candidate), 21)
-  );
-  const pendingArrangementOverdueCount = pendingArrangement.filter(candidate =>
-    getDaysSince(getCandidatePrimaryDate(candidate)) > 3
+  const pendingArrangement = candidatesData
+    .filter(c => getCandidateStageKey(c) === 'arranging')
+    .sort((a, b) => (a.firstSignalAt || '').localeCompare(b.firstSignalAt || ''));
+  const pendingArrangementOverdueCount = pendingArrangement.filter(c =>
+    getDaysSince(c.firstSignalAt || getCandidatePrimaryDate(c)) > 3
   ).length;
   const todayInterviews = schedEvents.filter(event => event.date === TODAY && event.type === 'interview');
   const todayOnboards = onboardData.filter(item => item.date === TODAY && item.status !== 'cancelled');
@@ -1403,6 +1417,7 @@ function getOverviewKpis() {
     todayResignCount: todayResigns.length,
     pendingArrangementCount: pendingArrangement.length,
     pendingArrangementOverdueCount,
+    pendingArrangementList: pendingArrangement,
   };
 }
 
@@ -1770,6 +1785,63 @@ function gotoArrangingList() {
   if (btn) setCandF('arranging', btn);
 }
 
+function togglePendingPanel() {
+  const panel = document.getElementById('pending-arrangement-panel');
+  if (!panel) return;
+  panel.classList.toggle('hidden');
+  panel.classList.toggle('flex');
+  if (!panel.classList.contains('hidden')) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function renderPendingArrangement(list) {
+  const tbody = document.getElementById('pending-arrangement-tbody');
+  if (!tbody) return;
+  if (!list || !list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-400">目前沒有待安排人選</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const days = getDaysSince(c.firstSignalAt || getCandidatePrimaryDate(c));
+    const daysLabel = isFinite(days) ? `${days} 天` : '—';
+    const overdue = isFinite(days) && days > 3;
+    const signalDate = (c.firstSignalAt || '').slice(5).replace('-', '/');
+    const deptPos = [getDeptAbbr(c.dept), c.pos].filter(Boolean).join(' ');
+    return `<tr>
+      <td class="text-gray-500">${escHtml(signalDate)}</td>
+      <td><span class="ops-link font-medium" onclick="focusCandidate('${jsArg(c.name)}')">${escHtml(c.name || '—')}</span></td>
+      <td class="text-gray-500 text-[11px]">${escHtml(deptPos)}</td>
+      <td class="${overdue ? 'text-amber-600 font-semibold' : 'text-gray-500'}">${daysLabel}</td>
+      <td><button class="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200 whitespace-nowrap" onclick="setCandidateNotArrange(${c.id}, '${jsArg(c.name)}', this)">不安排</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function setCandidateNotArrange(id, name, btn) {
+  if (!confirm(`確定不安排「${name}」的面試？此操作將標記為放棄，無法自動還原。`)) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const res = await fetch(`/api/candidates/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'withdrawn' })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const row = btn.closest('tr');
+    if (row) row.remove();
+    // update local data
+    const c = candidatesData.find(x => x.id === id);
+    if (c) c.status = 'withdrawn';
+    initOverview();
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '不安排';
+    alert('更新失敗：' + e.message);
+  }
+}
+
 function initOverview() {
   const overviewKpis = getOverviewKpis();
   const todayList = schedEvents
@@ -1793,12 +1865,13 @@ function initOverview() {
   document.getElementById('kpi-pending-arrangement').textContent = overviewKpis.pendingArrangementCount;
   const pendSub = document.getElementById('kpi-pending-arrangement-subtext');
   if (overviewKpis.pendingArrangementOverdueCount) {
-    pendSub.innerHTML = `<span class="ops-warn">${overviewKpis.pendingArrangementOverdueCount} 位超過 3 天</span>　<span class="ops-link" onclick="gotoArrangingList()">查看名單</span>`;
+    pendSub.innerHTML = `<span class="ops-warn">${overviewKpis.pendingArrangementOverdueCount} 位超過 3 天</span>　點擊展開`;
   } else if (overviewKpis.pendingArrangementCount) {
-    pendSub.innerHTML = `<span class="ops-link" onclick="gotoArrangingList()">查看名單</span>`;
+    pendSub.textContent = '點擊展開名單';
   } else {
     pendSub.textContent = '目前沒有待安排人選';
   }
+  renderPendingArrangement(overviewKpis.pendingArrangementList);
 
   // 今日到職／離職
   document.getElementById('ops-onboard-resign').innerHTML =
