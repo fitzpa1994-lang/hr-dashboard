@@ -1749,7 +1749,7 @@ function renderDeptMonthTabs() {
     const ref = new Date(TODAY + 'T00:00:00');
     ref.setDate(1);
     ref.setMonth(ref.getMonth() - i);
-    monthList.push(ref.toISOString().substring(0, 7));
+    monthList.push(`${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`);
   }
   el.innerHTML = monthList.filter(m => months.has(m)).map(m => {
     const active = m === deptMonthFilter;
