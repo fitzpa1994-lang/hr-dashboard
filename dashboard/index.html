@@ -1401,8 +1401,9 @@ function mergeCandidatesWithOnboardings(candidates, onboardings) {
 }
 
 function getOverviewKpis() {
+  const currentMonthStr = TODAY.substring(0, 7);
   const pendingArrangement = candidatesData
-    .filter(c => getCandidateStageKey(c) === 'arranging')
+    .filter(c => getCandidateStageKey(c) === 'arranging' && (c.firstSignalAt || '') >= currentMonthStr)
     .sort((a, b) => (a.firstSignalAt || '').localeCompare(b.firstSignalAt || ''));
   const pendingArrangementOverdueCount = pendingArrangement.filter(c =>
     getDaysSince(c.firstSignalAt || getCandidatePrimaryDate(c)) > 3
