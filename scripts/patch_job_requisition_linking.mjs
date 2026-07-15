@@ -160,7 +160,7 @@ const deriveDepartment = (position, department, text, hint) => {
   return hint?.topDepartment || null;
 };
 
-let preferredRequisitionId = recipientHint?.preferredRequisitionId || null;
+let preferredRequisitionId = null;
 if (hasXinzhuRf || hasXinzhuEmc) {
   preferredRequisitionId = 4;
 } else if (hasXinhuaRf) {
@@ -175,6 +175,8 @@ if (hasXinzhuRf || hasXinzhuEmc) {
   preferredRequisitionId = 19;
 } else if (/ICC.*案件專員|ICCPM/i.test(normalizedSubject)) {
   preferredRequisitionId = 5;
+} else if (!hasExplicitXinzhuSignal && !hasExplicitXinhuaSignal && !hasExplicitAnGuiSignal && !hasExplicitWbuSignal && !hasExplicitAdminSignal) {
+  preferredRequisitionId = recipientHint?.preferredRequisitionId || null;
 }
 
 const inferredDepartment = deriveDepartment(inferredPosition, explicitDepartment, subject + ' ' + body, recipientHint);
@@ -265,7 +267,7 @@ candidate_norm AS (
         WHEN raw_position LIKE '%' || U&'MIS\7DB2\7BA1\5DE5\7A0B\5E2B' || '%'
           OR raw_position LIKE '%' || U&'MIS\7DB2\7BA1' || '%' THEN 17
         WHEN lower(raw_position) LIKE '%助理業務/業務%' AND raw_department LIKE '%安規%' THEN 22
-        WHEN lower(raw_position) LIKE '%業務助理(david)%' THEN 8
+        WHEN lower(raw_position) LIKE '%業務助理(david)%' AND raw_department NOT LIKE '%新華%' THEN 8
         WHEN lower(raw_position) LIKE '%文件專員%' THEN 2
         ELSE NULL
       END
@@ -302,6 +304,10 @@ matched_requisition AS (
   FROM job_requisitions j
   CROSS JOIN candidate_norm c
   WHERE (j.status <> 'cancelled' OR (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id))
+    AND (
+      c.top_department IS NULL
+      OR split_part(j.department, ' / ', 1) = c.top_department
+    )
     AND (
       (c.preferred_requisition_id IS NOT NULL AND j.id = c.preferred_requisition_id)
       OR lower(regexp_replace(j.position_title, '\s+', '', 'g')) = c.pos_norm
