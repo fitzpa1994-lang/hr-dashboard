@@ -830,6 +830,7 @@
           <div class="section-head bg-transparent rounded-t-lg flex-wrap">
             <button id="cand-filter-all" class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setCandF('all', this)">全部</button>
             <button id="cand-filter-arranging" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('arranging', this)">待安排面試</button>
+            <button id="cand-filter-dept-scheduling" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('dept_scheduling', this)">單位助理安排中</button>
             <button id="cand-filter-interviewing" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('interviewing', this)">面試中</button>
             <button id="cand-filter-no-interview" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('rejected', this)">不安排面試</button>
             <button id="cand-filter-onboarded" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setCandF('onboarded', this)">確認到職日</button>
@@ -1321,6 +1322,7 @@ function getCandidateStageKey(candidate) {
     return candidate.date ? 'interviewing' : 'arranging';
   }
   if (candidate.status === 'pending_review' || candidate.status === 'approved_to_invite') return 'arranging';
+  if (candidate.status === 'dept_scheduling') return 'dept_scheduling';
   if (candidate.status === 'withdrawn' || candidate.status === 'rejected') return 'rejected';
   if (candidate.status === 'onboarded') return 'onboarded';
   return candidate.status || 'unknown';
@@ -1465,6 +1467,7 @@ const stLabelMap={
   arranging:'待安排面試',
   pending_review:'待安排面試',
   approved_to_invite:'待安排面試',
+  dept_scheduling:'單位助理安排中',
   pending:'待到職',
   interviewing:'面試中',
   offer:'面試中',
@@ -1482,6 +1485,7 @@ const badgeClassMap={
   arranging:'badge-amber',
   pending_review:'badge-amber',
   approved_to_invite:'badge-amber',
+  dept_scheduling:'badge-blue',
   pending:'badge-green',
   interviewing:'badge-blue',
   offer:'badge-blue',
@@ -1814,9 +1818,35 @@ function renderPendingArrangement(list) {
       <td><span class="ops-link font-medium" onclick="focusCandidate('${jsArg(c.name)}')">${escHtml(c.name || '—')}</span></td>
       <td class="text-gray-500 text-[11px]">${escHtml(deptPos)}</td>
       <td class="${overdue ? 'text-amber-600 font-semibold' : 'text-gray-500'}">${daysLabel}</td>
-      <td><button class="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200 whitespace-nowrap" onclick="setCandidateNotArrange(${c.id}, '${jsArg(c.name)}', this)">不安排</button></td>
+      <td class="flex gap-1">
+        <button class="px-2 py-0.5 text-[10px] font-medium rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 whitespace-nowrap" onclick="setCandidateDeptScheduling(${c.id}, '${jsArg(c.name)}', this)">待單位安排</button>
+        <button class="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200 whitespace-nowrap" onclick="setCandidateNotArrange(${c.id}, '${jsArg(c.name)}', this)">不安排</button>
+      </td>
     </tr>`;
   }).join('');
+}
+
+async function setCandidateDeptScheduling(id, name, btn) {
+  if (!confirm(`確定由單位助理安排「${name}」的面試？`)) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const res = await fetch(`/api/candidates/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'dept_scheduling' })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const row = btn.closest('tr');
+    if (row) row.remove();
+    const c = candidatesData.find(x => x.id === id);
+    if (c) c.status = 'dept_scheduling';
+    initOverview();
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '待單位安排';
+    alert('更新失敗：' + e.message);
+  }
 }
 
 async function setCandidateNotArrange(id, name, btn) {
@@ -1832,7 +1862,6 @@ async function setCandidateNotArrange(id, name, btn) {
     if (!res.ok) throw new Error(await res.text());
     const row = btn.closest('tr');
     if (row) row.remove();
-    // update local data
     const c = candidatesData.find(x => x.id === id);
     if (c) c.status = 'withdrawn';
     initOverview();

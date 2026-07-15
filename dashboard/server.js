@@ -566,7 +566,7 @@ async function proxyCandidateUpdate(req, res, id) {
   if (!writeEnvReady()) return sendJson(res, 500, { error: 'Write API is not configured' });
 
   const body = await readBody(req);
-  const allowedStatuses = ['withdrawn', 'rejected'];
+  const allowedStatuses = ['withdrawn', 'rejected', 'dept_scheduling'];
   if (!body.status || !allowedStatuses.includes(body.status)) {
     return sendJson(res, 400, { error: 'Invalid status. Allowed: withdrawn, rejected' });
   }
