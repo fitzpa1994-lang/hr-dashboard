@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "SPORTON 104 職缺同步",
+  "version": "1.0.0",
+  "description": "由 SPORTON 招募作業台手動同步 104 招募管理中刊登的職缺。",
+  "permissions": ["scripting", "tabs"],
+  "host_permissions": [
+    "https://vip.104.com.tw/*",
+    "https://sp-hr.zeabur.app/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://sp-hr.zeabur.app/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["dashboard_bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "SPORTON 104 職缺同步"
+  }
+}

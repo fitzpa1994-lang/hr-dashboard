@@ -29,7 +29,7 @@
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="talent-search-navigator.css?v=1">
+<link rel="stylesheet" href="talent-search-navigator.css?v=2">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
@@ -836,7 +836,13 @@
           </div>
           <div class="talent-nav-sync-note">
             <i data-lucide="database-zap" aria-hidden="true"></i>
-            <div><strong>第一階段</strong><span>先建立導覽與個人排序；104 條件擷取將在下一階段接上。</span></div>
+            <div>
+              <strong>職缺來源：104 刊登中</strong>
+              <span id="talent-nav-sync-status">尚未同步。請先安裝專用掛件，再按下更新。</span>
+              <button id="talent-nav-sync-button" type="button" class="talent-sync-button" data-action="sync-104-jobs">
+                <i data-lucide="refresh-cw" aria-hidden="true"></i>從 104 更新職缺
+              </button>
+            </div>
           </div>
         </section>
 
@@ -2898,6 +2904,6 @@ if (location.hash) {
 }
 </script>
 <script type="module" src="js/jobsEditor.js?v=6"></script>
-<script type="module" src="js/talentSearchNavigator.js?v=1"></script>
+<script type="module" src="js/talentSearchNavigator.js?v=2"></script>
 </body>
 </html>

@@ -51,6 +51,29 @@
 .talent-nav-sync-note strong { font-size: 11px; }
 .talent-nav-sync-note span { color: rgba(255,255,255,.58); font-size: 10.5px; line-height: 1.5; }
 
+.talent-sync-button {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  justify-content: center;
+  gap: 6px;
+  min-height: 31px;
+  margin-top: 7px;
+  padding: 0 11px;
+  color: #fff;
+  cursor: pointer;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.talent-sync-button:hover { background: rgba(255,255,255,.17); }
+.talent-sync-button:disabled { cursor: wait; opacity: .55; }
+.talent-sync-button svg { width: 13px; height: 13px; }
+.talent-sync-button.is-syncing svg { animation: talent-sync-spin .9s linear infinite; }
+@keyframes talent-sync-spin { to { transform: rotate(360deg); } }
+
 .talent-nav-layout {
   display: grid;
   grid-template-columns: minmax(300px, 355px) minmax(0, 1fr);

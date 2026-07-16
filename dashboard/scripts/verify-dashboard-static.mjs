@@ -84,6 +84,7 @@ expectIncludes(indexHtml, 'window.hrDashboardBridge = {', 'jobs bridge');
 expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
 expectIncludes(indexHtml, 'id="tab-talent-search"', '104 talent search page');
 expectIncludes(indexHtml, 'js/talentSearchNavigator.js', '104 talent search module include');
+expectIncludes(indexHtml, 'id="talent-nav-sync-button"', '104 manual sync button');
 expectIncludes(indexHtml, '急迫度', 'urgency column');
 expectIncludes(indexHtml, 'getOverviewKpis()', 'overview KPI helper invocation');
 expectIncludes(indexHtml, 'function getOverviewKpis()', 'overview KPI helper definition');
