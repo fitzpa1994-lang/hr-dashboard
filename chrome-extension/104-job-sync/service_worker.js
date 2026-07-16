@@ -40,11 +40,13 @@ async function syncPublishedJobs() {
     const totalPages = Math.max(1, Math.ceil(firstPage.totalCount / firstPage.pageSize));
     const allJobs = [...firstPage.jobs];
 
+    let previousPageIds = firstPage.jobs.map(job => job.externalId);
     for (let page = 2; page <= totalPages; page += 1) {
       await selectPage(tab.id, page);
-      const pageData = await waitForPage(tab.id, page, 20_000);
+      const pageData = await waitForPage(tab.id, page, 20_000, previousPageIds);
       if (!pageData.jobs.length) throw new Error(`104 第 ${page} 頁沒有讀到職缺，已保留原本同步資料。`);
       allJobs.push(...pageData.jobs);
+      previousPageIds = pageData.jobs.map(job => job.externalId);
     }
 
     const uniqueJobs = [...new Map(allJobs.map(job => [job.externalId, job])).values()];
@@ -139,12 +141,15 @@ async function selectPage(tabId, pageNumber) {
   if (!result?.result) throw new Error(`找不到 104 第 ${pageNumber} 頁的分頁控制。`);
 }
 
-async function waitForPage(tabId, expectedPage, timeoutMs) {
+async function waitForPage(tabId, expectedPage, timeoutMs, previousPageIds = []) {
   const startedAt = Date.now();
+  const previousSignature = previousPageIds.join(',');
   while (Date.now() - startedAt < timeoutMs) {
     await delay(400);
     const page = await readPage(tabId);
-    if (page.currentPage === expectedPage && page.jobs.length) return page;
+    const currentSignature = page.jobs.map(job => job.externalId).join(',');
+    const rowsChanged = !previousSignature || currentSignature !== previousSignature;
+    if (page.currentPage === expectedPage && page.jobs.length && rowsChanged) return page;
   }
   throw new Error(`104 第 ${expectedPage} 頁載入逾時，已取消更新。`);
 }
