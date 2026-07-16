@@ -8,6 +8,7 @@ const dashboardDir = path.resolve(__dirname, '..');
 const indexHtml = fs.readFileSync(path.join(dashboardDir, 'index.html'), 'utf8');
 const serverJs = fs.readFileSync(path.join(dashboardDir, 'server.js'), 'utf8');
 const jobsEditorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'jobsEditor.js'), 'utf8');
+const talentSearchNavigatorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'talentSearchNavigator.js'), 'utf8');
 
 const errors = [];
 
@@ -53,6 +54,12 @@ try {
 } catch (error) {
   errors.push(`jobs editor module parse failed: ${error.message}`);
 }
+
+try {
+  parse(talentSearchNavigatorJs, { sourceType: 'module' });
+} catch (error) {
+  errors.push(`talent search navigator module parse failed: ${error.message}`);
+}
 }
 
 expectNotIncludes(indexHtml, '示意版', 'demo label');
@@ -75,6 +82,8 @@ expectIncludes(indexHtml, "id=\"job-tbody\"", 'jobs table body');
 expectIncludes(indexHtml, 'window.hrRequestJson = requestJson', 'request bridge');
 expectIncludes(indexHtml, 'window.hrDashboardBridge = {', 'jobs bridge');
 expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
+expectIncludes(indexHtml, 'id="tab-talent-search"', '104 talent search page');
+expectIncludes(indexHtml, 'js/talentSearchNavigator.js', '104 talent search module include');
 expectIncludes(indexHtml, '急迫度', 'urgency column');
 expectIncludes(indexHtml, 'getOverviewKpis()', 'overview KPI helper invocation');
 expectIncludes(indexHtml, 'function getOverviewKpis()', 'overview KPI helper definition');

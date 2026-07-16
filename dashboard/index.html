@@ -29,6 +29,7 @@
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="talent-search-navigator.css?v=1">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
@@ -554,6 +555,7 @@
       <div class="menu-item" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
       <div class="menu-item" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人資料</div>
       <div class="menu-item" onclick="showTab('jobs', this)"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
+      <div class="menu-item" onclick="showTab('talent-search', this)"><i data-lucide="scan-search" class="w-4 h-4"></i> 104 搜尋頁面導覽</div>
 
       <div class="sidebar-caption mt-5">流程作業</div>
       <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 到職／離職作業</div>
@@ -821,6 +823,86 @@
             <tbody id="job-tbody"></tbody>
           </table>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== TAB: 104 搜尋頁面導覽 ===== -->
+      <div id="tab-talent-search" class="page page-shell hidden">
+        <section class="talent-nav-intro" aria-labelledby="talent-nav-heading">
+          <div>
+            <div class="talent-nav-eyebrow">104 TALENT SEARCH</div>
+            <h2 id="talent-nav-heading">把每個職缺的找人方式排成可重複的路徑</h2>
+            <p>先用精準條件，找不到時再依序放大。職缺與搜尋方案都能拖曳排序，並保留你的備註。</p>
+          </div>
+          <div class="talent-nav-sync-note">
+            <i data-lucide="database-zap" aria-hidden="true"></i>
+            <div><strong>第一階段</strong><span>先建立導覽與個人排序；104 條件擷取將在下一階段接上。</span></div>
+          </div>
+        </section>
+
+        <div class="talent-nav-layout">
+          <section class="talent-nav-jobs-panel" aria-label="職缺排序清單">
+            <div class="talent-nav-panel-head">
+              <div>
+                <h3>職缺佇列</h3>
+                <span id="talent-nav-job-count">0 筆</span>
+              </div>
+              <span class="talent-nav-save-state"><i data-lucide="cloud-check" aria-hidden="true"></i> 已儲存在此瀏覽器</span>
+            </div>
+            <div class="talent-nav-toolbar">
+              <label class="talent-nav-search-box">
+                <i data-lucide="search" aria-hidden="true"></i>
+                <span class="sr-only">搜尋職缺</span>
+                <input id="talent-nav-job-search" type="search" placeholder="搜尋職缺或部門">
+              </label>
+              <label class="talent-nav-filter-label">
+                <span class="sr-only">職缺狀態</span>
+                <select id="talent-nav-status-filter">
+                  <option value="open">開缺中</option>
+                  <option value="all">全部職缺</option>
+                </select>
+              </label>
+            </div>
+            <div id="talent-nav-job-list" class="talent-nav-job-list" aria-live="polite"></div>
+          </section>
+
+          <section id="talent-nav-detail" class="talent-nav-detail" aria-live="polite">
+            <div class="talent-nav-empty">
+              <i data-lucide="mouse-pointer-2" aria-hidden="true"></i>
+              <h3>選擇一個職缺</h3>
+              <p>從左側挑選職缺，開始安排精準搜尋與放大條件。</p>
+            </div>
+          </section>
+        </div>
+
+        <div id="talent-profile-modal" class="talent-profile-modal hidden" role="dialog" aria-modal="true" aria-labelledby="talent-profile-modal-title">
+          <button type="button" class="talent-profile-modal-backdrop" data-action="close-profile-modal" aria-label="關閉搜尋方案視窗"></button>
+          <form id="talent-profile-form" class="talent-profile-dialog">
+            <div class="talent-profile-dialog-head">
+              <div>
+                <div class="talent-nav-eyebrow">SEARCH ROUTE</div>
+                <h3 id="talent-profile-modal-title">新增搜尋方案</h3>
+              </div>
+              <button type="button" class="talent-icon-button" data-action="close-profile-modal" aria-label="關閉"><i data-lucide="x"></i></button>
+            </div>
+            <input type="hidden" id="talent-profile-id">
+            <label class="talent-profile-field">
+              <span>方案名稱</span>
+              <input id="talent-profile-name" maxlength="40" required placeholder="例如：精準搜尋">
+            </label>
+            <label class="talent-profile-field">
+              <span>備註</span>
+              <textarea id="talent-profile-note" maxlength="500" rows="5" placeholder="例如：RF 經驗必要，先找汐止與基隆，最近 14 天有活動"></textarea>
+            </label>
+            <div class="talent-profile-condition-placeholder">
+              <i data-lucide="puzzle" aria-hidden="true"></i>
+              <div><strong>104 條件尚未連接</strong><span>之後會由 Chrome 掛件擷取目前頁面的搜尋欄位並綁定到這個方案。</span></div>
+            </div>
+            <div class="talent-profile-dialog-actions">
+              <button type="button" class="talent-secondary-button" data-action="close-profile-modal">取消</button>
+              <button type="submit" class="talent-primary-button">儲存方案</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -1632,6 +1714,7 @@ function renderAll() {
   safeRender('hr-events', renderOnboardResign);
   safeRender('candidates', renderCandidates);
   safeRender('jobs', renderJobs);
+  safeRender('talent-search', () => window.talentSearchNavigator?.render());
   safeRender('icons', () => lucide.createIcons());
 }
 
@@ -1908,7 +1991,7 @@ function initOverview() {
     `${overviewKpis.todayOnboardCount}<span class="ops-unit">到職</span>　${overviewKpis.todayResignCount}<span class="ops-unit">離職</span>`;
   document.getElementById('ops-onboard-resign-sub').innerHTML =
     (overviewKpis.todayOnboardCount || overviewKpis.todayResignCount)
-      ? `<span class="ops-link" onclick="showTab('hr-events', document.querySelectorAll('.menu-item')[4])">前往到職／離職作業</span>`
+      ? `<span class="ops-link" onclick="showTab('hr-events', document.querySelectorAll('.menu-item')[5])">前往到職／離職作業</span>`
       : '今日無到離職異動';
 
   // 今日履歷推薦
@@ -2495,7 +2578,7 @@ function setCandF(f,btn){
   renderCandidates();
 }
 function showUnmappedCandidates(){
-  const menu = document.querySelectorAll('.menu-item')[4];
+  const menu = document.querySelectorAll('.menu-item')[2];
   if (menu) showTab('candidates', menu);
   const btn = document.getElementById('cand-filter-all');
   if (btn) setCandF('unmapped', btn);
@@ -2729,11 +2812,12 @@ function showTab(name, btn){
   document.getElementById('tab-'+name).classList.add('block');
   btn.classList.add('active');
   
-  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
+  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', 'talent-search':'104 搜尋頁面導覽', candidates:'候選人資料', analytics:'分析報表'};
   document.getElementById('page-title').textContent = titleMap[name] || '';
 
   if(name==='analytics') setTimeout(renderCharts, 50); // slight delay to ensure container is visible
   if(name==='schedule') setTimeout(schedGoToday, 30);
+  if(name==='talent-search') setTimeout(() => window.talentSearchNavigator?.render(), 0);
   if (location.hash !== '#'+name) history.replaceState(null,'','#'+name);
 }
 
@@ -2809,10 +2893,11 @@ document.getElementById('global-search').addEventListener('input', renderGlobalS
 loadData();
 if (location.hash) {
   const initial = location.hash.replace('#','');
-  const menuIndex = { overview:0, schedule:1, candidates:2, jobs:3, 'hr-events':4, analytics:5 }[initial];
+  const menuIndex = { overview:0, schedule:1, candidates:2, jobs:3, 'talent-search':4, 'hr-events':5, analytics:6 }[initial];
   if (menuIndex !== undefined) showTab(initial, document.querySelectorAll('.menu-item')[menuIndex]);
 }
 </script>
 <script type="module" src="js/jobsEditor.js?v=6"></script>
+<script type="module" src="js/talentSearchNavigator.js?v=1"></script>
 </body>
 </html>
