@@ -39,6 +39,52 @@ async function requestJson(url, options) {
   return { res, text, json };
 }
 
+// Guard: CTE names defined in one SQL statement must not be referenced in a later statement.
+// PostgreSQL scopes CTEs to their own statement; cross-; references silently fail at runtime.
+function validateNoCteCrossStatementRefs(query, nodeName) {
+  // Split on top-level semicolons (ignore those inside string literals)
+  const stmts = [];
+  let cur = '', depth = 0, inStr = false, strChar = '';
+  for (let i = 0; i < query.length; i++) {
+    const ch = query[i];
+    if (inStr) {
+      cur += ch;
+      if (ch === strChar && query[i - 1] !== '\\') inStr = false;
+    } else if (ch === "'" || ch === '"') {
+      inStr = true; strChar = ch; cur += ch;
+    } else if (ch === '(') { depth++; cur += ch; }
+    else if (ch === ')') { depth--; cur += ch; }
+    else if (ch === ';' && depth === 0) { stmts.push(cur.trim()); cur = ''; }
+    else { cur += ch; }
+  }
+  if (cur.trim()) stmts.push(cur.trim());
+
+  // Collect CTE names from each statement (WITH name AS ...)
+  const ctePat = /\bWITH\b[\s\S]*?\b(\w+)\s+AS\s*\(/gi;
+  const stmtCtes = stmts.map(s => {
+    const names = new Set();
+    let m;
+    const localPat = /(?:WITH|,)\s+(\w+)\s+AS\s*\(/gi;
+    while ((m = localPat.exec(s)) !== null) names.add(m[1].toLowerCase());
+    return names;
+  });
+
+  const errors = [];
+  for (let i = 1; i < stmts.length; i++) {
+    const stmt = stmts[i].toLowerCase();
+    for (let j = 0; j < i; j++) {
+      for (const cte of stmtCtes[j]) {
+        // Check for reference: FROM cte or JOIN cte or (SELECT ... FROM cte)
+        const refPat = new RegExp(`\\b(?:from|join)\\s+${cte}\\b`);
+        if (refPat.test(stmt)) {
+          errors.push(`Node "${nodeName}": CTE "${cte}" defined in statement ${j + 1} is referenced in statement ${i + 1} — cross-statement CTE refs fail in PostgreSQL.`);
+        }
+      }
+    }
+  }
+  return errors;
+}
+
 async function main() {
   const exportPath = resolveExportPath(process.argv[2]);
   const baseUrl = normalizeBaseUrl(process.argv[3] || DEFAULT_BASE_URL);
@@ -84,6 +130,18 @@ async function main() {
 
   if (!payload.name || !Array.isArray(payload.nodes) || !payload.connections) {
     throw new Error(`Export ${fileName} is missing required workflow fields`);
+  }
+
+  // Pre-deploy SQL validation: catch cross-statement CTE references
+  const sqlErrors = [];
+  for (const node of payload.nodes) {
+    const q = node.parameters?.query;
+    if (typeof q === 'string' && q.includes(';')) {
+      sqlErrors.push(...validateNoCteCrossStatementRefs(q, node.name));
+    }
+  }
+  if (sqlErrors.length) {
+    throw new Error('SQL validation failed — fix before deploying:\n' + sqlErrors.join('\n'));
   }
 
   const putResult = await requestJson(url, {
