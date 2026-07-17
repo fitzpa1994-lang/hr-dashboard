@@ -32,3 +32,8 @@ Thumbs.db
 
 # Local temporary files
 tmp_*
+
+# Browser/test debug artifacts
+.audit-edge-cdp/
+.playwright-mcp/
+/*.png
