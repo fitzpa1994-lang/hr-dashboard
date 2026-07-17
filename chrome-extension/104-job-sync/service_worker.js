@@ -1,7 +1,20 @@
 const ALL_JOBS_URL = 'https://vip.104.com.tw/job/allJobList';
 let syncInProgress = false;
+let captureInProgress = false;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'capture104SearchConditions') {
+    if (captureInProgress) {
+      sendResponse({ ok: false, error: '104 搜尋條件正在擷取，請稍候。' });
+      return;
+    }
+    captureInProgress = true;
+    captureSearchConditions()
+      .then(sendResponse)
+      .catch(error => sendResponse({ ok: false, error: error?.message || String(error) }))
+      .finally(() => { captureInProgress = false; });
+    return true;
+  }
   if (message?.type !== 'sync104JobsManual') return;
 
   if (syncInProgress) {
@@ -16,6 +29,90 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     .finally(() => { syncInProgress = false; });
   return true;
 });
+
+async function captureSearchConditions() {
+  const searchTabs = await chrome.tabs.query({
+    url: [
+      'https://vip.104.com.tw/search/listSearch*',
+      'https://vip.104.com.tw/search/searchResult*'
+    ]
+  });
+  const targetTab = searchTabs
+    .filter(tab => tab.id)
+    .sort((a, b) => Number(b.lastAccessed || 0) - Number(a.lastAccessed || 0))[0];
+  if (!targetTab) {
+    throw new Error('找不到 104 查詢人才頁。請先開啟 104 並設定搜尋條件。');
+  }
+
+  let resultCount = null;
+  let resultUrl = targetTab.url || '';
+  if (new URL(resultUrl).pathname === '/search/listSearch') {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: targetTab.id },
+      func: () => {
+        const button = Array.from(document.querySelectorAll('button'))
+          .find(item => /^符合人數\s*[\d,]+\s*人$/.test((item.textContent || '').trim().replace(/\s+/g, ' ')));
+        if (!button) return { clicked: false, resultCount: null };
+        const count = Number((button.textContent || '').replace(/\D/g, ''));
+        button.click();
+        return { clicked: true, resultCount: Number.isFinite(count) ? count : null };
+      }
+    });
+    if (!result?.result?.clicked) {
+      throw new Error('104 條件尚未完成或符合人數仍在計算，請稍後再擷取。');
+    }
+    resultCount = result.result.resultCount;
+    resultUrl = await waitForSearchResultUrl(targetTab.id, 25_000);
+  }
+
+  const conditions = normalizeSearchResultUrl(resultUrl, resultCount);
+  return { ok: true, conditions };
+}
+
+function normalizeSearchResultUrl(rawUrl, resultCount = null) {
+  const url = new URL(rawUrl);
+  if (url.origin !== 'https://vip.104.com.tw' || url.pathname !== '/search/searchResult') {
+    throw new Error('目前 104 分頁不是可儲存的查詢結果，請重新設定條件。');
+  }
+  url.searchParams.delete('loadTime');
+  const keys = [...url.searchParams.keys()];
+  if (!keys.length) throw new Error('104 查詢網址沒有條件，請重新設定後再擷取。');
+  return {
+    url: url.href,
+    capturedAt: new Date().toISOString(),
+    criteriaCount: new Set(keys).size,
+    resultCount,
+    keyword: url.searchParams.get('kws') || ''
+  };
+}
+
+function waitForSearchResultUrl(tabId, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let timer;
+    const cleanup = () => {
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(listener);
+    };
+    const accept = url => {
+      try { return new URL(url || '').pathname === '/search/searchResult'; } catch (_) { return false; }
+    };
+    const listener = (updatedId, info, tab) => {
+      if (updatedId !== tabId || !accept(info.url || tab.url)) return;
+      cleanup();
+      resolve(info.url || tab.url);
+    };
+    timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('104 搜尋結果載入逾時，請確認登入狀態後重試。'));
+    }, timeoutMs);
+    chrome.tabs.onUpdated.addListener(listener);
+    chrome.tabs.get(tabId).then(tab => {
+      if (!accept(tab.url)) return;
+      cleanup();
+      resolve(tab.url);
+    }).catch(() => {});
+  });
+}
 
 async function syncPublishedJobs() {
   const tab = await chrome.tabs.create({ url: ALL_JOBS_URL, active: false });

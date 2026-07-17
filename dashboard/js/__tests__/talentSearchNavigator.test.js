@@ -1,5 +1,23 @@
 import { describe, expect, test } from '@jest/globals';
-import { merge104JobSnapshot, reconcileOrder, reorderVisible } from '../talentSearchNavigator.js';
+import { merge104JobSnapshot, normalize104SearchConditions, reconcileOrder, reorderVisible } from '../talentSearchNavigator.js';
+
+describe('normalize104SearchConditions', () => {
+  test('accepts a 104 search result URL and removes the temporary load time', () => {
+    const conditions = normalize104SearchConditions({
+      url: 'https://vip.104.com.tw/search/searchResult?loadTime=temporary&kws=MIS&edu%5B%5D=4&edu%5B%5D=8',
+      resultCount: 147,
+      capturedAt: '2026-07-17T09:00:00.000Z'
+    });
+    expect(conditions).toMatchObject({ keyword: 'MIS', resultCount: 147, capturedAt: '2026-07-17T09:00:00.000Z' });
+    expect(conditions.url).not.toContain('loadTime');
+    expect(new URL(conditions.url).searchParams.getAll('edu[]')).toEqual(['4', '8']);
+  });
+
+  test('rejects non-104 and non-result URLs', () => {
+    expect(normalize104SearchConditions({ url: 'https://example.com/search/searchResult?kws=MIS' })).toBeNull();
+    expect(normalize104SearchConditions({ url: 'https://vip.104.com.tw/search/listSearch?kws=MIS' })).toBeNull();
+  });
+});
 
 describe('reconcileOrder', () => {
   test('keeps the saved job order and appends newly synced jobs', () => {

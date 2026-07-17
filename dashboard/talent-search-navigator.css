@@ -313,12 +313,19 @@
 .talent-profile-note.is-empty { color: #aaa39a; font-style: italic; }
 .talent-profile-state { display: inline-flex; align-items: center; gap: 5px; margin-top: 9px; color: #9b6a31; font-size: 9.5px; }
 .talent-profile-state svg { width: 12px; height: 12px; }
+.talent-profile-state.is-captured { color: #28704f; }
+.talent-profile-state.is-error { max-width: 420px; color: #a43f36; }
 .talent-profile-actions { display: flex; align-items: flex-start; gap: 5px; }
 .talent-profile-action { height: 30px; padding: 0 9px; color: #57534e; background: #fff; border: 1px solid #ddd9d2; }
 .talent-profile-action:hover { color: #1e3a5f; border-color: #a8b6c5; background: #f5f8fb; }
 .talent-profile-action.is-open { color: #fff; border-color: #31567f; background: #31567f; }
 .talent-profile-action.is-open:hover { background: #24476d; }
+.talent-profile-action.is-capture { color: #8a5b25; border-color: #d8c5aa; background: #fffaf1; }
+.talent-profile-action.is-capture:hover { border-color: #b8905d; background: #f9efdf; }
+.talent-profile-action:disabled { cursor: wait; opacity: .62; }
+.talent-profile-action:disabled svg { animation: talent-spin .85s linear infinite; }
 .talent-profile-action svg { width: 12px; height: 12px; }
+@keyframes talent-spin { to { transform: rotate(360deg); } }
 
 .talent-nav-empty,
 .talent-nav-profile-empty {

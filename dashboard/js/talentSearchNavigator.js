@@ -3,6 +3,30 @@ const SEARCH_URL = 'https://vip.104.com.tw/search/listSearch';
 const SYNC_REQUEST_TYPE = 'SPORTON_104_SYNC_REQUEST';
 const SYNC_RESPONSE_TYPE = 'SPORTON_104_SYNC_RESPONSE';
 const EXTENSION_READY_TYPE = 'SPORTON_104_EXTENSION_READY';
+const CAPTURE_REQUEST_TYPE = 'SPORTON_104_CAPTURE_REQUEST';
+const CAPTURE_RESPONSE_TYPE = 'SPORTON_104_CAPTURE_RESPONSE';
+
+export function normalize104SearchConditions(rawConditions) {
+  if (!rawConditions || typeof rawConditions !== 'object') return null;
+  try {
+    const url = new URL(String(rawConditions.url || ''));
+    if (url.origin !== 'https://vip.104.com.tw' || url.pathname !== '/search/searchResult') return null;
+    url.searchParams.delete('loadTime');
+    if (![...url.searchParams.keys()].length) return null;
+    const rawResultCount = rawConditions.resultCount;
+    return {
+      url: url.href,
+      capturedAt: String(rawConditions.capturedAt || new Date().toISOString()),
+      criteriaCount: Number(rawConditions.criteriaCount || new Set(url.searchParams.keys()).size),
+      resultCount: rawResultCount !== null && rawResultCount !== undefined && rawResultCount !== '' && Number.isFinite(Number(rawResultCount))
+        ? Number(rawResultCount)
+        : null,
+      keyword: String(rawConditions.keyword || url.searchParams.get('kws') || ''),
+    };
+  } catch (_) {
+    return null;
+  }
+}
 
 export function reconcileOrder(currentIds, savedOrder = []) {
   const current = currentIds.map(String);
@@ -131,6 +155,11 @@ const state = {
   syncError: '',
   pendingSyncRequestId: '',
   syncTimer: null,
+  captureInProgressProfileId: '',
+  captureJobId: '',
+  pendingCaptureRequestId: '',
+  captureTimer: null,
+  captureErrors: {},
 };
 
 function saveState() {
@@ -211,6 +240,12 @@ function renderJobList(jobs) {
 }
 
 function profileCard(profile, index) {
+  const conditions = normalize104SearchConditions(profile.conditions);
+  const isCapturing = state.captureInProgressProfileId === profile.id;
+  const captureError = state.captureErrors[profile.id] || '';
+  const conditionLabel = conditions
+    ? `104 條件已儲存${conditions.resultCount !== null ? ` · ${conditions.resultCount} 人` : ''}`
+    : '104 條件待擷取';
   return `
     <article class="talent-profile-card" draggable="true" data-profile-id="${escapeHtml(profile.id)}">
       <button type="button" class="talent-drag-handle" tabindex="-1" aria-label="拖曳調整搜尋方案順序"><i data-lucide="grip-vertical"></i></button>
@@ -220,10 +255,11 @@ function profileCard(profile, index) {
           <span class="talent-profile-name">${escapeHtml(profile.name || '未命名方案')}</span>
         </div>
         <div class="talent-profile-note${profile.note ? '' : ' is-empty'}">${escapeHtml(profile.note || '尚未填寫備註')}</div>
-        <span class="talent-profile-state"><i data-lucide="unlink"></i> 104 條件待擷取</span>
+        <span class="talent-profile-state${conditions ? ' is-captured' : ''}${captureError ? ' is-error' : ''}"><i data-lucide="${captureError ? 'circle-alert' : conditions ? 'link-2' : 'unlink'}"></i> ${escapeHtml(captureError || conditionLabel)}</span>
       </div>
       <div class="talent-profile-actions">
-        <button type="button" class="talent-profile-action is-open" data-action="open-104" data-profile-id="${escapeHtml(profile.id)}"><i data-lucide="external-link"></i>開啟 104</button>
+        <button type="button" class="talent-profile-action is-open" data-action="open-104" data-profile-id="${escapeHtml(profile.id)}"><i data-lucide="external-link"></i>${conditions ? '開啟 104' : '設定條件'}</button>
+        <button type="button" class="talent-profile-action is-capture" data-action="capture-104" data-profile-id="${escapeHtml(profile.id)}"${isCapturing ? ' disabled' : ''}><i data-lucide="${isCapturing ? 'loader-circle' : 'scan-search'}"></i>${isCapturing ? '擷取中' : conditions ? '重新擷取' : '擷取條件'}</button>
         <button type="button" class="talent-profile-action" data-action="edit-profile" data-profile-id="${escapeHtml(profile.id)}"><i data-lucide="pencil"></i>編輯</button>
         <button type="button" class="talent-profile-action" data-action="delete-profile" data-profile-id="${escapeHtml(profile.id)}" aria-label="刪除 ${escapeHtml(profile.name)}"><i data-lucide="trash-2"></i></button>
       </div>
@@ -344,6 +380,29 @@ function handleExtensionMessage(event) {
     renderSyncStatus();
     return;
   }
+  if (event.data?.type === CAPTURE_RESPONSE_TYPE && event.data.requestId === state.pendingCaptureRequestId) {
+    clearTimeout(state.captureTimer);
+    const profileId = state.captureInProgressProfileId;
+    const captureJobId = state.captureJobId;
+    state.captureInProgressProfileId = '';
+    state.captureJobId = '';
+    state.pendingCaptureRequestId = '';
+    const conditions = event.data.ok ? normalize104SearchConditions(event.data.conditions) : null;
+    if (!conditions) {
+      state.captureErrors[profileId] = event.data.error || '無法讀取 104 搜尋條件，原條件仍保留。';
+      render();
+      return;
+    }
+    const profiles = [...getProfiles(captureJobId)];
+    const profileIndex = profiles.findIndex(item => item.id === profileId);
+    if (profileIndex >= 0) {
+      profiles[profileIndex] = { ...profiles[profileIndex], conditions, updatedAt: new Date().toISOString() };
+      state.profilesByJob[captureJobId] = profiles;
+      delete state.captureErrors[profileId];
+    }
+    render();
+    return;
+  }
   if (event.data?.type !== SYNC_RESPONSE_TYPE || event.data.requestId !== state.pendingSyncRequestId) return;
 
   clearTimeout(state.syncTimer);
@@ -415,8 +474,34 @@ function deleteProfile(profileId) {
   render();
 }
 
-function open104() {
-  const opened = window.open(SEARCH_URL, '_blank', 'noopener,noreferrer');
+function capture104Conditions(profileId) {
+  if (!profileId || state.captureInProgressProfileId) return;
+  state.captureInProgressProfileId = profileId;
+  state.captureJobId = state.selectedJobId;
+  state.pendingCaptureRequestId = createId();
+  delete state.captureErrors[profileId];
+  render();
+  window.postMessage({
+    type: CAPTURE_REQUEST_TYPE,
+    requestId: state.pendingCaptureRequestId,
+  }, location.origin);
+  clearTimeout(state.captureTimer);
+  state.captureTimer = setTimeout(() => {
+    if (state.captureInProgressProfileId !== profileId) return;
+    state.captureInProgressProfileId = '';
+    state.captureJobId = '';
+    state.pendingCaptureRequestId = '';
+    state.captureErrors[profileId] = state.extensionReady
+      ? '條件擷取逾時，請確認 104 搜尋頁仍開著。'
+      : '找不到 104 同步掛件，請重新載入掛件與本頁。';
+    render();
+  }, 35_000);
+}
+
+function open104(profileId) {
+  const profile = getProfiles(state.selectedJobId).find(item => item.id === profileId);
+  const conditions = normalize104SearchConditions(profile?.conditions);
+  const opened = window.open(conditions?.url || SEARCH_URL, '_blank', 'noopener,noreferrer');
   if (opened) opened.opener = null;
 }
 
@@ -447,7 +532,8 @@ function bindEvents() {
     if (action.dataset.action === 'add-profile') openProfileModal();
     if (action.dataset.action === 'edit-profile') openProfileModal(profileId);
     if (action.dataset.action === 'delete-profile') deleteProfile(profileId);
-    if (action.dataset.action === 'open-104') open104();
+    if (action.dataset.action === 'open-104') open104(profileId);
+    if (action.dataset.action === 'capture-104') capture104Conditions(profileId);
     if (action.dataset.action === 'sync-104-jobs') startManualSync();
   });
 
