@@ -661,7 +661,7 @@
               </div>
               <div class="px-5 pb-4">
                 <div class="today-stats-line">
-                  履歷推薦 <b id="today-stat-recommended">–</b><span class="sep">·</span>排定面試 <b id="today-stat-interviews">–</b>
+                  履歷推薦 <b id="today-stat-recommended">–</b><span class="sep">·</span>排定面試 <b id="today-stat-interviews">–</b><span class="sep" id="today-stat-errors-sep" style="display:none">·</span><span id="today-stat-errors-wrap" style="display:none">處理失敗 <b id="today-stat-errors" style="color:var(--orange)">–</b></span>
                 </div>
                 <div class="today-timeline" id="today-timeline"></div>
               </div>
@@ -2025,6 +2025,12 @@ function initOverview() {
   // 今日活動 — 一行統計
   document.getElementById('today-stat-recommended').textContent = todayActivity.recommended ?? '–';
   document.getElementById('today-stat-interviews').textContent = todayActivity.interviewsArranged ?? '–';
+  const todayErrors = todayActivity.errors ?? 0;
+  document.getElementById('today-stat-errors-sep').style.display = todayErrors > 0 ? '' : 'none';
+  document.getElementById('today-stat-errors-wrap').style.display = todayErrors > 0 ? '' : 'none';
+  if (todayErrors > 0) {
+    document.getElementById('today-stat-errors').textContent = todayErrors;
+  }
   document.getElementById('today-progress-subtitle').textContent =
     `更新於 ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
 
