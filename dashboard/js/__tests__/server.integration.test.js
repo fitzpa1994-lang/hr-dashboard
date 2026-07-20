@@ -14,6 +14,10 @@ async function close(server) {
   await once(server, 'close');
 }
 
+function currentSyncTimestamp() {
+  return new Date().toISOString();
+}
+
 async function startMockN8n() {
   const requests = [];
   const state = { delayMs: 0 };
@@ -255,6 +259,244 @@ describe('dashboard server auth flow', () => {
     });
     expect(bad.status).toBe(400);
     expect(await bad.json()).toEqual({ error: 'department is required' });
+  });
+
+  test('protects 104 sync and link APIs without a session', async () => {
+    const sync = await fetch(`${baseUrl}/api/job-requisitions/sync-104`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        syncedAt: '2026-07-20T08:30:00.000Z',
+        complete: true,
+        scannedCount: 1,
+        jobs: [{
+          externalId: '123456',
+          title: 'Software Engineer',
+          url: 'https://vip.104.com.tw/job/jobmaster?jobno=123456',
+          updatedDate: '2026-07-20',
+          status: 'open'
+        }]
+      })
+    });
+    expect(sync.status).toBe(401);
+    expect(await sync.json()).toEqual({ error: 'Unauthorized' });
+
+    const link = await fetch(`${baseUrl}/api/job-requisition-sources/104/123456`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobRequisitionId: 7 })
+    });
+    expect(link.status).toBe(401);
+    expect(await link.json()).toEqual({ error: 'Unauthorized' });
+    expect(mock.requests.filter(request => request.url.includes('/webhook/hr-dashboard-write'))).toHaveLength(0);
+  });
+
+  test('validates and forwards every v2 completeness field for a 104 snapshot larger than 10 KB', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+    const jobs = Array.from({ length: 100 }, (_, index) => ({
+      externalId: String(700000 + index),
+      title: `  Software Engineer ${index} ${'x'.repeat(100)}  `,
+      url: `https://vip.104.com.tw/job/jobmaster?jobno=${700000 + index}`,
+      updatedDate: '2026-07-20',
+      status: 'open'
+    }));
+    const payload = {
+      contractVersion: 2,
+      syncedAt: currentSyncTimestamp(),
+      complete: true,
+      sourceTotalCount: 125,
+      publishedCount: 100,
+      scannedCount: 125,
+      jobs
+    };
+    expect(Buffer.byteLength(JSON.stringify(payload))).toBeGreaterThan(10_000);
+
+    const response = await fetch(`${baseUrl}/api/job-requisitions/sync-104`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookie
+      },
+      body: JSON.stringify(payload)
+    });
+    expect(response.status).toBe(200);
+    expect((await response.json()).action).toBe('sync_104_jobs');
+
+    const writeRequest = mock.requests.find(request => request.body?.action === 'sync_104_jobs');
+    expect(writeRequest.authorization).toBe('Bearer test-token');
+    expect(writeRequest.url).toContain('token=test-token');
+    expect(writeRequest.body).toMatchObject({
+      action: 'sync_104_jobs',
+      contractVersion: 2,
+      syncedAt: payload.syncedAt,
+      sourceTotalCount: 125,
+      publishedCount: 100,
+      scannedCount: 125,
+      complete: true
+    });
+    expect(writeRequest.body.jobs).toHaveLength(100);
+    expect(writeRequest.body.jobs[0]).toEqual({
+      externalId: '700000',
+      title: `Software Engineer 0 ${'x'.repeat(100)}`,
+      url: 'https://vip.104.com.tw/job/jobmaster?jobno=700000',
+      updatedDate: '2026-07-20',
+      status: 'open'
+    });
+  });
+
+  test('rejects incomplete or unsafe 104 snapshots without forwarding them', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+    const validJob = {
+      externalId: '123456',
+      title: 'Software Engineer',
+      url: 'https://vip.104.com.tw/job/jobmaster?jobno=123456',
+      updatedDate: '2026-07-20',
+      status: 'open'
+    };
+    const validPayload = {
+      contractVersion: 2,
+      syncedAt: currentSyncTimestamp(),
+      complete: true,
+      sourceTotalCount: 1,
+      publishedCount: 1,
+      scannedCount: 1,
+      jobs: [validJob]
+    };
+    const invalidPayloads = [
+      { ...validPayload, contractVersion: 1 },
+      { ...validPayload, complete: false },
+      { ...validPayload, syncedAt: 'not-a-date' },
+      { ...validPayload, syncedAt: undefined },
+      { ...validPayload, syncedAt: new Date(Date.now() + 6 * 60 * 1000).toISOString() },
+      { ...validPayload, sourceTotalCount: 0, publishedCount: 0, scannedCount: 0, jobs: undefined },
+      { ...validPayload, scannedCount: 0 },
+      { ...validPayload, publishedCount: 0 },
+      { ...validPayload, sourceTotalCount: 2_147_483_648, scannedCount: 2_147_483_648 },
+      { ...validPayload, jobs: [{ ...validJob, status: 'closed' }] },
+      { ...validPayload, jobs: [{ ...validJob, externalId: 'ABC' }] },
+      { ...validPayload, jobs: [{ ...validJob, externalId: 123456 }] },
+      { ...validPayload, jobs: [{ ...validJob, title: '' }] },
+      { ...validPayload, jobs: [{ ...validJob, title: 123 }] },
+      { ...validPayload, jobs: [{ ...validJob, url: 'https://example.com/job/123456' }] },
+      { ...validPayload, jobs: [{ ...validJob, updatedDate: 20260720 }] },
+      { ...validPayload, sourceTotalCount: 2, publishedCount: 2, scannedCount: 2, jobs: [validJob, { ...validJob }] },
+      {
+        ...validPayload,
+        sourceTotalCount: 501,
+        publishedCount: 501,
+        scannedCount: 501,
+        jobs: Array.from({ length: 501 }, (_, index) => ({
+          ...validJob,
+          externalId: String(index + 1),
+          url: `https://vip.104.com.tw/job/jobmaster?jobno=${index + 1}`
+        }))
+      }
+    ];
+
+    for (const payload of invalidPayloads) {
+      const response = await fetch(`${baseUrl}/api/job-requisitions/sync-104`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify(payload)
+      });
+      expect(response.status).toBe(400);
+    }
+
+    const oversized = await fetch(`${baseUrl}/api/job-requisitions/sync-104`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ ...validPayload, padding: 'x'.repeat(512 * 1024) })
+    });
+    expect(oversized.status).toBe(413);
+    expect(mock.requests.filter(request => request.body?.action === 'sync_104_jobs')).toHaveLength(0);
+  });
+
+  test('accepts a complete v2 snapshot with zero published jobs', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+    const response = await fetch(`${baseUrl}/api/job-requisitions/sync-104`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({
+        contractVersion: 2,
+        syncedAt: currentSyncTimestamp(),
+        complete: true,
+        sourceTotalCount: 4,
+        publishedCount: 0,
+        scannedCount: 4,
+        jobs: []
+      })
+    });
+
+    expect(response.status).toBe(200);
+    expect(mock.requests.find(request => request.body?.action === 'sync_104_jobs')?.body).toMatchObject({
+      contractVersion: 2,
+      sourceTotalCount: 4,
+      publishedCount: 0,
+      scannedCount: 4,
+      jobs: []
+    });
+  });
+
+  test('links and unlinks a 104 source through the write webhook', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+
+    for (const jobRequisitionId of [7, null]) {
+      const response = await fetch(`${baseUrl}/api/job-requisition-sources/104/123456`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify({ jobRequisitionId })
+      });
+      expect(response.status).toBe(200);
+    }
+
+    const invalid = await fetch(`${baseUrl}/api/job-requisition-sources/104/123456`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ jobRequisitionId: '7' })
+    });
+    expect(invalid.status).toBe(400);
+
+    const overflowing = await fetch(`${baseUrl}/api/job-requisition-sources/104/123456`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ jobRequisitionId: 2_147_483_648 })
+    });
+    expect(overflowing.status).toBe(400);
+
+    const linkRequests = mock.requests.filter(request => request.body?.action === 'link_external_job');
+    expect(linkRequests).toHaveLength(2);
+    expect(linkRequests[0]).toMatchObject({
+      method: 'POST',
+      authorization: 'Bearer test-token',
+      body: {
+        action: 'link_external_job',
+        provider: '104',
+        externalId: '123456',
+        jobRequisitionId: 7
+      }
+    });
+    expect(linkRequests[0].url).toContain('token=test-token');
+    expect(linkRequests[1].body.jobRequisitionId).toBeNull();
   });
 
   test('returns 504 when dashboard upstream times out', async () => {

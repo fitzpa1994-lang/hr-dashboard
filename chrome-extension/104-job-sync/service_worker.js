@@ -1,3 +1,5 @@
+import { buildComplete104Snapshot, parse104JobTablePage } from './sync_contract.js';
+
 const ALL_JOBS_URL = 'https://vip.104.com.tw/job/allJobList';
 let syncInProgress = false;
 let captureInProgress = false;
@@ -123,42 +125,32 @@ async function syncPublishedJobs() {
     let firstPage;
     try {
       firstPage = await waitForPage(tab.id, 1, 20_000);
-    } catch (_) {
+    } catch (error) {
       keepTab = true;
       await chrome.tabs.update(tab.id, { active: true });
-      throw new Error('讀不到 104 職缺。請在剛開啟的頁面登入 104，再回招募作業台重試。');
+      throw new Error(error?.message || '讀不到 104 職缺。請在剛開啟的頁面登入 104，再回招募作業台重試。');
     }
-    if (!firstPage.jobs.length) {
+    if (!firstPage.jobs.length && firstPage.totalCount !== 0) {
       keepTab = true;
       await chrome.tabs.update(tab.id, { active: true });
       throw new Error('讀不到 104 職缺。請在剛開啟的頁面登入 104，再回招募作業台重試。');
     }
 
     const totalPages = Math.max(1, Math.ceil(firstPage.totalCount / firstPage.pageSize));
-    const allJobs = [...firstPage.jobs];
+    const pages = [firstPage];
 
     let previousPageIds = firstPage.jobs.map(job => job.externalId);
     for (let page = 2; page <= totalPages; page += 1) {
       await selectPage(tab.id, page);
       const pageData = await waitForPage(tab.id, page, 20_000, previousPageIds);
       if (!pageData.jobs.length) throw new Error(`104 第 ${page} 頁沒有讀到職缺，已保留原本同步資料。`);
-      allJobs.push(...pageData.jobs);
+      pages.push(pageData);
       previousPageIds = pageData.jobs.map(job => job.externalId);
     }
 
-    const uniqueJobs = [...new Map(allJobs.map(job => [job.externalId, job])).values()];
-    if (uniqueJobs.length !== firstPage.totalCount) {
-      throw new Error(`104 顯示 ${firstPage.totalCount} 筆，但只讀到 ${uniqueJobs.length} 筆，已取消更新。`);
-    }
-
-    const publishedJobs = uniqueJobs.filter(job => job.status === 'open');
-    return {
-      ok: true,
-      jobs: publishedJobs,
-      totalCount: publishedJobs.length,
-      scannedCount: uniqueJobs.length,
-      syncedAt: new Date().toISOString()
-    };
+    const snapshot = buildComplete104Snapshot(pages);
+    if (!snapshot.ok) throw new Error(`${snapshot.error} 已取消更新並保留原本資料。`);
+    return snapshot;
   } finally {
     if (!keepTab && tab?.id) {
       try { await chrome.tabs.remove(tab.id); } catch (_) {}
@@ -195,33 +187,51 @@ function waitForTabComplete(tabId, timeoutMs) {
 async function readPage(tabId) {
   const [result] = await chrome.scripting.executeScript({
     target: { tabId },
-    func: extractPublishedJobs
+    func: extractRawJobTablePage
   });
-  return result?.result || { jobs: [], totalCount: 0, pageSize: 30, currentPage: 0 };
+  return parse104JobTablePage(result?.result || {});
 }
 
-function extractPublishedJobs() {
+function extractRawJobTablePage() {
   const rows = Array.from(document.querySelectorAll("tr[data-qa-id^='listJobno']"));
   const pageText = document.querySelector('.pagination-container .page')?.textContent || '';
   const pageButtonText = document.querySelector('.pagination-container .dropdown-toggle')?.textContent || '';
-  const totalCount = Number(pageText.match(/共\s*(\d+)\s*筆/)?.[1] || 0);
-  const currentPage = Number(pageButtonText.match(/第\s*(\d+)\s*頁/)?.[1] || 0);
+  const table = rows[0]?.closest('table');
+  const headerRows = Array.from(table?.querySelectorAll('thead tr') || []).map(row => (
+    Array.from(row.querySelectorAll('th')).map(cell => cell.innerText || cell.textContent || '')
+  ));
+  const activeFilterCandidates = Array.from(document.querySelectorAll(
+    'button, a, [role="tab"], [aria-current], [aria-selected], [aria-pressed], option'
+  ));
+  const scopeLabels = new Set(['所有職務', '刊登中', '未刊登', '已關閉', '暫停刊登', '待刊登']);
+  const activeScopeLabels = activeFilterCandidates.flatMap(element => {
+    const text = (element.innerText || element.textContent || '').trim().replace(/\s+/g, ' ');
+    if (!scopeLabels.has(text)) return [];
+    const isActive = (element.tagName === 'OPTION' && element.selected === true)
+      || Boolean(element.closest(
+      '[aria-current="page"], [aria-selected="true"], [aria-pressed="true"], .active, .selected, .is-active, .is-selected'
+      ));
+    return isActive ? [text] : [];
+  });
 
-  const jobs = rows.map(row => {
-    const externalId = (row.getAttribute('data-qa-id') || '').replace('listJobno', '');
-    const titleLink = row.querySelector(`a[href^='/job/jobmaster?jobno=']`);
-    const cells = Array.from(row.querySelectorAll('td')).map(cell => (cell.innerText || '').trim().replace(/\s+/g, ' '));
-    const statusText = cells[7] || '';
-    return {
-      externalId,
-      title: (titleLink?.textContent || '').trim().replace(/\s+/g, ' '),
-      url: titleLink ? new URL(titleLink.getAttribute('href'), location.origin).href : '',
-      updatedDate: cells[3] || '',
-      status: statusText.includes('刊登中') ? 'open' : 'closed'
-    };
-  }).filter(job => /^\d+$/.test(job.externalId) && job.title);
-
-  return { jobs, totalCount, pageSize: Math.max(rows.length, 30), currentPage };
+  return {
+    pathname: location.pathname,
+    search: location.search,
+    activeScopeLabels,
+    pageText,
+    pageButtonText,
+    headerRows,
+    rows: rows.map(row => {
+      const externalId = (row.getAttribute('data-qa-id') || '').replace('listJobno', '');
+      const titleLink = row.querySelector(`a[href^='/job/jobmaster?jobno=']`);
+      return {
+        externalId,
+        title: titleLink?.textContent || '',
+        href: titleLink?.getAttribute('href') || '',
+        cells: Array.from(row.querySelectorAll('td')).map(cell => cell.innerText || cell.textContent || '')
+      };
+    })
+  };
 }
 
 async function selectPage(tabId, pageNumber) {
@@ -241,14 +251,22 @@ async function selectPage(tabId, pageNumber) {
 async function waitForPage(tabId, expectedPage, timeoutMs, previousPageIds = []) {
   const startedAt = Date.now();
   const previousSignature = previousPageIds.join(',');
+  let lastValidationError = '';
   while (Date.now() - startedAt < timeoutMs) {
     await delay(400);
     const page = await readPage(tabId);
+    if (!page.ok) {
+      lastValidationError = page.error || '';
+      continue;
+    }
     const currentSignature = page.jobs.map(job => job.externalId).join(',');
     const rowsChanged = !previousSignature || currentSignature !== previousSignature;
-    if (page.currentPage === expectedPage && page.jobs.length && rowsChanged) return page;
+    const hasCompletePage = page.totalCount === 0
+      ? expectedPage === 1 && page.jobs.length === 0
+      : page.jobs.length > 0;
+    if (page.currentPage === expectedPage && hasCompletePage && rowsChanged) return page;
   }
-  throw new Error(`104 第 ${expectedPage} 頁載入逾時，已取消更新。`);
+  throw new Error(lastValidationError || `104 第 ${expectedPage} 頁載入逾時，已取消更新。`);
 }
 
 function delay(ms) {

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 
 const ROOT = process.cwd();
 const DEFAULT_BASE_URL = process.env.N8N_API_BASE_URL || process.env.N8N_API_URL || '';
@@ -37,6 +38,174 @@ async function requestJson(url, options) {
     json = null;
   }
   return { res, text, json };
+}
+
+function responseError(label, url, result) {
+  return new Error(
+    `${label} ${url} failed: status=${result.res.status}; body=${result.text.slice(0, 200)}`,
+  );
+}
+
+function hasOwn(value, key) {
+  return Boolean(value && Object.prototype.hasOwnProperty.call(value, key));
+}
+
+export function usesVersionedPublishing(workflow) {
+  return hasOwn(workflow, 'activeVersionId') || hasOwn(workflow, 'activeVersion');
+}
+
+export function publishedVersionId(workflow) {
+  return workflow?.activeVersionId || workflow?.activeVersion?.versionId || null;
+}
+
+export function isWorkflowPublished(workflow, versioned = usesVersionedPublishing(workflow)) {
+  return versioned ? Boolean(publishedVersionId(workflow)) : workflow?.active === true;
+}
+
+function normalizeQuery(value) {
+  return String(value ?? '').replace(/\r\n/g, '\n');
+}
+
+function queryNodeKey(node) {
+  return node?.id ? `id:${node.id}` : `name:${node?.name || ''}`;
+}
+
+function collectQueries(nodes) {
+  const queries = new Map();
+  for (const node of nodes || []) {
+    if (typeof node?.parameters?.query !== 'string') continue;
+    queries.set(queryNodeKey(node), {
+      name: node.name || node.id || '(unnamed query node)',
+      query: normalizeQuery(node.parameters.query),
+    });
+  }
+  return queries;
+}
+
+export function assertWorkflowQueriesEqual(expectedNodes, actualNodes, label = 'workflow') {
+  if (!Array.isArray(actualNodes)) {
+    throw new Error(`${label}: response is missing nodes needed to verify deployed queries`);
+  }
+
+  const expected = collectQueries(expectedNodes);
+  const actual = collectQueries(actualNodes);
+  if (expected.size !== actual.size) {
+    throw new Error(
+      `${label}: query node count mismatch; expected=${expected.size}; actual=${actual.size}`,
+    );
+  }
+
+  for (const [key, expectedNode] of expected) {
+    const actualNode = actual.get(key);
+    if (!actualNode) {
+      throw new Error(`${label}: active workflow is missing query node "${expectedNode.name}"`);
+    }
+    if (actualNode.query !== expectedNode.query) {
+      throw new Error(`${label}: deployed query differs for node "${expectedNode.name}"`);
+    }
+  }
+}
+
+async function freshWorkflow(url, headers, requestJsonFn, label = 'GET') {
+  const result = await requestJsonFn(url, { headers });
+  if (!result.res.ok) throw responseError(label, url, result);
+  return result.json || {};
+}
+
+function assertSavedVersion(current, savedVersionId, workflowId) {
+  if (current.versionId !== savedVersionId) {
+    throw new Error(
+      `Workflow ${workflowId} changed after PUT: saved version=${savedVersionId}; current version=${current.versionId || 'missing'}. Refusing to publish a possibly concurrent edit.`,
+    );
+  }
+}
+
+export async function deployAndVerifyWorkflow({
+  url,
+  headers,
+  workflowId,
+  payload,
+  live,
+  requestJsonFn = requestJson,
+}) {
+  const versioned = usesVersionedPublishing(live);
+  const wasPublished = isWorkflowPublished(live, versioned);
+  const putResult = await requestJsonFn(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!putResult.res.ok) throw responseError('PUT', url, putResult);
+
+  const saved = putResult.json || {};
+  const savedVersionId = saved.versionId || null;
+  if (versioned && !savedVersionId) {
+    throw new Error(
+      `PUT ${url} returned no versionId; refusing to guess which saved version should be published`,
+    );
+  }
+
+  let verified = await freshWorkflow(url, headers, requestJsonFn, 'GET after PUT');
+
+  if (versioned) {
+    assertSavedVersion(verified, savedVersionId, workflowId);
+
+    if (wasPublished && publishedVersionId(verified) !== savedVersionId) {
+      const currentPublishedVersionId = publishedVersionId(verified);
+      // Current n8n atomically republishes an already-published workflow during
+      // PUT. A lagging/different active version therefore indicates a failed or
+      // concurrent publication decision. The public API has no conditional
+      // activate operation, so a follow-up POST would have a TOCTOU race and
+      // could overwrite a human unpublish/publish action.
+      throw new Error(
+        `Workflow ${workflowId} active version did not advance to the saved version after PUT: saved=${savedVersionId}; active=${currentPublishedVersionId || 'none'}. Refusing to publish automatically.`,
+      );
+    }
+
+    const activeVersionId = publishedVersionId(verified);
+    if (wasPublished && activeVersionId !== savedVersionId) {
+      throw new Error(
+        `Workflow ${workflowId} publish verification failed: saved version=${savedVersionId}; active version=${activeVersionId || 'missing'}`,
+      );
+    }
+    if (!wasPublished && activeVersionId) {
+      throw new Error(
+        `Workflow ${workflowId} was unpublished before deployment but is now published as ${activeVersionId}`,
+      );
+    }
+  } else if (wasPublished && verified.active !== true) {
+    // Legacy n8n cannot address a specific saved version when publishing.
+    // PUT normally preserves active=true, so a true -> false transition may be
+    // a concurrent human action and must never be overwritten automatically.
+    throw new Error(
+      `Workflow ${workflowId} became inactive after PUT; refusing to reactivate it without a version-addressable publication check`,
+    );
+  }
+
+  if (!versioned) {
+    if (!wasPublished && verified.active === true) {
+      throw new Error(`Workflow ${workflowId} was inactive before deployment but is now active`);
+    }
+  }
+
+  const deployedNodes = versioned && wasPublished
+    ? verified.activeVersion?.nodes
+    : verified.nodes;
+  assertWorkflowQueriesEqual(
+    payload.nodes,
+    deployedNodes,
+    versioned && wasPublished ? 'activeVersion' : 'saved workflow',
+  );
+
+  return {
+    saved,
+    verified,
+    savedVersionId,
+    activeVersionId: publishedVersionId(verified),
+    versioned,
+    wasPublished,
+  };
 }
 
 // Guard: CTE names defined in one SQL statement must not be referenced in a later statement.
@@ -144,28 +313,35 @@ async function main() {
     throw new Error('SQL validation failed — fix before deploying:\n' + sqlErrors.join('\n'));
   }
 
-  const putResult = await requestJson(url, {
-    method: 'PUT',
+  const deployment = await deployAndVerifyWorkflow({
+    url,
     headers,
-    body: JSON.stringify(payload),
+    workflowId,
+    payload,
+    live,
   });
-
-  if (!putResult.res.ok) {
-    throw new Error(`PUT ${url} failed: status=${putResult.res.status}; body=${putResult.text.slice(0, 200)}`);
-  }
-
-  const after = putResult.json || {};
+  const after = deployment.verified;
   console.log(JSON.stringify({
     workflowId,
     exportPath,
     fileName,
     name: after.name || body.name,
-    active: after.active ?? live.active ?? body.active ?? false,
+    active: after.active ?? deployment.wasPublished,
+    versionId: deployment.savedVersionId,
+    activeVersionId: deployment.activeVersionId,
+    publishMode: deployment.versioned ? 'versioned' : 'legacy',
+    publishedBeforeDeploy: deployment.wasPublished,
+    verifiedQueries: true,
     updatedAt: after.updatedAt || null,
   }, null, 2));
 }
 
-main().catch(error => {
-  console.error(error.message || String(error));
-  process.exitCode = 1;
-});
+const isDirectRun = process.argv[1]
+  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+
+if (isDirectRun) {
+  main().catch(error => {
+    console.error(error.message || String(error));
+    process.exitCode = 1;
+  });
+}

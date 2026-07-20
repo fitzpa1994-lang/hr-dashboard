@@ -241,3 +241,53 @@ python scripts\validate_dashboard_api.py
   - send them through the same Workflow3 onboarding intent path
 - Live workflow redeployed after the trigger update.
 - This removes the previous known gap where HR-originated update threads could be missed if they only existed in Sent Backup.
+
+## 2026-07-20 104 Job Requisition Integration
+
+- Unified Job Management into two subviews:
+  - internal requisition overview and reconciliation
+  - 104 search strategy
+- Kept the existing business logic intact:
+  - internal `department + position_title` remains the onboarding decrement key
+  - `status='open' && headcount>0` remains the effective open-vacancy rule
+  - 104 titles and publication state never overwrite internal keys or vacancy counts
+- Added persistent external posting model:
+  - `database/job_requisition_sources_pg.sql`
+  - stable `(source='104', external_id)` identity
+  - optional FK to `job_requisitions.id`
+  - `open` / `pending_confirmation` publication state
+- Added authenticated dashboard APIs:
+  - `POST /api/job-requisitions/sync-104`
+  - `PATCH /api/job-requisition-sources/104/:externalId`
+- Added complete-snapshot safety:
+  - contract v2 validates request size, job count, IDs, titles, timestamps, 104 URLs, explicit open status, and exact source/published counts
+  - direct n8n requests reject missing arrays/timestamps, more than 500 jobs, malformed field types, mismatched 104 URLs, and client clocks over five minutes ahead before any source-row mutation
+  - provider ordering uses PostgreSQL receipt time; browser clock differences cannot make a new sync appear stale
+  - provider-level `job_requisition_source_syncs` persists successful snapshots even when the result contains zero published jobs
+  - an atomic database-timed provider claim serializes concurrent snapshots before any source rows change
+  - incomplete or inconsistent direct webhook requests perform zero source-row mutations
+  - missing postings become `pending_confirmation`
+  - no automatic delete or internal cancellation
+- Added dashboard reconciliation UI:
+  - internal and 104 status shown on separate axes
+  - exact-title suggestions require manual confirmation
+  - create-from-104, link, unlink, and search-strategy navigation
+  - multiple 104 postings may map to one internal requisition
+- Added pure reconciliation logic and tests for all state combinations, duplicate titles, title changes, local-storage fallback, and non-mutation.
+- Local verification:
+  - dashboard static verification passed
+  - dashboard Jest: 9 suites / 86 tests passed
+  - runtime HTTP verification passed
+  - 104 sync v2 schema/workflow verifier passed
+  - n8n deployment helper mock tests: 7 passed without network access
+  - Job Requisition Write contract tests: 3 passed
+  - job requisition asset validation passed (28 rows / 6 departments)
+  - both updated n8n exports parse as JSON; their root and embedded active-version SQL copies are exact and contain the required integration markers
+  - the full `npm test` wrapper still reports the existing validator findings for Dashboard runtime `DROP CONSTRAINT` and the unchanged Workflow3 resignation `pending` value; the same two Dashboard SQL copies already contained runtime `DROP CONSTRAINT` in `HEAD`
+- Updated the 104 extension to v1.3.0 / contract v2; it accepts a verified authoritative zero-job page and rejects ambiguous filters, table layouts, unknown statuses, duplicate IDs, incomplete pagination, and inconsistent counts without changing the saved snapshot.
+- Sync, link/unlink, and requisition saves now require explicit successful response bodies with matching IDs/counts instead of trusting HTTP 2xx alone.
+- Remaining rollout work:
+  - apply the PostgreSQL migration first
+  - deploy and publish the Write workflow, then the Dashboard API workflow, then the dashboard app
+  - reload Chrome extension `chrome-extension/104-job-sync` v1.3.0
+  - perform one authenticated live sync/link smoke test

@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { POSTGRES_INTEGER_MAX, validateComplete104SyncPayload } from './js/sync104Contract.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -17,6 +18,9 @@ const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 8 * 60 * 60 * 1000);
 const IS_PROD = process.env.NODE_ENV === 'production';
 const DEFAULT_N8N_PROXY_TIMEOUT_MS = 10_000;
 const DEFAULT_OUTLOOK_OPEN_TIMEOUT_MS = 20_000;
+const DEFAULT_REQUEST_BODY_MAX_BYTES = 10_000;
+const SYNC_104_REQUEST_BODY_MAX_BYTES = 512 * 1024;
+const SYNC_104_MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 
 const sessions = new Map();
 const mimeTypes = new Map([
@@ -133,11 +137,40 @@ function clearSessionCookie(res) {
   res.setHeader('Set-Cookie', 'hr_sid=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0');
 }
 
-async function readBody(req) {
-  let raw = '';
-  for await (const chunk of req) raw += chunk;
-  if (raw.length > 10_000) throw new Error('Request body too large');
-  return raw ? JSON.parse(raw) : {};
+class RequestBodyError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.name = 'RequestBodyError';
+    this.statusCode = statusCode;
+  }
+}
+
+async function readBody(req, { maxBytes = DEFAULT_REQUEST_BODY_MAX_BYTES } = {}) {
+  const chunks = [];
+  let totalBytes = 0;
+  let exceededLimit = false;
+
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.byteLength;
+    if (totalBytes > maxBytes) {
+      exceededLimit = true;
+      continue;
+    }
+    chunks.push(buffer);
+  }
+
+  if (exceededLimit) {
+    throw new RequestBodyError(`Request body exceeds ${maxBytes} bytes`, 413);
+  }
+
+  const raw = Buffer.concat(chunks, totalBytes).toString('utf8');
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new RequestBodyError('Request body must be valid JSON', 400);
+  }
 }
 
 function buildWebhookUrl(baseUrl) {
@@ -195,6 +228,90 @@ function normalizeJobRequisitionPayload(body, { requireId = false } = {}) {
       targetDate
     }
   };
+}
+
+function normalize104SyncPayload(body) {
+  const envelope = validateComplete104SyncPayload(body);
+  if (!envelope.ok) return { error: envelope.error };
+  if (Date.parse(envelope.value.syncedAt) > Date.now() + SYNC_104_MAX_FUTURE_SKEW_MS) {
+    return { error: 'syncedAt cannot be more than 5 minutes in the future' };
+  }
+
+  const normalizedJobs = [];
+  for (let index = 0; index < envelope.value.jobs.length; index += 1) {
+    const job = envelope.value.jobs[index];
+
+    const externalId = job.externalId.trim();
+
+    const title = typeof job.title === 'string' ? job.title.trim() : '';
+    if (!title || title.length > 200) {
+      return { error: `jobs[${index}].title must be between 1 and 200 characters` };
+    }
+
+    if (typeof job.url !== 'string' || !job.url.trim() || job.url.trim().length > 2048) {
+      return { error: `jobs[${index}].url must be a valid 104 URL` };
+    }
+
+    let jobUrl;
+    try {
+      jobUrl = new URL(job.url.trim());
+    } catch {
+      return { error: `jobs[${index}].url must be a valid 104 URL` };
+    }
+    if (
+      jobUrl.origin !== 'https://vip.104.com.tw'
+      || jobUrl.username
+      || jobUrl.password
+      || jobUrl.pathname !== '/job/jobmaster'
+      || jobUrl.searchParams.get('jobno') !== externalId
+    ) {
+      return { error: `jobs[${index}].url must match its https://vip.104.com.tw job number` };
+    }
+
+    if (typeof job.updatedDate !== 'string' || job.updatedDate.trim().length > 64) {
+      return { error: `jobs[${index}].updatedDate must be a string of at most 64 characters` };
+    }
+
+    normalizedJobs.push({
+      externalId,
+      title,
+      url: jobUrl.href,
+      updatedDate: job.updatedDate.trim(),
+      status: 'open'
+    });
+  }
+
+  return {
+    value: {
+      contractVersion: envelope.value.contractVersion,
+      syncedAt: envelope.value.syncedAt,
+      complete: true,
+      sourceTotalCount: envelope.value.sourceTotalCount,
+      publishedCount: envelope.value.publishedCount,
+      scannedCount: envelope.value.scannedCount,
+      jobs: normalizedJobs
+    }
+  };
+}
+
+function normalize104JobLinkPayload(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { error: 'Request body must be an object' };
+  }
+  if (!Object.prototype.hasOwnProperty.call(body, 'jobRequisitionId')) {
+    return { error: 'jobRequisitionId is required' };
+  }
+  if (
+    body.jobRequisitionId !== null
+    && (
+      !Number.isInteger(body.jobRequisitionId)
+      || body.jobRequisitionId <= 0
+      || body.jobRequisitionId > POSTGRES_INTEGER_MAX
+    )
+  ) {
+    return { error: 'jobRequisitionId must be a PostgreSQL positive integer or null' };
+  }
+  return { value: body.jobRequisitionId };
 }
 
 function getProxyTimeoutMs() {
@@ -561,6 +678,73 @@ async function proxyJobRequisitionWrite(req, res, action, id = null) {
   }
 }
 
+async function forward104JobWrite(res, payload) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), getProxyTimeoutMs());
+  try {
+    const upstream = await fetch(buildWebhookUrl(N8N_WRITE_WEBHOOK_URL), {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${N8N_TOKEN}`
+      },
+      body: JSON.stringify(payload)
+    });
+    const text = await upstream.text();
+    res.writeHead(upstream.status, {
+      'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
+    res.end(text);
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      return sendJson(res, 504, { error: '104 job upstream timed out' });
+    }
+    console.error(error);
+    return sendJson(res, 502, { error: '104 job upstream unavailable' });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function proxy104JobSync(req, res) {
+  if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
+  if (!writeEnvReady()) return sendJson(res, 500, { error: '104 job sync API is not configured' });
+
+  const body = await readBody(req, { maxBytes: SYNC_104_REQUEST_BODY_MAX_BYTES });
+  const normalized = normalize104SyncPayload(body);
+  if (normalized.error) return sendJson(res, 400, { error: normalized.error });
+
+  return forward104JobWrite(res, {
+    action: 'sync_104_jobs',
+    jobs: normalized.value.jobs,
+    contractVersion: normalized.value.contractVersion,
+    syncedAt: normalized.value.syncedAt,
+    sourceTotalCount: normalized.value.sourceTotalCount,
+    publishedCount: normalized.value.publishedCount,
+    scannedCount: normalized.value.scannedCount,
+    complete: normalized.value.complete
+  });
+}
+
+async function proxy104JobLink(req, res, externalId) {
+  if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
+  if (!writeEnvReady()) return sendJson(res, 500, { error: '104 job link API is not configured' });
+
+  const body = await readBody(req);
+  const normalized = normalize104JobLinkPayload(body);
+  if (normalized.error) return sendJson(res, 400, { error: normalized.error });
+
+  return forward104JobWrite(res, {
+    action: 'link_external_job',
+    provider: '104',
+    externalId,
+    jobRequisitionId: normalized.value
+  });
+}
+
 async function proxyCandidateUpdate(req, res, id) {
   if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
   if (!writeEnvReady()) return sendJson(res, 500, { error: 'Write API is not configured' });
@@ -635,6 +819,7 @@ export const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const match = url.pathname.match(/^\/api\/job-requisitions(?:\/(\d+))?$/);
+    const jobSourceMatch = url.pathname.match(/^\/api\/job-requisition-sources\/104\/(\d+)$/);
 
     if (req.method === 'GET' && url.pathname === '/api/health') {
       const payload = healthPayload();
@@ -671,6 +856,14 @@ export const server = http.createServer(async (req, res) => {
       return openOutlookMail(req, res, url);
     }
 
+    if (req.method === 'POST' && url.pathname === '/api/job-requisitions/sync-104') {
+      return await proxy104JobSync(req, res);
+    }
+
+    if (req.method === 'PATCH' && jobSourceMatch) {
+      return await proxy104JobLink(req, res, jobSourceMatch[1]);
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/job-requisitions') {
       return proxyJobRequisitionWrite(req, res, 'create');
     }
@@ -692,6 +885,9 @@ export const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
     sendJson(res, 405, { error: 'Method Not Allowed' }, { Allow: 'GET,HEAD,POST,PATCH' });
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return sendJson(res, error.statusCode, { error: error.message });
+    }
     console.error(error);
     sendJson(res, 500, { error: 'Internal Server Error' });
   }

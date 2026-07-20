@@ -29,7 +29,7 @@
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="talent-search-navigator.css?v=3">
+<link rel="stylesheet" href="talent-search-navigator.css?v=4">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
@@ -551,17 +551,16 @@
     </div>
     <div class="p-3 flex-1 overflow-y-auto">
       <div class="sidebar-caption">日常作業</div>
-      <div class="menu-item active" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> 招募總覽</div>
-      <div class="menu-item" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
-      <div class="menu-item" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人資料</div>
-      <div class="menu-item" onclick="showTab('jobs', this)"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
-      <div class="menu-item" onclick="showTab('talent-search', this)"><i data-lucide="scan-search" class="w-4 h-4"></i> 104 搜尋頁面導覽</div>
+      <div class="menu-item active" data-nav-tab="overview" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> 招募總覽</div>
+      <div class="menu-item" data-nav-tab="schedule" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
+      <div class="menu-item" data-nav-tab="candidates" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人資料</div>
+      <div class="menu-item" data-nav-tab="jobs" onclick="showJobWorkspace('jobs')"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
 
       <div class="sidebar-caption mt-5">流程作業</div>
-      <div class="menu-item" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 到職／離職作業</div>
+      <div class="menu-item" data-nav-tab="hr-events" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 到職／離職作業</div>
 
       <div class="sidebar-caption mt-5">分析設定</div>
-      <div class="menu-item" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 分析報表</div>
+      <div class="menu-item" data-nav-tab="analytics" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 分析報表</div>
       <div class="menu-item"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
     </div>
     <div class="px-4 py-3 border-t border-white/10">
@@ -629,7 +628,7 @@
             <div class="surface-panel-strong flex flex-col">
               <div class="section-head">
                 <h2>今日面試</h2>
-                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule', document.querySelectorAll('.menu-item')[1])">查看完整排程</button>
+                <button class="text-xs text-brand font-medium hover:underline" onclick="showTab('schedule')">查看完整排程</button>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full tbl-compact">
@@ -811,11 +810,20 @@
 
       <!-- ===== TAB: 職缺管理 ===== -->
       <div id="tab-jobs" class="page page-shell hidden">
+        <nav class="job-workspace-switch" aria-label="職缺管理檢視">
+          <button type="button" class="is-active" data-job-workspace-target="jobs" onclick="showJobWorkspace('jobs')">
+            <i data-lucide="table-properties" aria-hidden="true"></i><span>職缺總覽</span>
+          </button>
+          <button type="button" data-job-workspace-target="talent-search" onclick="showJobWorkspace('talent-search')">
+            <i data-lucide="route" aria-hidden="true"></i><span>104 搜尋策略</span>
+          </button>
+        </nav>
+        <section id="job-reconciliation-panel" class="job-reconciliation-panel" aria-live="polite"></section>
         <div class="surface-panel-strong flex flex-col">
           <div class="section-head bg-transparent rounded-t-lg">
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setJobF('all', this)">全部</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">開缺中</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">已補滿</button>
+            <button data-job-filter="all" class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setJobF('all', this)">全部</button>
+            <button data-job-filter="open" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">開缺中</button>
+            <button data-job-filter="filled" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">已補滿</button>
           </div>
           <div class="overflow-x-auto">
           <table class="w-full tbl-compact">
@@ -828,6 +836,14 @@
 
       <!-- ===== TAB: 104 搜尋頁面導覽 ===== -->
       <div id="tab-talent-search" class="page page-shell hidden">
+        <nav class="job-workspace-switch" aria-label="職缺管理檢視">
+          <button type="button" data-job-workspace-target="jobs" onclick="showJobWorkspace('jobs')">
+            <i data-lucide="table-properties" aria-hidden="true"></i><span>職缺總覽</span>
+          </button>
+          <button type="button" class="is-active" data-job-workspace-target="talent-search" onclick="showJobWorkspace('talent-search')">
+            <i data-lucide="route" aria-hidden="true"></i><span>104 搜尋策略</span>
+          </button>
+        </nav>
         <section class="talent-nav-intro" aria-labelledby="talent-nav-heading">
           <div>
             <div class="talent-nav-eyebrow">104 TALENT SEARCH</div>
@@ -864,7 +880,7 @@
               <label class="talent-nav-filter-label">
                 <span class="sr-only">職缺狀態</span>
                 <select id="talent-nav-status-filter">
-                  <option value="open">開缺中</option>
+                  <option value="open">104 刊登中</option>
                   <option value="all">全部職缺</option>
                 </select>
               </label>
@@ -1179,11 +1195,15 @@
 // ============================================================
 const API_URL = '/api/hr-dashboard';
 let TODAY = new Date().toISOString().split('T')[0];
-let schedEvents = [], onboardData = [], resignData  = [], candidatesData = [], unmappedCandidates = [], jobsData = [], monthlyTrend = [], departmentStats = [], stats = {};
+let schedEvents = [], onboardData = [], resignData  = [], candidatesData = [], unmappedCandidates = [], jobsData = [], external104Jobs = [], monthlyTrend = [], departmentStats = [], stats = {};
+let external104Sync = { hasSnapshot: false, source: '104', contractVersion: 2, sourceTotalCount: 0, publishedCount: 0, lastSyncAt: '' };
 let todayActivity = {}, deptMonthFilter = null;
 let lastGeneratedAt = null;
 window.hrDashboardBridge = {
   getJobs: () => jobsData,
+  getExternal104Jobs: () => external104Jobs,
+  getExternal104Sync: () => ({ ...external104Sync }),
+  getExternal104LastSyncAt: () => String(external104Sync?.lastSyncAt || ''),
   getJobFilter: () => jobFilter,
   setRenderJobs: fn => { renderJobs = fn; },
   getRenderJobs: () => renderJobs,
@@ -1702,6 +1722,10 @@ async function loadData() {
       .filter(candidate => !isDashboardNoiseCandidate(candidate))
       .map(normalizeDashboardCandidate);
     jobsData = (d.jobsData || []).map(normalizeJobDept);
+    external104Jobs = Array.isArray(d.external104Jobs) ? d.external104Jobs : [];
+    external104Sync = d.external104Sync && typeof d.external104Sync === 'object' && !Array.isArray(d.external104Sync)
+      ? { ...d.external104Sync }
+      : { hasSnapshot: false, source: '104', contractVersion: 2, sourceTotalCount: 0, publishedCount: 0, lastSyncAt: '' };
     monthlyTrend = d.monthlyTrend || [];
     window._monthlyHistory = d.monthlyHistory || [];
     departmentStats = d.departmentStats || [];
@@ -1725,6 +1749,9 @@ async function loadData() {
   }
 
   renderAll();
+  window.dispatchEvent(new CustomEvent('hr-dashboard-data-loaded', {
+    detail: { jobs: jobsData, external104Jobs, external104Sync }
+  }));
 }
 
 function refreshDashboard() {
@@ -1906,7 +1933,7 @@ function setDeptMonth(month) {
 }
 
 function gotoArrangingList() {
-  showTab('candidates', document.querySelectorAll('.menu-item')[2]);
+  showTab('candidates');
   const btn = document.getElementById('cand-filter-arranging');
   if (btn) setCandF('arranging', btn);
 }
@@ -2029,7 +2056,7 @@ function initOverview() {
     `${overviewKpis.todayOnboardCount}<span class="ops-unit">到職</span>　${overviewKpis.todayResignCount}<span class="ops-unit">離職</span>`;
   document.getElementById('ops-onboard-resign-sub').innerHTML =
     (overviewKpis.todayOnboardCount || overviewKpis.todayResignCount)
-      ? `<span class="ops-link" onclick="showTab('hr-events', document.querySelectorAll('.menu-item')[5])">前往到職／離職作業</span>`
+      ? `<span class="ops-link" onclick="showTab('hr-events')">前往到職／離職作業</span>`
       : '今日無到離職異動';
 
   // 今日履歷推薦
@@ -2622,8 +2649,7 @@ function setCandF(f,btn){
   renderCandidates();
 }
 function showUnmappedCandidates(){
-  const menu = document.querySelectorAll('.menu-item')[2];
-  if (menu) showTab('candidates', menu);
+  showTab('candidates');
   const btn = document.getElementById('cand-filter-all');
   if (btn) setCandF('unmapped', btn);
 }
@@ -2654,7 +2680,7 @@ function renderCandidates(){
 let jobFilter='all';
 function setJobF(f,btn){
   jobFilter=f;
-  const btns = btn.parentElement.querySelectorAll('button');
+  const btns = btn.parentElement.querySelectorAll('[data-job-filter]');
   btns.forEach(b => { b.className = 'px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50'; });
   btn.className = 'px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white';
   renderJobs();
@@ -2832,7 +2858,7 @@ function renderGlobalSearch(){
   }
   for (const j of jobsData) {
     const hay = [j.pos,j.dept,j.status,j.urgency].join(' ').toLowerCase();
-    if (hay.includes(q)) rows.push({ type: '職缺', title: j.pos, sub: `${j.dept||'--'} · ${j.status||'--'}`, action: `showTab('jobs', document.querySelectorAll('.menu-item')[3])` });
+    if (hay.includes(q)) rows.push({ type: '職缺', title: j.pos, sub: `${j.dept||'--'} · ${j.status||'--'}`, action: `showJobWorkspace('jobs')` });
   }
 
   box.innerHTML = rows.slice(0, 8).length ? rows.slice(0, 8).map(row => `
@@ -2854,16 +2880,30 @@ function showTab(name, btn){
   
   document.getElementById('tab-'+name).classList.remove('hidden');
   document.getElementById('tab-'+name).classList.add('block');
-  btn.classList.add('active');
+  const navName = name === 'talent-search' ? 'jobs' : name;
+  const activeNav = btn || document.querySelector(`[data-nav-tab="${navName}"]`);
+  if (activeNav) activeNav.classList.add('active');
   
-  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', 'talent-search':'104 搜尋頁面導覽', candidates:'候選人資料', analytics:'分析報表'};
+  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', 'talent-search':'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
   document.getElementById('page-title').textContent = titleMap[name] || '';
+
+  document.querySelectorAll('[data-job-workspace-target]').forEach(button => {
+    const active = button.dataset.jobWorkspaceTarget === name;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-current', active ? 'page' : 'false');
+  });
 
   if(name==='analytics') setTimeout(renderCharts, 50); // slight delay to ensure container is visible
   if(name==='schedule') setTimeout(schedGoToday, 30);
   if(name==='talent-search') setTimeout(() => window.talentSearchNavigator?.render(), 0);
   if (location.hash !== '#'+name) history.replaceState(null,'','#'+name);
 }
+
+function showJobWorkspace(name = 'jobs') {
+  const target = name === 'talent-search' ? 'talent-search' : 'jobs';
+  showTab(target);
+}
+window.showJobWorkspace = showJobWorkspace;
 
 // ============================================================
 // DRAWER
@@ -2937,11 +2977,14 @@ document.getElementById('global-search').addEventListener('input', renderGlobalS
 loadData();
 if (location.hash) {
   const initial = location.hash.replace('#','');
-  const menuIndex = { overview:0, schedule:1, candidates:2, jobs:3, 'talent-search':4, 'hr-events':5, analytics:6 }[initial];
-  if (menuIndex !== undefined) showTab(initial, document.querySelectorAll('.menu-item')[menuIndex]);
+  const knownTabs = new Set(['overview', 'schedule', 'candidates', 'jobs', 'talent-search', 'hr-events', 'analytics']);
+  if (knownTabs.has(initial)) {
+    if (initial === 'jobs' || initial === 'talent-search') showJobWorkspace(initial);
+    else showTab(initial);
+  }
 }
 </script>
-<script type="module" src="js/jobsEditor.js?v=6"></script>
-<script type="module" src="js/talentSearchNavigator.js?v=4"></script>
+<script type="module" src="js/jobsEditor.js?v=8"></script>
+<script type="module" src="js/talentSearchNavigator.js?v=6"></script>
 </body>
 </html>

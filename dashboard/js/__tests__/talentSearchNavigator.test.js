@@ -1,5 +1,77 @@
 import { describe, expect, test } from '@jest/globals';
-import { copyProfileToJobs, merge104JobSnapshot, normalize104SearchConditions, reconcileOrder, reorderVisible } from '../talentSearchNavigator.js';
+import {
+  copyProfileToJobs,
+  merge104JobSnapshot,
+  normalize104SearchConditions,
+  reconcileOrder,
+  reorderVisible,
+  validate104SyncWriteResponse,
+} from '../talentSearchNavigator.js';
+
+describe('validate104SyncWriteResponse', () => {
+  const expectedPayload = {
+    contractVersion: 2,
+    complete: true,
+    sourceTotalCount: 1,
+    publishedCount: 1,
+    scannedCount: 1,
+    jobs: [{ externalId: '123', status: 'open' }],
+  };
+
+  function successResult(overrides = {}) {
+    return {
+      ok: true,
+      data: {
+        ok: true,
+        sync104Jobs: {
+          applied: true,
+          complete: true,
+          contractVersion: 2,
+          sourceTotalCount: 1,
+          publishedCount: 1,
+          scannedCount: 1,
+          received: 1,
+          accepted: 1,
+          upserted: 1,
+          pendingConfirmation: 0,
+          syncedAt: '2026-07-20T08:30:00Z',
+          ...overrides,
+        },
+      },
+    };
+  }
+
+  test('accepts an explicitly applied response with matching counts', () => {
+    expect(validate104SyncWriteResponse(successResult(), expectedPayload)).toMatchObject({
+      ok: true,
+      value: { metadata: { hasSnapshot: true, sourceTotalCount: 1, publishedCount: 1 } },
+    });
+  });
+
+  test('accepts an authoritative zero-published response', () => {
+    const emptyPayload = {
+      ...expectedPayload,
+      sourceTotalCount: 0,
+      publishedCount: 0,
+      scannedCount: 0,
+      jobs: [],
+    };
+    expect(validate104SyncWriteResponse(successResult({
+      sourceTotalCount: 0,
+      publishedCount: 0,
+      scannedCount: 0,
+      received: 0,
+      accepted: 0,
+      upserted: 0,
+    }), emptyPayload)).toMatchObject({ ok: true });
+  });
+
+  test('rejects ambiguous 2xx responses, unapplied snapshots, and count mismatches', () => {
+    expect(validate104SyncWriteResponse({ ok: true, data: {} }, expectedPayload)).toMatchObject({ ok: false });
+    expect(validate104SyncWriteResponse(successResult({ applied: false }), expectedPayload)).toMatchObject({ ok: false });
+    expect(validate104SyncWriteResponse(successResult({ scannedCount: 2 }), expectedPayload)).toMatchObject({ ok: false });
+  });
+});
 
 describe('copyProfileToJobs', () => {
   test('copies one profile and its 104 conditions to multiple jobs without changing the source', () => {

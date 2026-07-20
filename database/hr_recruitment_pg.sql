@@ -102,6 +102,47 @@ CREATE TABLE IF NOT EXISTS job_requisitions (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 104 等外部刊登資料與內部職缺生命週期分離；外部同步不得改寫缺額或標準職稱。
+CREATE TABLE IF NOT EXISTS job_requisition_sources (
+    source                  TEXT        NOT NULL,
+    external_id             TEXT        NOT NULL,
+    job_requisition_id      INTEGER     REFERENCES job_requisitions(id) ON DELETE SET NULL,
+    external_title          TEXT        NOT NULL,
+    url                     TEXT,
+    source_updated_text     TEXT,
+    publication_status      TEXT        NOT NULL DEFAULT 'open'
+                                        CHECK(publication_status IN ('open','pending_confirmation')),
+    first_seen_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_synced_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (source, external_id),
+    CHECK (BTRIM(source) <> ''),
+    CHECK (BTRIM(external_id) <> ''),
+    CHECK (BTRIM(external_title) <> '')
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_requisition_sources_job_requisition
+ON job_requisition_sources(job_requisition_id);
+
+-- Provider-level complete snapshot metadata. Keeping this separate from job
+-- rows means a valid snapshot with zero published jobs is still persisted.
+CREATE TABLE IF NOT EXISTS job_requisition_source_syncs (
+    source                      TEXT        PRIMARY KEY,
+    contract_version            INTEGER     NOT NULL,
+    source_total_count          INTEGER     NOT NULL,
+    published_count             INTEGER     NOT NULL,
+    last_complete_synced_at     TIMESTAMPTZ NOT NULL,
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (BTRIM(source) <> ''),
+    CHECK (contract_version > 0),
+    CHECK (source_total_count >= 0),
+    CHECK (published_count >= 0),
+    CHECK (published_count <= source_total_count)
+);
+
 -- ============================================================
 -- TABLE 6：onboardings（到職記錄）
 -- ============================================================

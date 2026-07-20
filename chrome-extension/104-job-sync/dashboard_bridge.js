@@ -3,11 +3,13 @@ const RESPONSE_TYPE = 'SPORTON_104_SYNC_RESPONSE';
 const READY_TYPE = 'SPORTON_104_EXTENSION_READY';
 const CAPTURE_REQUEST_TYPE = 'SPORTON_104_CAPTURE_REQUEST';
 const CAPTURE_RESPONSE_TYPE = 'SPORTON_104_CAPTURE_RESPONSE';
+const SYNC_CONTRACT_VERSION = 2;
 
 function announceReady() {
   window.postMessage({
     type: READY_TYPE,
-    version: chrome.runtime.getManifest().version
+    version: chrome.runtime.getManifest().version,
+    contractVersion: SYNC_CONTRACT_VERSION
   }, location.origin);
 }
 

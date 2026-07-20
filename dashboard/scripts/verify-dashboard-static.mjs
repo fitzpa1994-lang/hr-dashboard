@@ -8,6 +8,8 @@ const dashboardDir = path.resolve(__dirname, '..');
 const indexHtml = fs.readFileSync(path.join(dashboardDir, 'index.html'), 'utf8');
 const serverJs = fs.readFileSync(path.join(dashboardDir, 'server.js'), 'utf8');
 const jobsEditorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'jobsEditor.js'), 'utf8');
+const jobReconciliationJs = fs.readFileSync(path.join(dashboardDir, 'js', 'jobReconciliation.js'), 'utf8');
+const sync104ContractJs = fs.readFileSync(path.join(dashboardDir, 'js', 'sync104Contract.js'), 'utf8');
 const talentSearchNavigatorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'talentSearchNavigator.js'), 'utf8');
 
 const errors = [];
@@ -48,18 +50,19 @@ for (const script of inlineScripts(indexHtml)) {
   } catch (error) {
     errors.push(`inline script parse failed: ${error.message}`);
   }
-
-try {
-  parse(jobsEditorJs, { sourceType: 'module' });
-} catch (error) {
-  errors.push(`jobs editor module parse failed: ${error.message}`);
 }
 
-try {
-  parse(talentSearchNavigatorJs, { sourceType: 'module' });
-} catch (error) {
-  errors.push(`talent search navigator module parse failed: ${error.message}`);
-}
+for (const [label, source] of [
+  ['jobs editor', jobsEditorJs],
+  ['job reconciliation', jobReconciliationJs],
+  ['104 sync contract', sync104ContractJs],
+  ['talent search navigator', talentSearchNavigatorJs],
+]) {
+  try {
+    parse(source, { sourceType: 'module' });
+  } catch (error) {
+    errors.push(`${label} module parse failed: ${error.message}`);
+  }
 }
 
 expectNotIncludes(indexHtml, '示意版', 'demo label');
@@ -81,8 +84,14 @@ expectIncludes(indexHtml, 'res.status === 401', 'expired session detection');
 expectIncludes(indexHtml, "id=\"job-tbody\"", 'jobs table body');
 expectIncludes(indexHtml, 'window.hrRequestJson = requestJson', 'request bridge');
 expectIncludes(indexHtml, 'window.hrDashboardBridge = {', 'jobs bridge');
+expectIncludes(indexHtml, 'getExternal104Sync: () => ({ ...external104Sync })', 'authoritative 104 sync metadata bridge');
+expectIncludes(indexHtml, 'external104Sync = d.external104Sync', '104 sync metadata load');
 expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
 expectIncludes(indexHtml, 'id="tab-talent-search"', '104 talent search page');
+expectIncludes(indexHtml, 'id="job-reconciliation-panel"', '104 and requisition reconciliation panel');
+expectIncludes(indexHtml, 'data-job-workspace-target="talent-search"', 'unified jobs workspace switch');
+expectIncludes(indexHtml, 'data-nav-tab="hr-events"', 'semantic sidebar tab target');
+expectNotIncludes(indexHtml, "document.querySelectorAll('.menu-item')[", 'numeric sidebar navigation index');
 expectIncludes(indexHtml, 'js/talentSearchNavigator.js', '104 talent search module include');
 expectIncludes(indexHtml, 'id="talent-nav-sync-button"', '104 manual sync button');
 expectIncludes(indexHtml, '急迫度', 'urgency column');
@@ -109,12 +118,33 @@ expectIncludes(serverJs, "url.pathname === '/api/health'", 'health endpoint');
 expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/login'", 'login endpoint');
 expectIncludes(jobsEditorJs, 'bridge.setRenderJobs(renderEditableJobs)', 'jobs editor render override');
 expectIncludes(jobsEditorJs, '/api/job-requisitions', 'jobs editor API usage');
+expectIncludes(jobsEditorJs, '/api/job-requisition-sources/104/', '104 link API usage');
+expectIncludes(jobsEditorJs, 'statusLabels[item.displayStatus] || statusLabels[job.status]', 'derived job status label precedence');
+expectIncludes(jobsEditorJs, 'pendingCreatedJobId', 'created requisition link retry state');
+expectIncludes(jobsEditorJs, '資料不會再次建立，請按「重試配對」', 'partial create success retry guidance');
+expectIncludes(jobsEditorJs, 'metadata.hasSnapshot', 'metadata-gated local 104 fallback');
+expectIncludes(jobsEditorJs, 'result.data?.ok !== true', 'explicit requisition/link write success gate');
+expectIncludes(jobsEditorJs, 'validateExternalLinkWriteResponse', '104 link response shape validation');
+expectIncludes(jobsEditorJs, 'validateJobRequisitionWriteResponse', 'requisition response shape validation');
+expectIncludes(jobReconciliationJs, 'jobRequisitionId', 'persisted 104 mapping usage');
+expectIncludes(talentSearchNavigatorJs, '/api/job-requisitions/sync-104', '104 snapshot persistence API usage');
+expectIncludes(talentSearchNavigatorJs, 'validateComplete104SyncPayload(event.data)', 'strict extension response validation');
+expectIncludes(talentSearchNavigatorJs, 'result.data?.ok !== true', 'explicit 104 sync write success gate');
+expectIncludes(talentSearchNavigatorJs, 'validate104SyncWriteResponse', '104 sync response metadata validation');
+expectIncludes(talentSearchNavigatorJs, 'body: JSON.stringify(payload)', 'complete v2 sync forwarding');
+expectNotIncludes(talentSearchNavigatorJs, 'event.data.scannedCount ?? event.data.jobs.length', 'legacy inferred sync counts');
+expectIncludes(sync104ContractJs, 'raw.contractVersion !== SYNC_104_CONTRACT_VERSION', 'strict 104 v2 contract gate');
+expectIncludes(sync104ContractJs, 'raw.publishedCount !== raw.jobs.length', 'published job count integrity');
 expectIncludes(serverJs, "req.method === 'GET' && url.pathname === '/api/session'", 'session endpoint');
 expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/logout'", 'logout endpoint');
 expectIncludes(serverJs, "req.method === 'GET' && url.pathname === '/api/hr-dashboard'", 'dashboard proxy endpoint');
 expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/job-requisitions'", 'job requisition create endpoint');
 expectIncludes(serverJs, "req.method === 'PATCH' && match?.[1]", 'job requisition update endpoint');
 expectIncludes(serverJs, 'N8N_HR_WRITE_WEBHOOK_URL', 'write webhook env');
+expectIncludes(serverJs, 'contractVersion: normalized.value.contractVersion', '104 contract version forwarding');
+expectIncludes(serverJs, 'sourceTotalCount: normalized.value.sourceTotalCount', '104 source count forwarding');
+expectIncludes(serverJs, 'publishedCount: normalized.value.publishedCount', '104 published count forwarding');
+expectIncludes(serverJs, 'SYNC_104_MAX_FUTURE_SKEW_MS', '104 future timestamp skew guard');
 expectIncludes(serverJs, "'Cache-Control': 'no-store'", 'no-store API responses');
 
 if (errors.length) {

@@ -115,6 +115,7 @@ const mockPayload = {
   ],
   jobsData: [
     {
+      id: 1,
       pos: '資深軟體工程師',
       dept: 'IT',
       open: '2026-05-01',
@@ -126,6 +127,63 @@ const mockPayload = {
       urgency: 5,
       status: 'open',
       note: ''
+    },
+    {
+      id: 2,
+      pos: '行政專員',
+      dept: '行政 / 人資部',
+      open: '2026-05-03',
+      target: '2026-06-20',
+      headcount: 0,
+      filled: 1,
+      cands: 2,
+      hired: 1,
+      urgency: 2,
+      status: 'filled',
+      note: '已補滿，等待 104 下架確認。'
+    }
+  ],
+  external104Sync: {
+    hasSnapshot: true,
+    source: '104',
+    contractVersion: 2,
+    sourceTotalCount: 3,
+    publishedCount: 3,
+    lastSyncAt: '2026-07-20T03:30:00Z'
+  },
+  external104Jobs: [
+    {
+      externalId: '123456',
+      jobRequisitionId: 1,
+      title: '資深軟體工程師（台北）',
+      url: 'https://vip.104.com.tw/job/jobmaster?jobno=123456',
+      updatedDate: '07/20',
+      status: 'open',
+      firstSeenAt: '2026-07-20T02:00:00Z',
+      lastSeenAt: '2026-07-20T03:30:00Z',
+      lastSyncedAt: '2026-07-20T03:30:00Z'
+    },
+    {
+      externalId: '654321',
+      jobRequisitionId: null,
+      title: 'RF 測試工程師',
+      url: 'https://vip.104.com.tw/job/jobmaster?jobno=654321',
+      updatedDate: '07/19',
+      status: 'open',
+      firstSeenAt: '2026-07-20T02:00:00Z',
+      lastSeenAt: '2026-07-20T03:30:00Z',
+      lastSyncedAt: '2026-07-20T03:30:00Z'
+    },
+    {
+      externalId: '777777',
+      jobRequisitionId: 2,
+      title: '行政專員',
+      url: 'https://vip.104.com.tw/job/jobmaster?jobno=777777',
+      updatedDate: '07/18',
+      status: 'open',
+      firstSeenAt: '2026-07-20T02:00:00Z',
+      lastSeenAt: '2026-07-20T03:30:00Z',
+      lastSyncedAt: '2026-07-20T03:30:00Z'
     }
   ],
   monthlyTrend: [

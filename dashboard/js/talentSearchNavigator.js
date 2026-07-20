@@ -1,3 +1,10 @@
+import { normalizeJobRequisition } from './dataUtils.js';
+import {
+  normalizeExternal104SyncMetadata,
+  SYNC_104_CONTRACT_VERSION,
+  validateComplete104SyncPayload,
+} from './sync104Contract.js';
+
 const STORAGE_KEY = 'sporton.talentSearchNavigator.v1';
 const SEARCH_URL = 'https://vip.104.com.tw/search/listSearch';
 const SYNC_REQUEST_TYPE = 'SPORTON_104_SYNC_REQUEST';
@@ -5,6 +12,65 @@ const SYNC_RESPONSE_TYPE = 'SPORTON_104_SYNC_RESPONSE';
 const EXTENSION_READY_TYPE = 'SPORTON_104_EXTENSION_READY';
 const CAPTURE_REQUEST_TYPE = 'SPORTON_104_CAPTURE_REQUEST';
 const CAPTURE_RESPONSE_TYPE = 'SPORTON_104_CAPTURE_RESPONSE';
+
+export function validate104SyncWriteResponse(result, expectedPayload) {
+  const fail = fallback => ({
+    ok: false,
+    error: String(result?.data?.error || fallback),
+  });
+  if (result?.ok !== true) return fail('104 職缺無法寫入招募作業台');
+  if (result.data?.ok !== true) return fail('104 職缺寫入結果未明確成功');
+  if (!expectedPayload || typeof expectedPayload !== 'object' || !Array.isArray(expectedPayload.jobs)) {
+    return fail('104 同步預期資料不完整');
+  }
+
+  const sync = result.data.sync104Jobs;
+  if (!sync || typeof sync !== 'object' || Array.isArray(sync)) {
+    return fail('104 職缺寫入回應缺少同步結果');
+  }
+  if (sync.applied !== true || sync.complete !== true) {
+    return fail('104 完整快照未套用');
+  }
+
+  const expectedCounts = {
+    sourceTotalCount: expectedPayload.sourceTotalCount,
+    publishedCount: expectedPayload.publishedCount,
+    scannedCount: expectedPayload.scannedCount,
+  };
+  if (sync.contractVersion !== expectedPayload.contractVersion) {
+    return fail('104 同步合約版本回應不一致');
+  }
+  for (const [field, expected] of Object.entries(expectedCounts)) {
+    const actual = Number(sync[field]);
+    if (!Number.isInteger(actual) || actual !== expected) {
+      return fail(`104 同步 ${field} 回應不一致`);
+    }
+  }
+
+  const expectedPublishedCount = expectedPayload.jobs.length;
+  for (const field of ['received', 'accepted', 'upserted']) {
+    const actual = Number(sync[field]);
+    if (!Number.isInteger(actual) || actual !== expectedPublishedCount) {
+      return fail(`104 同步 ${field} 回應不一致`);
+    }
+  }
+  const pendingConfirmation = Number(sync.pendingConfirmation);
+  if (!Number.isInteger(pendingConfirmation) || pendingConfirmation < 0) {
+    return fail('104 同步 pendingConfirmation 回應不正確');
+  }
+
+  const metadata = normalizeExternal104SyncMetadata({
+    hasSnapshot: true,
+    source: '104',
+    contractVersion: Number(sync.contractVersion),
+    sourceTotalCount: Number(sync.sourceTotalCount),
+    publishedCount: Number(sync.publishedCount),
+    lastSyncAt: sync.syncedAt,
+  });
+  if (!metadata.hasSnapshot) return fail('104 同步時間回應不正確');
+
+  return { ok: true, value: { sync104Jobs: sync, metadata } };
+}
 
 export function normalize104SearchConditions(rawConditions) {
   if (!rawConditions || typeof rawConditions !== 'object') return null;
@@ -147,6 +213,28 @@ export function merge104JobSnapshot(previousJobs = [], incomingJobs = [], synced
   return merged;
 }
 
+function normalizeServer104Job(rawJob) {
+  const externalId = String(rawJob?.externalId || rawJob?.external_id || '').trim();
+  const title = String(rawJob?.title || rawJob?.externalTitle || rawJob?.external_title || '').trim();
+  if (!/^\d+$/.test(externalId) || !title) return null;
+  const status = String(rawJob?.status || rawJob?.publicationStatus || rawJob?.publication_status || '').toLowerCase();
+  return {
+    id: `104:${externalId}`,
+    externalId,
+    pos: title,
+    title,
+    status: status === 'open' ? 'open' : 'pending_confirmation',
+    source: '104',
+    url: String(rawJob?.url || rawJob?.externalUrl || `https://vip.104.com.tw/job/jobmaster?jobno=${externalId}`),
+    updatedDate: String(rawJob?.updatedDate || rawJob?.sourceUpdatedText || ''),
+    lastSeenAt: String(rawJob?.lastSeenAt || ''),
+    lastSyncedAt: String(rawJob?.lastSyncedAt || ''),
+    jobRequisitionId: rawJob?.jobRequisitionId === null || rawJob?.jobRequisitionId === undefined
+      ? null
+      : Number(rawJob.jobRequisitionId),
+  };
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -175,15 +263,16 @@ function loadStoredState() {
       statusFilter: parsed.statusFilter === 'all' ? 'all' : 'open',
       syncedJobs: Array.isArray(parsed.syncedJobs) ? parsed.syncedJobs : [],
       lastSyncAt: parsed.lastSyncAt ? String(parsed.lastSyncAt) : '',
+      external104Sync: normalizeExternal104SyncMetadata(parsed.external104Sync),
     };
   } catch (error) {
     console.warn('104 搜尋導覽設定讀取失敗，已使用預設值。', error);
-    return { order: [], profilesByJob: {}, selectedJobId: '', statusFilter: 'open', syncedJobs: [], lastSyncAt: '' };
+    return { order: [], profilesByJob: {}, selectedJobId: '', statusFilter: 'open', syncedJobs: [], lastSyncAt: '', external104Sync: normalizeExternal104SyncMetadata(null) };
   }
 }
 
 const stored = typeof localStorage === 'undefined'
-  ? { order: [], profilesByJob: {}, selectedJobId: '', statusFilter: 'open', syncedJobs: [], lastSyncAt: '' }
+  ? { order: [], profilesByJob: {}, selectedJobId: '', statusFilter: 'open', syncedJobs: [], lastSyncAt: '', external104Sync: normalizeExternal104SyncMetadata(null) }
   : loadStoredState();
 
 const state = {
@@ -199,7 +288,10 @@ const state = {
   syncedJobs: stored.syncedJobs,
   lastSyncAt: stored.lastSyncAt,
   extensionReady: false,
+  extensionDetected: false,
   extensionVersion: '',
+  extensionContractVersion: null,
+  external104Sync: stored.external104Sync,
   syncInProgress: false,
   syncError: '',
   pendingSyncRequestId: '',
@@ -225,6 +317,7 @@ function saveState() {
       statusFilter: state.statusFilter,
       syncedJobs: state.syncedJobs,
       lastSyncAt: state.lastSyncAt,
+      external104Sync: state.external104Sync,
     }));
   } catch (error) {
     console.warn('104 搜尋導覽設定儲存失敗。', error);
@@ -237,7 +330,30 @@ function getProfiles(id) {
 }
 
 function syncJobs() {
-  state.jobs = Array.isArray(state.syncedJobs) ? state.syncedJobs : [];
+  const metadata = normalizeExternal104SyncMetadata(window.hrDashboardBridge?.getExternal104Sync?.());
+  const serverJobs = window.hrDashboardBridge?.getExternal104Jobs?.();
+  if (metadata.hasSnapshot) {
+    state.external104Sync = metadata;
+    const previous = new Map(state.syncedJobs.map(job => [String(job?.externalId || ''), job]));
+    state.syncedJobs = (Array.isArray(serverJobs) ? serverJobs : [])
+      .map(normalizeServer104Job)
+      .filter(Boolean)
+      .map(job => ({ ...previous.get(job.externalId), ...job }));
+    state.lastSyncAt = metadata.lastSyncAt;
+  }
+
+  const internalJobs = window.hrDashboardBridge?.getJobs?.() || [];
+  const internalById = new Map(internalJobs.map(job => [Number(job?.id), job]));
+  state.jobs = (Array.isArray(state.syncedJobs) ? state.syncedJobs : []).map(job => {
+    const internalJob = job.jobRequisitionId ? internalById.get(Number(job.jobRequisitionId)) : null;
+    const internal = internalJob ? normalizeJobRequisition(internalJob) : null;
+    return {
+      ...job,
+      dept: internal?.dept || '尚未連結',
+      internalJob: internal,
+      internalState: internal?.displayStatus || 'unlinked',
+    };
+  });
   state.order = reconcileOrder(state.jobs.map(jobId), state.order);
 }
 
@@ -255,7 +371,7 @@ function visibleJobs() {
   return orderedJobs().filter(job => {
     if (state.statusFilter === 'open' && !isOpenJob(job)) return false;
     if (!query) return true;
-    return [job.pos, job.externalId, job.note].some(value => String(value || '').toLowerCase().includes(query));
+    return [job.pos, job.externalId, job.dept, job.note].some(value => String(value || '').toLowerCase().includes(query));
   });
 }
 
@@ -279,6 +395,11 @@ function renderJobList(jobs) {
   list.innerHTML = jobs.map((job, index) => {
     const id = jobId(job);
     const profileCount = getProfiles(id).length;
+    const internal = job.internalJob;
+    const internalMeta = internal
+      ? `${internal.dept || '--'} · 缺額 ${internal.displayOpenSlots} · 候選人 ${internal.candidateCount}`
+      : '尚未連結內部職缺，缺額與候選人數暫無法判斷';
+    const isConflict = isOpenJob(job) && internal && internal.displayStatus !== 'open';
     return `
       <article class="talent-nav-job-row${id === state.selectedJobId ? ' is-selected' : ''}" draggable="true" data-job-id="${escapeHtml(id)}" tabindex="0" aria-label="${escapeHtml(job.pos || '未命名職缺')}，排序第 ${index + 1}">
         <button type="button" class="talent-drag-handle" tabindex="-1" aria-label="拖曳調整職缺順序"><i data-lucide="grip-vertical"></i></button>
@@ -286,6 +407,7 @@ function renderJobList(jobs) {
         <div class="talent-nav-job-copy">
           <div class="talent-nav-job-title">${escapeHtml(job.pos || '未命名職缺')}</div>
           <div class="talent-nav-job-meta">104 #${escapeHtml(job.externalId || '--')}${job.updatedDate ? ` · 更新 ${escapeHtml(job.updatedDate)}` : ''}${isOpenJob(job) ? '' : ' · 待確認是否關閉'}</div>
+          <div class="talent-nav-job-meta${isConflict ? ' is-conflict' : ''}">${escapeHtml(internalMeta)}${isConflict ? ' · 內外狀態不一致' : ''}</div>
         </div>
         <span class="talent-nav-profile-count" title="搜尋方案數">${profileCount}</span>
       </article>`;
@@ -336,14 +458,21 @@ function renderDetail() {
   }
 
   const profiles = getProfiles(state.selectedJobId);
+  const internal = job.internalJob;
+  const internalSummary = internal
+    ? `${internal.dept || '--'} · 內部缺額 ${internal.displayOpenSlots} · 候選人 ${internal.candidateCount}`
+    : '尚未連結職缺管理；請先回職缺總覽完成配對';
   detail.innerHTML = `
     <div class="talent-nav-detail-head">
       <div class="talent-nav-detail-title">
         <div class="talent-nav-eyebrow">SELECTED POSITION</div>
         <h3>${escapeHtml(job.pos || '未命名職缺')}</h3>
-        <p>104 職缺 #${escapeHtml(job.externalId || '--')} · ${profiles.length} 組搜尋方案</p>
+        <p>104 職缺 #${escapeHtml(job.externalId || '--')} · ${profiles.length} 組搜尋方案<br>${escapeHtml(internalSummary)}</p>
       </div>
-      <button type="button" class="talent-primary-button" data-action="add-profile"><i data-lucide="plus"></i>新增搜尋方案</button>
+      <div class="talent-nav-detail-actions">
+        <button type="button" class="talent-secondary-button" data-action="open-job-overview"><i data-lucide="table-properties"></i>職缺總覽</button>
+        <button type="button" class="talent-primary-button" data-action="add-profile"><i data-lucide="plus"></i>新增搜尋方案</button>
+      </div>
     </div>
     <div class="talent-nav-route-label">
       <span>搜尋順序</span>
@@ -390,6 +519,15 @@ function renderSyncStatus() {
 
   button.disabled = state.syncInProgress;
   button.classList.toggle('is-syncing', state.syncInProgress);
+  window.dispatchEvent(new CustomEvent('talent-search-sync-state', {
+    detail: {
+      inProgress: state.syncInProgress,
+      error: state.syncError,
+      lastSyncAt: state.lastSyncAt,
+      extensionReady: state.extensionReady,
+      openCount: state.external104Sync.hasSnapshot ? state.external104Sync.publishedCount : 0,
+    }
+  }));
   if (state.syncInProgress) {
     status.textContent = '正在讀取 104 所有職務並逐頁檢查，請稍候…';
     return;
@@ -398,9 +536,12 @@ function renderSyncStatus() {
     status.textContent = state.syncError;
     return;
   }
+  if (state.external104Sync.hasSnapshot) {
+    status.textContent = `上次更新 ${formatSyncTime(state.external104Sync.lastSyncAt)} · ${state.external104Sync.publishedCount} 筆刊登中職缺（104 共 ${state.external104Sync.sourceTotalCount} 筆）`;
+    return;
+  }
   if (state.lastSyncAt) {
-    const openCount = state.syncedJobs.filter(isOpenJob).length;
-    status.textContent = `上次更新 ${formatSyncTime(state.lastSyncAt)} · ${openCount} 筆刊登中職缺`;
+    status.textContent = `此瀏覽器舊快照 ${formatSyncTime(state.lastSyncAt)} · ${state.syncedJobs.filter(isOpenJob).length} 筆刊登中職缺；請重新同步以保存到系統。`;
     return;
   }
   status.textContent = state.extensionReady
@@ -410,15 +551,25 @@ function renderSyncStatus() {
 
 function startManualSync() {
   if (state.syncInProgress) return;
+  if (state.extensionDetected && !state.extensionReady) {
+    state.syncError = `104 同步掛件不支援契約 v${SYNC_104_CONTRACT_VERSION}，請重新載入目前專案內的掛件。`;
+    renderSyncStatus();
+    return;
+  }
   state.syncError = '';
   state.syncInProgress = true;
   state.pendingSyncRequestId = createId();
   renderSyncStatus();
-  window.postMessage({ type: SYNC_REQUEST_TYPE, requestId: state.pendingSyncRequestId }, location.origin);
+  window.postMessage({
+    type: SYNC_REQUEST_TYPE,
+    requestId: state.pendingSyncRequestId,
+    contractVersion: SYNC_104_CONTRACT_VERSION,
+  }, location.origin);
   clearTimeout(state.syncTimer);
   state.syncTimer = setTimeout(() => {
     if (!state.syncInProgress) return;
     state.syncInProgress = false;
+    state.pendingSyncRequestId = '';
     state.syncError = state.extensionReady
       ? '104 同步逾時，舊職缺清單已保留，請確認 104 登入狀態後重試。'
       : '找不到 104 同步掛件。請先安裝或重新載入掛件，再重新整理本頁。';
@@ -426,12 +577,16 @@ function startManualSync() {
   }, 90_000);
 }
 
-function handleExtensionMessage(event) {
+async function handleExtensionMessage(event) {
   if (event.source !== window || event.origin !== location.origin) return;
   if (event.data?.type === EXTENSION_READY_TYPE) {
-    state.extensionReady = true;
+    state.extensionDetected = true;
     state.extensionVersion = String(event.data.version || '');
-    state.syncError = '';
+    state.extensionContractVersion = event.data.contractVersion;
+    state.extensionReady = event.data.contractVersion === SYNC_104_CONTRACT_VERSION;
+    state.syncError = state.extensionReady
+      ? ''
+      : `104 同步掛件版本過舊，需支援契約 v${SYNC_104_CONTRACT_VERSION}。`;
     renderSyncStatus();
     return;
   }
@@ -461,21 +616,48 @@ function handleExtensionMessage(event) {
   if (event.data?.type !== SYNC_RESPONSE_TYPE || event.data.requestId !== state.pendingSyncRequestId) return;
 
   clearTimeout(state.syncTimer);
-  state.syncInProgress = false;
-  state.pendingSyncRequestId = '';
-  if (!event.data.ok || !Array.isArray(event.data.jobs)) {
+  if (!event.data.ok) {
+    state.syncInProgress = false;
+    state.pendingSyncRequestId = '';
     state.syncError = event.data.error || '104 同步失敗，舊職缺清單已保留。';
     renderSyncStatus();
     return;
   }
 
-  const syncedAt = event.data.syncedAt || new Date().toISOString();
-  state.syncedJobs = merge104JobSnapshot(state.syncedJobs, event.data.jobs, syncedAt);
-  state.lastSyncAt = syncedAt;
-  state.statusFilter = 'open';
-  state.syncError = '';
-  saveState();
-  render();
+  const validated = validateComplete104SyncPayload(event.data);
+  if (!validated.ok) {
+    state.syncInProgress = false;
+    state.pendingSyncRequestId = '';
+    state.syncError = `${validated.error}；已拒絕不完整的掛件回應，原資料保持不變。`;
+    renderSyncStatus();
+    return;
+  }
+
+  const payload = validated.value;
+  try {
+    const result = await window.hrRequestJson('/api/job-requisitions/sync-104', {
+      method: 'POST',
+      timeoutMs: 30000,
+      body: JSON.stringify(payload),
+    });
+    const writeResponse = validate104SyncWriteResponse(result, payload);
+    if (!writeResponse.ok) throw new Error(writeResponse.error);
+
+    const appliedAt = writeResponse.value.metadata.lastSyncAt;
+    state.syncedJobs = merge104JobSnapshot(state.syncedJobs, payload.jobs, appliedAt);
+    state.lastSyncAt = appliedAt;
+    state.external104Sync = writeResponse.value.metadata;
+    state.statusFilter = 'open';
+    state.syncError = '';
+    saveState();
+    await window.hrDashboardBridge?.reloadData?.();
+  } catch (error) {
+    state.syncError = `${error?.message || '104 同步失敗'}，舊職缺清單已保留。`;
+  } finally {
+    state.syncInProgress = false;
+    state.pendingSyncRequestId = '';
+    render();
+  }
 }
 
 function openProfileModal(profileId = '') {
@@ -727,6 +909,7 @@ function bindEvents() {
     if (action.dataset.action === 'open-104') open104(profileId);
     if (action.dataset.action === 'capture-104') capture104Conditions(profileId);
     if (action.dataset.action === 'sync-104-jobs') startManualSync();
+    if (action.dataset.action === 'open-job-overview') window.showJobWorkspace?.('jobs');
   });
 
   document.getElementById('talent-nav-job-list')?.addEventListener('keydown', event => {
@@ -816,10 +999,36 @@ function init() {
   if (!document.getElementById('tab-talent-search')) return;
   bindEvents();
   window.addEventListener('message', handleExtensionMessage);
+  window.addEventListener('hr-dashboard-data-loaded', render);
   render();
 }
 
+function selectJob(externalId) {
+  const raw = String(externalId || '');
+  const id = raw.startsWith('104:') ? raw : `104:${raw}`;
+  syncJobs();
+  if (!state.jobs.some(job => jobId(job) === id)) return false;
+  state.selectedJobId = id;
+  state.statusFilter = 'all';
+  saveState();
+  window.showJobWorkspace?.('talent-search');
+  render();
+  return true;
+}
+
+function getSnapshot() {
+  syncJobs();
+  return {
+    jobs: state.jobs.map(job => ({ ...job, internalJob: job.internalJob ? { ...job.internalJob } : null })),
+    profilesByJob: Object.fromEntries(Object.entries(state.profilesByJob).map(([id, profiles]) => [id, Array.isArray(profiles) ? [...profiles] : []])),
+    lastSyncAt: state.lastSyncAt,
+    external104Sync: { ...state.external104Sync },
+    syncInProgress: state.syncInProgress,
+    extensionReady: state.extensionReady,
+  };
+}
+
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  window.talentSearchNavigator = { render };
+  window.talentSearchNavigator = { render, startManualSync, selectJob, getSnapshot };
   init();
 }

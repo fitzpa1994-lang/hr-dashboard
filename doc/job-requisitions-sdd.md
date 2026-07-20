@@ -193,3 +193,66 @@ Delete can wait until a later slice.
 3. Add a visible mismatch queue for onboarding records that fail exact vacancy matching.
 4. Keep a bounded live verification path for onboarding-driven decrement, because the SQL is live but still depends on a fresh onboarding event to prove the whole chain.
 5. Monitor both `預計報到人員` and `寄件備份` for onboarding delay/update emails so self-sent reply threads are also eligible for `update_date`.
+
+## 104 Posting Reconciliation Slice (2026-07-20)
+
+### Authority boundary
+
+The two sources have different responsibilities and must not overwrite one another:
+
+- `job_requisitions` remains the business source of truth for canonical department/title, vacancy count, urgency, internal status, candidate counts, and onboarding decrement.
+- 104 is the latest source of truth for the external posting number, current display title, URL, source update text, and publication presence.
+- A 104 title change must never rewrite `job_requisitions.position_title`, because onboarding decrement still matches the canonical `(department, position_title)` pair.
+
+### External posting domain
+
+Persist 104 postings in `job_requisition_sources` using the stable key:
+
+- `source = '104'`
+- `external_id = 104 job number`
+
+Each posting may optionally link to one `job_requisitions.id`. Multiple 104 postings may link to the same requisition. An exact normalized title match may be shown as a suggestion only; the user must confirm the relationship because the 104 snapshot does not include a canonical department.
+
+Persist provider-level complete-snapshot state in `job_requisition_source_syncs`.
+This row is the authority for whether a successful snapshot exists, including a
+valid snapshot with zero published jobs; UI code must not infer that state from
+`external104Jobs.length`.
+
+### Synchronization behavior
+
+1. Only an authenticated, validated contract-v2 complete snapshot can update source rows.
+2. Contract v2 requires `contractVersion=2`, `complete=true`, no more than 500 published jobs, `scannedCount=sourceTotalCount`, `publishedCount=jobs.length`, `publishedCount <= sourceTotalCount`, and strict string fields/104 URLs with an explicit `status='open'` on every published job.
+3. `jobs` must be an actual array and `syncedAt` must be an explicit valid ISO timestamp no more than five minutes ahead of the database clock. Browser time is validation metadata only and never determines snapshot ordering.
+4. The provider metadata row is claimed atomically using PostgreSQL `clock_timestamp()` before any source row changes. Database receipt order serializes concurrent snapshots, so changing computers or using a slower client clock cannot block later synchronization.
+5. Incoming 104 rows are upserted by `(source, external_id)` and marked `open` only after the provider claim succeeds.
+6. Previously seen rows missing from the claimed complete snapshot become `pending_confirmation` in the same PostgreSQL statement.
+7. Invalid, incomplete, or failed provider claims perform zero source-row mutations.
+8. A verified unfiltered “所有職務，共 0 筆” page is a valid complete snapshot even when 104 omits the table and pagination controls; contradictory or ambiguous empty pages remain invalid.
+9. A complete zero-job snapshot still updates `job_requisition_source_syncs`, so it remains distinguishable from "never synced".
+10. Missing rows are never deleted, and their internal requisition is never cancelled automatically.
+11. Search profiles remain keyed by stable `104:<external_id>` in browser storage, so linking and unlinking do not discard saved search conditions.
+
+### Reconciliation states
+
+- internal open + linked 104 open -> `in_sync`
+- internal closed/filled/on-hold + linked 104 open -> `external_open_internal_closed`
+- internal open + all linked postings pending -> `external_missing_internal_open`
+- internal inactive + all linked postings pending -> `external_missing_internal_closed`
+- internal row without a confirmed link -> `internal_unlinked`
+- 104 row without a confirmed link -> `external_unlinked`
+- no successful snapshot -> `not_synced` (no missing-publication conclusion is allowed)
+
+### Interface
+
+- `POST /api/job-requisitions/sync-104`
+  - authenticated complete batch sync
+  - maximum 500 published jobs and 512 KiB request body
+  - body contract: `{ contractVersion: 2, complete: true, syncedAt, sourceTotalCount, publishedCount, scannedCount, jobs }`
+- `PATCH /api/job-requisition-sources/104/:externalId`
+  - `{ jobRequisitionId: positiveInteger }` links a posting
+  - `{ jobRequisitionId: null }` unlinks it
+- `/api/hr-dashboard` returns `external104Jobs` and provider metadata
+  `external104Sync = { hasSnapshot, source, contractVersion, sourceTotalCount, publishedCount, lastSyncAt }`
+  alongside `jobsData`.
+
+The dashboard exposes one Job Management workspace with two subviews: requisition overview/reconciliation and 104 search strategy.

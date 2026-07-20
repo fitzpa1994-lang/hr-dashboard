@@ -39,7 +39,14 @@ const payload = {
     { name: '林美芳', pos: 'HR Specialist', dept: 'HR', date: '2026-05-18', latestDate: '2026-05-18', status: 'onboarded', hr: 'Yen', note: '已完成報到通知。', source: 'LinkedIn', emailLink: '', resumeLink: '', history: [] }
   ],
   jobsData: [
-    { pos: '資深軟體工程師', dept: 'IT', open: '2026-05-01', target: '2026-06-15', headcount: 2, filled: 0, cands: 4, hired: 0, urgency: 5, status: 'open', note: '' }
+    { id: 1, pos: '資深軟體工程師', dept: 'IT', open: '2026-05-01', target: '2026-06-15', headcount: 2, filled: 0, cands: 4, hired: 0, urgency: 5, status: 'open', note: '' },
+    { id: 2, pos: '行政專員', dept: '行政 / 人資部', open: '2026-05-03', target: '2026-06-20', headcount: 0, filled: 1, cands: 2, hired: 1, urgency: 2, status: 'filled', note: '已補滿，等待 104 下架確認。' }
+  ],
+  external104Sync: { hasSnapshot: true, source: '104', contractVersion: 2, sourceTotalCount: 3, publishedCount: 3, lastSyncAt: '2026-07-20T03:30:00Z' },
+  external104Jobs: [
+    { externalId: '123456', jobRequisitionId: 1, title: '資深軟體工程師（台北）', url: 'https://vip.104.com.tw/job/jobmaster?jobno=123456', updatedDate: '07/20', status: 'open', firstSeenAt: '2026-07-20T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' },
+    { externalId: '654321', jobRequisitionId: null, title: 'RF 測試工程師', url: 'https://vip.104.com.tw/job/jobmaster?jobno=654321', updatedDate: '07/19', status: 'open', firstSeenAt: '2026-07-20T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' },
+    { externalId: '777777', jobRequisitionId: 2, title: '行政專員', url: 'https://vip.104.com.tw/job/jobmaster?jobno=777777', updatedDate: '07/18', status: 'open', firstSeenAt: '2026-07-20T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' }
   ],
   monthlyTrend: [
     { month: '2026-03', interviews: 8, offers: 2, onboarded: 1 },

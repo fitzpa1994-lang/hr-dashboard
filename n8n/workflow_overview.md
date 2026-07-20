@@ -1,6 +1,6 @@
 # n8n Workflow Overview
 
-Updated: 2026-05-28
+Updated: 2026-07-20
 
 ## Production Architecture
 
@@ -35,8 +35,8 @@ Do not deploy `live_HR_Portal.json` as the production dashboard. It is a legacy 
 | --- | --- | --- |
 | `live_Workflow1_面試解析.json` | HR Workflow 1：面試信件解析 | Parses Outlook interview/recommendation email and writes candidates/interviews/email logs. |
 | `live_Workflow3_到職離職.json` | HR Workflow：到職離職信件自動匯入 | Parses onboarding and resignation email and writes onboardings/resignations/email logs. |
-| `live_Dashboard_API.json` | HR Dashboard API | Returns dashboard JSON for the Node.js proxy. |
-| `live_Job_Requisition_Write.json` | HR Job Requisition Write | Receives authenticated create/update requests for `job_requisitions` from the Node dashboard service. |
+| `live_Dashboard_API.json` | HR Dashboard API | Returns dashboard JSON, including internal requisitions and persisted 104 posting links, for the Node.js proxy. |
+| `live_Job_Requisition_Write.json` | HR Job Requisition Write | Receives authenticated requisition create/update, complete 104 snapshot sync, and 104 posting link/unlink requests. |
 
 ## Inactive / Utility Exports
 
@@ -61,8 +61,29 @@ PostgreSQL constrained values must be respected by every workflow:
 | `offers.status` | `pending`, `accepted`, `rejected`, `withdrawn`, `onboarded` |
 | `email_logs.action` | `inserted`, `updated`, `skipped`, `error` |
 | `job_requisitions.status` | `open`, `filled`, `on_hold`, `cancelled` |
+| `job_requisition_sources.publication_status` | `open`, `pending_confirmation` |
 | `onboardings.status` | `pending`, `onboarded`, `cancelled` |
 | `resignations.status` | `active`, `done`, `cancelled` |
+
+104 complete snapshots use contract version `2`. The write workflow accepts a
+snapshot only when `jobs` is an explicit array of at most 500 strict records,
+`complete=true`, count fields are internally consistent, every URL identifies
+the matching `vip.104.com.tw/job/jobmaster` job number, all published rows carry
+`status='open'`, and `syncedAt` is valid and no more than five minutes ahead of
+the database clock. Browser time is validation metadata only; the atomic
+provider claim uses PostgreSQL `clock_timestamp()` for ordering. The claim,
+posting upserts, and missing-posting transitions are one PostgreSQL statement,
+so an invalid or failed claim performs zero source-row mutations. The Dashboard
+API returns this provider row as `external104Sync`, including successful
+zero-job snapshots.
+
+Production rollout order is mandatory:
+
+1. Apply `database/job_requisition_sources_pg.sql`.
+2. Deploy and publish `live_Job_Requisition_Write.json`.
+3. Deploy and publish `live_Dashboard_API.json`.
+4. Deploy the Node/dashboard app.
+5. Run authenticated zero/non-zero sync, malformed-request, link, and unlink smoke tests.
 
 ## Validation
 
