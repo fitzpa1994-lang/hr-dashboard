@@ -41,9 +41,30 @@ export function classify104PublicationStatus(value) {
 export function parse104JobTablePage(raw = {}) {
   const pathname = String(raw.pathname || '');
   const search = String(raw.search || '');
-  const scopeKey = `${pathname}${search}`;
-  if (pathname !== '/job/allJobList' || search) {
-    return invalidPage('104 職缺頁不是未帶篩選條件的「所有職務」網址。', { scopeKey });
+  const rawScopeKey = `${pathname}${search}`;
+  const scopeKey = pathname;
+  if (pathname !== '/job/allJobList') {
+    return invalidPage('104 職缺頁不是「所有職務」網址。', { scopeKey: rawScopeKey });
+  }
+
+  let requestedPage = 1;
+  if (search) {
+    const params = new URLSearchParams(search);
+    const keys = [...params.keys()];
+    const pageValues = params.getAll('page');
+    const keywordValues = params.getAll('kws');
+    const departmentValues = params.getAll('department');
+    const exactKeys = keys.length === 3
+      && new Set(keys).size === 3
+      && ['page', 'kws', 'department'].every(key => params.getAll(key).length === 1);
+    const pageNumber = Number(pageValues[0]);
+    const hasInvalidPage = !/^[1-9]\d*$/.test(pageValues[0] || '')
+      || !Number.isSafeInteger(pageNumber);
+    const hasNonEmptyFilter = keywordValues[0] !== '' || departmentValues[0] !== '';
+    if (!exactKeys || hasNonEmptyFilter || hasInvalidPage) {
+      return invalidPage('104 職缺頁網址包含非分頁的篩選條件。', { scopeKey: rawScopeKey });
+    }
+    requestedPage = pageNumber;
   }
   const activeScopeLabels = [...new Set(
     (Array.isArray(raw.activeScopeLabels) ? raw.activeScopeLabels : []).map(normalizeText).filter(Boolean)
@@ -70,6 +91,9 @@ export function parse104JobTablePage(raw = {}) {
     if (rows.length) {
       return invalidPage('104 職缺總筆數為 0，但頁面仍有資料列。', { scopeKey, totalCount });
     }
+    if (requestedPage !== 1) {
+      return invalidPage('104 網址頁碼與目前頁面不一致。', { scopeKey, totalCount });
+    }
     return {
       ok: true,
       jobs: [],
@@ -85,6 +109,14 @@ export function parse104JobTablePage(raw = {}) {
   const currentPage = Number(currentPageMatch?.[1] || 0);
   if (!Number.isSafeInteger(currentPage) || currentPage < 1) {
     return invalidPage('104 目前頁碼無法確認。', { scopeKey, totalCount });
+  }
+  if (requestedPage !== currentPage) {
+    return invalidPage('104 網址頁碼與目前頁面不一致。', {
+      scopeKey,
+      totalCount,
+      currentPage,
+      requestedPage,
+    });
   }
 
   if (!rows.length) {

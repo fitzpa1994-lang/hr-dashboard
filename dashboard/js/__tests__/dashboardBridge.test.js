@@ -19,7 +19,7 @@ function loadBridge() {
   const document = { addEventListener: jest.fn() };
   const chrome = {
     runtime: {
-      getManifest: jest.fn(() => ({ version: '1.3.1' })),
+      getManifest: jest.fn(() => ({ version: '1.3.2' })),
       sendMessage: jest.fn(),
       lastError: null,
     },
@@ -50,7 +50,7 @@ describe('104 dashboard content-script bridge', () => {
     expect(context.postedMessages).toEqual([{
       message: {
         type: 'SPORTON_104_EXTENSION_READY',
-        version: '1.3.1',
+        version: '1.3.2',
         contractVersion: 2,
       },
       origin: context.location.origin,

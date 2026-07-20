@@ -87,15 +87,63 @@ describe('104 extension page parser', () => {
     });
   });
 
-  test('fails closed without explicit all-jobs filter evidence or on a filtered URL', () => {
+  test('accepts 104 pagination parameters only when filters stay empty and page state agrees', () => {
+    expect(parse104JobTablePage(rawPage({
+      search: '?page=2&kws=&department=',
+      pageButtonText: '第 2 頁',
+    }))).toMatchObject({
+      ok: true,
+      currentPage: 2,
+      scopeKey: '/job/allJobList',
+    });
+
+    expect(parse104JobTablePage(rawPage({
+      search: '?page=2&kws=&department=',
+      pageButtonText: '第 1 頁',
+    }))).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('頁碼與目前頁面不一致'),
+    });
+    expect(parse104JobTablePage(rawPage({
+      search: '',
+      pageButtonText: '第 2 頁',
+    }))).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('頁碼與目前頁面不一致'),
+    });
+  });
+
+  test('fails closed without explicit all-jobs evidence or with non-pagination filters', () => {
     expect(parse104JobTablePage(rawPage({ activeScopeLabels: [] }))).toMatchObject({
       ok: false,
       error: expect.stringContaining('所有職務'),
     });
     expect(parse104JobTablePage(rawPage({ search: '?status=closed' }))).toMatchObject({
       ok: false,
-      error: expect.stringContaining('未帶篩選條件'),
+      error: expect.stringContaining('篩選條件'),
     });
+    expect(parse104JobTablePage(rawPage({ search: '?page=2&kws=engineer&department=' }))).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('篩選條件'),
+    });
+    expect(parse104JobTablePage(rawPage({ search: '?page=2&page=3&kws=&department=' }))).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('篩選條件'),
+    });
+    for (const search of [
+      '?page=2&kws=',
+      '?page=2&department=',
+      '?page=2&kws=&department=&status=open',
+      '?page=0&kws=&department=',
+      '?page=01&kws=&department=',
+      '?page=1.5&kws=&department=',
+      '?page=99999999999999999999&kws=&department=',
+    ]) {
+      expect(parse104JobTablePage(rawPage({ search }))).toMatchObject({
+        ok: false,
+        error: expect.stringContaining('篩選條件'),
+      });
+    }
   });
 
   test('fails closed when all jobs and a publication-status scope are both active', () => {
@@ -135,6 +183,36 @@ describe('104 extension page parser', () => {
 });
 
 describe('104 extension complete snapshot contract', () => {
+  test('builds one complete snapshot from canonical base and live paginated URLs', () => {
+    const makeRow = index => ({
+      externalId: String(200000 + index),
+      title: `Job ${index}`,
+      href: `/job/jobmaster?jobno=${200000 + index}`,
+      cells: [`Job ${index}`, '2026/07/20', '刊登中'],
+    });
+    const firstPage = parse104JobTablePage(rawPage({
+      pageText: '共 31 筆',
+      pageButtonText: '第 1 頁',
+      rows: Array.from({ length: 30 }, (_, index) => makeRow(index)),
+    }));
+    const secondPage = parse104JobTablePage(rawPage({
+      search: '?department=&page=2&kws=',
+      pageText: '共 31 筆',
+      pageButtonText: '第 2 頁',
+      rows: [makeRow(30)],
+    }));
+
+    expect(firstPage).toMatchObject({ ok: true, scopeKey: '/job/allJobList' });
+    expect(secondPage).toMatchObject({ ok: true, scopeKey: '/job/allJobList', currentPage: 2 });
+    expect(buildComplete104Snapshot([firstPage, secondPage], '2026-07-20T08:30:00.000Z')).toMatchObject({
+      ok: true,
+      complete: true,
+      sourceTotalCount: 31,
+      publishedCount: 31,
+      scannedCount: 31,
+    });
+  });
+
   test('only emits v2 complete metadata after every expected row is present', () => {
     const firstJobs = Array.from({ length: 30 }, (_, index) => ({
       externalId: String(100000 + index),
