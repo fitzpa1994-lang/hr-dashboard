@@ -10,6 +10,7 @@ const SEARCH_URL = 'https://vip.104.com.tw/search/listSearch';
 const SYNC_REQUEST_TYPE = 'SPORTON_104_SYNC_REQUEST';
 const SYNC_RESPONSE_TYPE = 'SPORTON_104_SYNC_RESPONSE';
 const EXTENSION_READY_TYPE = 'SPORTON_104_EXTENSION_READY';
+const EXTENSION_READY_REQUEST_TYPE = 'SPORTON_104_EXTENSION_READY_REQUEST';
 const CAPTURE_REQUEST_TYPE = 'SPORTON_104_CAPTURE_REQUEST';
 const CAPTURE_RESPONSE_TYPE = 'SPORTON_104_CAPTURE_RESPONSE';
 
@@ -92,6 +93,10 @@ export function normalize104SearchConditions(rawConditions) {
   } catch (_) {
     return null;
   }
+}
+
+export function request104ExtensionReady(targetWindow = window, targetOrigin = location.origin) {
+  targetWindow.postMessage({ type: EXTENSION_READY_REQUEST_TYPE }, targetOrigin);
 }
 
 function nextCopiedProfileName(sourceName, targetProfiles) {
@@ -999,6 +1004,7 @@ function init() {
   if (!document.getElementById('tab-talent-search')) return;
   bindEvents();
   window.addEventListener('message', handleExtensionMessage);
+  request104ExtensionReady();
   window.addEventListener('hr-dashboard-data-loaded', render);
   render();
 }

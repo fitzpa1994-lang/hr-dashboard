@@ -230,7 +230,7 @@ The 104 integration adds tables that both dashboard workflows query. Keep this o
 6. Publish `n8n/live_Dashboard_API.json`, then verify its active version returns `external104Jobs` and `external104Sync`.
 7. Publish `n8n/live_Workflow3_到職離職.json` only when that workflow also has changes in the release.
 8. Deploy the Node dashboard service with matching environment values.
-9. Reload Chrome extension `chrome-extension/104-job-sync` v1.3.0.
+9. Reload Chrome extension `chrome-extension/104-job-sync` v1.3.1.
 10. Verify live behavior:
     - dashboard login and normal dashboard data load
     - one authenticated complete 104 sync

@@ -276,7 +276,7 @@ python scripts\validate_dashboard_api.py
 - Added pure reconciliation logic and tests for all state combinations, duplicate titles, title changes, local-storage fallback, and non-mutation.
 - Local verification:
   - dashboard static verification passed
-  - dashboard Jest: 9 suites / 86 tests passed
+  - dashboard Jest: 11 suites / 92 tests passed
   - runtime HTTP verification passed
   - 104 sync v2 schema/workflow verifier passed
   - n8n deployment helper mock tests: 7 passed without network access
@@ -284,10 +284,9 @@ python scripts\validate_dashboard_api.py
   - job requisition asset validation passed (28 rows / 6 departments)
   - both updated n8n exports parse as JSON; their root and embedded active-version SQL copies are exact and contain the required integration markers
   - the full `npm test` wrapper still reports the existing validator findings for Dashboard runtime `DROP CONSTRAINT` and the unchanged Workflow3 resignation `pending` value; the same two Dashboard SQL copies already contained runtime `DROP CONSTRAINT` in `HEAD`
-- Updated the 104 extension to v1.3.0 / contract v2; it accepts a verified authoritative zero-job page and rejects ambiguous filters, table layouts, unknown statuses, duplicate IDs, incomplete pagination, and inconsistent counts without changing the saved snapshot.
+- Updated the 104 extension to v1.3.1 / contract v2; it accepts the live 104 direct-`TH` header layout and a verified authoritative zero-job page, while rejecting ambiguous filters, table layouts, unknown statuses, duplicate IDs, incomplete pagination, and inconsistent counts without changing the saved snapshot.
 - Sync, link/unlink, and requisition saves now require explicit successful response bodies with matching IDs/counts instead of trusting HTTP 2xx alone.
-- Remaining rollout work:
-  - apply the PostgreSQL migration first
-  - deploy and publish the Write workflow, then the Dashboard API workflow, then the dashboard app
-  - reload Chrome extension `chrome-extension/104-job-sync` v1.3.0
-  - perform one authenticated live sync/link smoke test
+- Rollout status:
+  - PostgreSQL source/sync tables and requisition unique index applied; existing 34 requisitions preserved
+  - Write workflow, Dashboard API workflow, and dashboard app deployed and verified
+  - remaining: reload Chrome extension `chrome-extension/104-job-sync` v1.3.1 and perform one authenticated live sync/link smoke test

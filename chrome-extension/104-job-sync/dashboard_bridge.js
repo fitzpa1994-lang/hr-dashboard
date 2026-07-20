@@ -1,6 +1,7 @@
 const REQUEST_TYPE = 'SPORTON_104_SYNC_REQUEST';
 const RESPONSE_TYPE = 'SPORTON_104_SYNC_RESPONSE';
 const READY_TYPE = 'SPORTON_104_EXTENSION_READY';
+const READY_REQUEST_TYPE = 'SPORTON_104_EXTENSION_READY_REQUEST';
 const CAPTURE_REQUEST_TYPE = 'SPORTON_104_CAPTURE_REQUEST';
 const CAPTURE_RESPONSE_TYPE = 'SPORTON_104_CAPTURE_RESPONSE';
 const SYNC_CONTRACT_VERSION = 2;
@@ -18,6 +19,10 @@ document.addEventListener('DOMContentLoaded', announceReady, { once: true });
 
 window.addEventListener('message', event => {
   if (event.source !== window || event.origin !== location.origin) return;
+  if (event.data?.type === READY_REQUEST_TYPE) {
+    announceReady();
+    return;
+  }
   if (![REQUEST_TYPE, CAPTURE_REQUEST_TYPE].includes(event.data?.type)) return;
 
   const requestId = String(event.data.requestId || '');

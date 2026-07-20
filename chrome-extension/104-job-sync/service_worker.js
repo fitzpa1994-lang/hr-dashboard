@@ -192,14 +192,22 @@ async function readPage(tabId) {
   return parse104JobTablePage(result?.result || {});
 }
 
-function extractRawJobTablePage() {
+export function extractRawJobTablePage() {
   const rows = Array.from(document.querySelectorAll("tr[data-qa-id^='listJobno']"));
   const pageText = document.querySelector('.pagination-container .page')?.textContent || '';
   const pageButtonText = document.querySelector('.pagination-container .dropdown-toggle')?.textContent || '';
   const table = rows[0]?.closest('table');
-  const headerRows = Array.from(table?.querySelectorAll('thead tr') || []).map(row => (
+  const standardHeaderRows = Array.from(table?.querySelectorAll('thead tr') || []);
+  const headerRows = standardHeaderRows.map(row => (
     Array.from(row.querySelectorAll('th')).map(cell => cell.innerText || cell.textContent || '')
   ));
+  if (!standardHeaderRows.length) {
+    const directHeaderCells = Array.from(table?.querySelector('thead')?.children || [])
+      .filter(cell => cell.tagName === 'TH');
+    if (directHeaderCells.length) {
+      headerRows.push(directHeaderCells.map(cell => cell.innerText || cell.textContent || ''));
+    }
+  }
   const activeFilterCandidates = Array.from(document.querySelectorAll(
     'button, a, [role="tab"], [aria-current], [aria-selected], [aria-pressed], option'
   ));

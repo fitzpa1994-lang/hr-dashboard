@@ -1,12 +1,26 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, jest, test } from '@jest/globals';
 import {
   copyProfileToJobs,
   merge104JobSnapshot,
   normalize104SearchConditions,
   reconcileOrder,
   reorderVisible,
+  request104ExtensionReady,
   validate104SyncWriteResponse,
 } from '../talentSearchNavigator.js';
+
+describe('104 extension ready handshake', () => {
+  test('actively requests readiness after the dashboard listener is available', () => {
+    const targetWindow = { postMessage: jest.fn() };
+
+    request104ExtensionReady(targetWindow, 'https://sp-hr.zeabur.app');
+
+    expect(targetWindow.postMessage).toHaveBeenCalledWith(
+      { type: 'SPORTON_104_EXTENSION_READY_REQUEST' },
+      'https://sp-hr.zeabur.app'
+    );
+  });
+});
 
 describe('validate104SyncWriteResponse', () => {
   const expectedPayload = {
