@@ -1,5 +1,48 @@
 import { describe, expect, test } from '@jest/globals';
-import { merge104JobSnapshot, normalize104SearchConditions, reconcileOrder, reorderVisible } from '../talentSearchNavigator.js';
+import { copyProfileToJobs, merge104JobSnapshot, normalize104SearchConditions, reconcileOrder, reorderVisible } from '../talentSearchNavigator.js';
+
+describe('copyProfileToJobs', () => {
+  test('copies one profile and its 104 conditions to multiple jobs without changing the source', () => {
+    const profiles = {
+      source: [{ id: 'profile-a', name: '精準搜尋', note: 'MIS 經驗', conditions: { url: 'https://vip.104.com.tw/search/searchResult?kws=MIS' } }],
+      targetA: [],
+      targetB: [{ id: 'existing', name: '其他方案' }]
+    };
+    let id = 0;
+    const result = copyProfileToJobs(profiles, 'source', 'profile-a', ['targetA', 'targetB'], {
+      idFactory: () => `copy-${++id}`,
+      copiedAt: '2026-07-20T08:00:00.000Z'
+    });
+
+    expect(result.copiedJobIds).toEqual(['targetA', 'targetB']);
+    expect(result.profilesByJob.source).toBe(profiles.source);
+    expect(result.profilesByJob.targetA[0]).toMatchObject({
+      id: 'copy-1', name: '精準搜尋', note: 'MIS 經驗',
+      copiedFrom: { jobId: 'source', profileId: 'profile-a' },
+      createdAt: '2026-07-20T08:00:00.000Z'
+    });
+    expect(result.profilesByJob.targetB[1].id).toBe('copy-2');
+    expect(result.profilesByJob.targetA[0].conditions).toEqual(profiles.source[0].conditions);
+    expect(result.profilesByJob.targetA[0].conditions).not.toBe(profiles.source[0].conditions);
+  });
+
+  test('creates a distinct name when the destination already has the same scheme', () => {
+    const profiles = {
+      source: [{ id: 'profile-a', name: '精準搜尋' }],
+      target: [{ id: 'one', name: '精準搜尋' }, { id: 'two', name: '精準搜尋（複製）' }]
+    };
+    const result = copyProfileToJobs(profiles, 'source', 'profile-a', ['target'], { idFactory: () => 'copy' });
+    expect(result.profilesByJob.target[2].name).toBe('精準搜尋（複製 2）');
+  });
+
+  test('ignores duplicate targets, the source job, and missing profiles', () => {
+    const profiles = { source: [{ id: 'profile-a', name: '精準搜尋' }] };
+    const result = copyProfileToJobs(profiles, 'source', 'profile-a', ['source', 'target', 'target'], { idFactory: () => 'copy' });
+    expect(result.copiedJobIds).toEqual(['target']);
+    expect(result.profilesByJob.target).toHaveLength(1);
+    expect(copyProfileToJobs(profiles, 'source', 'missing', ['target']).copiedJobIds).toEqual([]);
+  });
+});
 
 describe('normalize104SearchConditions', () => {
   test('accepts a 104 search result URL and removes the temporary load time', () => {

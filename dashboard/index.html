@@ -29,7 +29,7 @@
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="talent-search-navigator.css?v=2">
+<link rel="stylesheet" href="talent-search-navigator.css?v=3">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
@@ -910,6 +910,38 @@
             </div>
           </form>
         </div>
+
+        <div id="talent-profile-copy-modal" class="talent-profile-modal hidden" role="dialog" aria-modal="true" aria-labelledby="talent-copy-modal-title">
+          <button type="button" class="talent-profile-modal-backdrop" data-action="close-copy-modal" aria-label="關閉複製方案視窗"></button>
+          <form id="talent-profile-copy-form" class="talent-profile-dialog talent-copy-dialog">
+            <div class="talent-profile-dialog-head">
+              <div>
+                <div class="talent-nav-eyebrow">COPY SEARCH ROUTE</div>
+                <h3 id="talent-copy-modal-title">複製方案到其他職缺</h3>
+              </div>
+              <button type="button" class="talent-icon-button" data-action="close-copy-modal" aria-label="關閉"><i data-lucide="x"></i></button>
+            </div>
+            <div id="talent-copy-source" class="talent-copy-source" aria-label="來源搜尋方案"></div>
+            <label class="talent-copy-search">
+              <i data-lucide="search" aria-hidden="true"></i>
+              <input id="talent-copy-search" type="search" autocomplete="off" placeholder="搜尋職缺名稱或 104 編號">
+            </label>
+            <div class="talent-copy-toolbar">
+              <span id="talent-copy-result-count">0 個職缺</span>
+              <button type="button" data-action="toggle-visible-copy-targets">選取目前顯示</button>
+            </div>
+            <div id="talent-copy-target-list" class="talent-copy-target-list"></div>
+            <div class="talent-copy-footer">
+              <span id="talent-copy-selected-count" aria-live="polite">0 個已選取</span>
+              <div class="talent-profile-dialog-actions">
+                <button type="button" class="talent-secondary-button" data-action="close-copy-modal">取消</button>
+                <button type="submit" id="talent-copy-submit" class="talent-primary-button" disabled>選擇目的職缺</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div id="talent-copy-toast" class="talent-copy-toast" role="status" aria-live="polite"></div>
       </div>
 
       <!-- ===== TAB: 候選人資料 ===== -->
@@ -2910,6 +2942,6 @@ if (location.hash) {
 }
 </script>
 <script type="module" src="js/jobsEditor.js?v=6"></script>
-<script type="module" src="js/talentSearchNavigator.js?v=3"></script>
+<script type="module" src="js/talentSearchNavigator.js?v=4"></script>
 </body>
 </html>

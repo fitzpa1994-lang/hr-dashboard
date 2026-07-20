@@ -28,6 +28,55 @@ export function normalize104SearchConditions(rawConditions) {
   }
 }
 
+function nextCopiedProfileName(sourceName, targetProfiles) {
+  const baseName = String(sourceName || '未命名方案');
+  const existingNames = new Set(targetProfiles.map(profile => String(profile?.name || '')));
+  if (!existingNames.has(baseName)) return baseName;
+  if (!existingNames.has(`${baseName}（複製）`)) return `${baseName}（複製）`;
+  let copyNumber = 2;
+  while (existingNames.has(`${baseName}（複製 ${copyNumber}）`)) copyNumber += 1;
+  return `${baseName}（複製 ${copyNumber}）`;
+}
+
+export function copyProfileToJobs(
+  profilesByJob,
+  sourceJobId,
+  profileId,
+  targetJobIds,
+  { idFactory = createId, copiedAt = new Date().toISOString() } = {}
+) {
+  const sourceProfiles = Array.isArray(profilesByJob?.[String(sourceJobId)])
+    ? profilesByJob[String(sourceJobId)]
+    : [];
+  const sourceProfile = sourceProfiles.find(profile => String(profile?.id) === String(profileId));
+  const nextProfilesByJob = { ...(profilesByJob || {}) };
+  if (!sourceProfile) return { profilesByJob: nextProfilesByJob, copiedJobIds: [] };
+
+  const copiedJobIds = [];
+  const uniqueTargets = [...new Set((targetJobIds || []).map(String))]
+    .filter(targetJobId => targetJobId && targetJobId !== String(sourceJobId));
+
+  for (const targetJobId of uniqueTargets) {
+    const targetProfiles = Array.isArray(nextProfilesByJob[targetJobId])
+      ? [...nextProfilesByJob[targetJobId]]
+      : [];
+    targetProfiles.push({
+      ...sourceProfile,
+      id: idFactory(),
+      name: nextCopiedProfileName(sourceProfile.name, targetProfiles),
+      conditions: sourceProfile.conditions && typeof sourceProfile.conditions === 'object'
+        ? { ...sourceProfile.conditions }
+        : sourceProfile.conditions ?? null,
+      copiedFrom: { jobId: String(sourceJobId), profileId: String(profileId) },
+      createdAt: copiedAt,
+      updatedAt: copiedAt,
+    });
+    nextProfilesByJob[targetJobId] = targetProfiles;
+    copiedJobIds.push(targetJobId);
+  }
+  return { profilesByJob: nextProfilesByJob, copiedJobIds };
+}
+
 export function reconcileOrder(currentIds, savedOrder = []) {
   const current = currentIds.map(String);
   const seen = new Set();
@@ -160,6 +209,11 @@ const state = {
   pendingCaptureRequestId: '',
   captureTimer: null,
   captureErrors: {},
+  copyingProfileId: '',
+  copySourceJobId: '',
+  copyQuery: '',
+  copyTargetIds: new Set(),
+  copyToastTimer: null,
 };
 
 function saveState() {
@@ -260,6 +314,7 @@ function profileCard(profile, index) {
       <div class="talent-profile-actions">
         <button type="button" class="talent-profile-action is-open" data-action="open-104" data-profile-id="${escapeHtml(profile.id)}"><i data-lucide="external-link"></i>${conditions ? '開啟 104' : '設定條件'}</button>
         <button type="button" class="talent-profile-action is-capture" data-action="capture-104" data-profile-id="${escapeHtml(profile.id)}"${isCapturing ? ' disabled' : ''}><i data-lucide="${isCapturing ? 'loader-circle' : 'scan-search'}"></i>${isCapturing ? '擷取中' : conditions ? '重新擷取' : '擷取條件'}</button>
+        <button type="button" class="talent-profile-action" data-action="copy-profile" data-profile-id="${escapeHtml(profile.id)}"><i data-lucide="copy-plus"></i>複製</button>
         <button type="button" class="talent-profile-action" data-action="edit-profile" data-profile-id="${escapeHtml(profile.id)}"><i data-lucide="pencil"></i>編輯</button>
         <button type="button" class="talent-profile-action" data-action="delete-profile" data-profile-id="${escapeHtml(profile.id)}" aria-label="刪除 ${escapeHtml(profile.name)}"><i data-lucide="trash-2"></i></button>
       </div>
@@ -447,6 +502,127 @@ function closeProfileModal() {
   state.editingProfileId = '';
 }
 
+function copyTargetJobs() {
+  const query = state.copyQuery.trim().toLowerCase();
+  return orderedJobs().filter(job => {
+    if (!isOpenJob(job) || jobId(job) === state.copySourceJobId) return false;
+    if (!query) return true;
+    return [job.pos, job.externalId].some(value => String(value || '').toLowerCase().includes(query));
+  });
+}
+
+function renderCopyModal() {
+  const modal = document.getElementById('talent-profile-copy-modal');
+  if (!modal || modal.classList.contains('hidden')) return;
+  const sourceJob = state.jobs.find(job => jobId(job) === state.copySourceJobId);
+  const sourceProfile = getProfiles(state.copySourceJobId).find(profile => profile.id === state.copyingProfileId);
+  const source = document.getElementById('talent-copy-source');
+  const list = document.getElementById('talent-copy-target-list');
+  const count = document.getElementById('talent-copy-selected-count');
+  const resultCount = document.getElementById('talent-copy-result-count');
+  const submit = document.getElementById('talent-copy-submit');
+  const selectVisible = document.querySelector('[data-action="toggle-visible-copy-targets"]');
+  if (!source || !list || !count || !resultCount || !submit || !selectVisible || !sourceJob || !sourceProfile) return;
+
+  const conditions = normalize104SearchConditions(sourceProfile.conditions);
+  source.innerHTML = `
+    <span class="talent-copy-source-route">${escapeHtml(sourceJob.pos || '未命名職缺')}</span>
+    <i data-lucide="arrow-right"></i>
+    <strong>${escapeHtml(sourceProfile.name || '未命名方案')}</strong>
+    <span class="talent-copy-source-state">${conditions ? '含已儲存的 104 條件' : '尚未儲存 104 條件'}</span>`;
+
+  const jobs = copyTargetJobs();
+  const positions = new Map(orderedJobs().map((job, index) => [jobId(job), index + 1]));
+  list.innerHTML = jobs.length ? jobs.map(job => {
+    const id = jobId(job);
+    const selected = state.copyTargetIds.has(id);
+    return `
+      <label class="talent-copy-target${selected ? ' is-selected' : ''}">
+        <input type="checkbox" data-copy-target-id="${escapeHtml(id)}"${selected ? ' checked' : ''}>
+        <span class="talent-copy-target-order">${String(positions.get(id) || 0).padStart(2, '0')}</span>
+        <span class="talent-copy-target-copy">
+          <strong>${escapeHtml(job.pos || '未命名職缺')}</strong>
+          <small>104 #${escapeHtml(job.externalId || '--')} · 目前 ${getProfiles(id).length} 組方案</small>
+        </span>
+        <i data-lucide="check"></i>
+      </label>`;
+  }).join('') : `
+    <div class="talent-copy-target-empty">
+      <i data-lucide="search-x"></i>
+      <span>${state.copyQuery ? '沒有符合搜尋的刊登中職缺' : '目前沒有其他刊登中職缺'}</span>
+    </div>`;
+
+  const visibleIds = jobs.map(jobId);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => state.copyTargetIds.has(id));
+  selectVisible.textContent = allVisibleSelected ? '取消目前顯示' : '選取目前顯示';
+  count.textContent = `${state.copyTargetIds.size} 個已選取`;
+  resultCount.textContent = `${jobs.length} 個職缺`;
+  submit.disabled = state.copyTargetIds.size === 0;
+  submit.textContent = state.copyTargetIds.size ? `複製到 ${state.copyTargetIds.size} 個職缺` : '選擇目的職缺';
+  window.lucide?.createIcons?.();
+}
+
+function openCopyModal(profileId) {
+  const modal = document.getElementById('talent-profile-copy-modal');
+  const search = document.getElementById('talent-copy-search');
+  const profile = getProfiles(state.selectedJobId).find(item => item.id === profileId);
+  if (!modal || !search || !profile) return;
+  state.copyingProfileId = profileId;
+  state.copySourceJobId = state.selectedJobId;
+  state.copyQuery = '';
+  state.copyTargetIds = new Set();
+  search.value = '';
+  modal.classList.remove('hidden');
+  renderCopyModal();
+  requestAnimationFrame(() => search.focus());
+}
+
+function closeCopyModal() {
+  document.getElementById('talent-profile-copy-modal')?.classList.add('hidden');
+  state.copyingProfileId = '';
+  state.copySourceJobId = '';
+  state.copyQuery = '';
+  state.copyTargetIds = new Set();
+}
+
+function toggleVisibleCopyTargets() {
+  const visibleIds = copyTargetJobs().map(jobId);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => state.copyTargetIds.has(id));
+  for (const id of visibleIds) {
+    if (allVisibleSelected) state.copyTargetIds.delete(id);
+    else state.copyTargetIds.add(id);
+  }
+  renderCopyModal();
+}
+
+function showCopyToast(message) {
+  const toast = document.getElementById('talent-copy-toast');
+  if (!toast) return;
+  clearTimeout(state.copyToastTimer);
+  toast.textContent = message;
+  toast.classList.add('is-visible');
+  state.copyToastTimer = setTimeout(() => toast.classList.remove('is-visible'), 4200);
+}
+
+function copyProfileFromForm(event) {
+  event.preventDefault();
+  if (!state.copyingProfileId || !state.copySourceJobId || !state.copyTargetIds.size) return;
+  const result = copyProfileToJobs(
+    state.profilesByJob,
+    state.copySourceJobId,
+    state.copyingProfileId,
+    [...state.copyTargetIds]
+  );
+  const copiedJobs = result.copiedJobIds
+    .map(id => state.jobs.find(job => jobId(job) === id))
+    .filter(Boolean);
+  state.profilesByJob = result.profilesByJob;
+  closeCopyModal();
+  render();
+  if (copiedJobs.length === 1) showCopyToast(`方案已複製到「${copiedJobs[0].pos}」`);
+  else showCopyToast(`方案已複製到 ${copiedJobs.length} 個職缺`);
+}
+
 function saveProfileFromForm(event) {
   event.preventDefault();
   if (!state.selectedJobId) return;
@@ -515,10 +691,24 @@ function bindEvents() {
     render();
   });
   document.getElementById('talent-profile-form')?.addEventListener('submit', saveProfileFromForm);
+  document.getElementById('talent-profile-copy-form')?.addEventListener('submit', copyProfileFromForm);
+  document.getElementById('talent-copy-search')?.addEventListener('input', event => {
+    state.copyQuery = event.target.value || '';
+    renderCopyModal();
+  });
+  document.getElementById('talent-copy-target-list')?.addEventListener('change', event => {
+    const checkbox = event.target.closest('[data-copy-target-id]');
+    if (!checkbox) return;
+    if (checkbox.checked) state.copyTargetIds.add(checkbox.dataset.copyTargetId);
+    else state.copyTargetIds.delete(checkbox.dataset.copyTargetId);
+    renderCopyModal();
+  });
 
   document.getElementById('tab-talent-search')?.addEventListener('click', event => {
     const close = event.target.closest('[data-action="close-profile-modal"]');
     if (close) return closeProfileModal();
+    const closeCopy = event.target.closest('[data-action="close-copy-modal"]');
+    if (closeCopy) return closeCopyModal();
 
     const row = event.target.closest('[data-job-id]');
     if (row && !event.target.closest('button')) {
@@ -531,6 +721,8 @@ function bindEvents() {
     const profileId = action.dataset.profileId || '';
     if (action.dataset.action === 'add-profile') openProfileModal();
     if (action.dataset.action === 'edit-profile') openProfileModal(profileId);
+    if (action.dataset.action === 'copy-profile') openCopyModal(profileId);
+    if (action.dataset.action === 'toggle-visible-copy-targets') toggleVisibleCopyTargets();
     if (action.dataset.action === 'delete-profile') deleteProfile(profileId);
     if (action.dataset.action === 'open-104') open104(profileId);
     if (action.dataset.action === 'capture-104') capture104Conditions(profileId);
@@ -616,6 +808,7 @@ function bindEvents() {
 
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && !document.getElementById('talent-profile-modal')?.classList.contains('hidden')) closeProfileModal();
+    if (event.key === 'Escape' && !document.getElementById('talent-profile-copy-modal')?.classList.contains('hidden')) closeCopyModal();
   });
 }
 
