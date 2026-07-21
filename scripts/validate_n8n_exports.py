@@ -289,7 +289,7 @@ def validate_workflow1_aliases(path_name, workflow, errors):
     queries = [
         text
         for text in sql_strings(workflow)
-        if "WITH candidate_input AS" in text and "job_requisition_id" in text
+        if "candidate_input AS" in text and "job_requisition_id" in text
     ]
     if not queries:
         errors.append(f"{path_name}: workflow1 candidate linking query not found")
