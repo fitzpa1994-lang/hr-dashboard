@@ -88,7 +88,7 @@ expectIncludes(indexHtml, 'getExternal104Sync: () => ({ ...external104Sync })', 
 expectIncludes(indexHtml, 'external104Sync = d.external104Sync', '104 sync metadata load');
 expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
 expectIncludes(indexHtml, 'id="tab-talent-search"', '104 talent search page');
-expectIncludes(indexHtml, 'id="job-reconciliation-panel"', '104 and requisition reconciliation panel');
+expectNotIncludes(indexHtml, 'id="job-reconciliation-panel"', 'manual 104 pairing panel removed');
 expectIncludes(indexHtml, 'data-job-workspace-target="talent-search"', 'unified jobs workspace switch');
 expectIncludes(indexHtml, 'data-nav-tab="hr-events"', 'semantic sidebar tab target');
 expectNotIncludes(indexHtml, "document.querySelectorAll('.menu-item')[", 'numeric sidebar navigation index');
@@ -117,15 +117,9 @@ expectIncludes(serverJs, 'function healthPayload()', 'deployment health payload'
 expectIncludes(serverJs, "url.pathname === '/api/health'", 'health endpoint');
 expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/login'", 'login endpoint');
 expectIncludes(jobsEditorJs, 'bridge.setRenderJobs(renderEditableJobs)', 'jobs editor render override');
-expectIncludes(jobsEditorJs, "panel.querySelectorAll('[data-job-create-from-104]').forEach", 'direct 104 create action binding');
-expectIncludes(jobsEditorJs, "getAttribute('data-job-create-from-104')", '104 create action reads numeric data attribute safely');
-expectIncludes(jobsEditorJs, 'renderReconciliationPanel(reconciliation, snapshot);\n    bindReconciliationEvents(reconciliation);', '104 actions bind to the rendered reconciliation snapshot');
+expectNotIncludes(jobsEditorJs, 'renderReconciliationPanel(reconciliation, snapshot);', 'manual 104 pairing panel is not rendered');
 expectIncludes(jobsEditorJs, '/api/job-requisitions', 'jobs editor API usage');
-expectIncludes(jobsEditorJs, '/api/job-requisition-sources/104/', '104 link API usage');
 expectIncludes(jobsEditorJs, 'statusLabels[item.displayStatus] || statusLabels[job.status]', 'derived job status label precedence');
-expectIncludes(jobsEditorJs, 'pendingCreatedJobId', 'created requisition link retry state');
-expectIncludes(jobsEditorJs, '資料不會再次建立，請按「重試配對」', 'partial create success retry guidance');
-expectIncludes(jobsEditorJs, 'metadata.hasSnapshot', 'metadata-gated local 104 fallback');
 expectIncludes(jobsEditorJs, 'result.data?.ok !== true', 'explicit requisition/link write success gate');
 expectIncludes(jobsEditorJs, 'validateExternalLinkWriteResponse', '104 link response shape validation');
 expectIncludes(jobsEditorJs, 'validateJobRequisitionWriteResponse', 'requisition response shape validation');

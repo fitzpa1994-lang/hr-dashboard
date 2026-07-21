@@ -399,7 +399,7 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
         <div class="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <div class="text-sm font-semibold text-gray-900" id="job-editor-title">新增職缺</div>
-            <div class="text-xs text-gray-500 mt-1">部門＋標準職稱是到職自動扣缺的配對鍵，請勿直接照 104 名稱覆寫。</div>
+            <div class="text-xs text-gray-500 mt-1">部門＋標準職稱是郵件歸類與到職自動扣缺的判斷依據。</div>
           </div>
           <button type="button" id="job-editor-close" class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">關閉</button>
         </div>
@@ -624,10 +624,6 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
   function renderEditableJobs() {
     ensureToolbar();
 
-    const { result: reconciliation, snapshot } = getReconciliation();
-    renderReconciliationPanel(reconciliation, snapshot);
-    bindReconciliationEvents(reconciliation);
-
     const header = document.querySelector('#tab-jobs thead tr');
     if (header) {
       header.innerHTML = [
@@ -636,9 +632,9 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
         '<th class="text-center" style="min-width:70px">缺額</th>',
         '<th class="text-center" style="min-width:90px">急迫度</th>',
         '<th class="text-center" style="min-width:55px">候選人</th>',
-        '<th style="min-width:125px">判斷結果</th>',
-        '<th style="min-width:175px">104 刊登</th>',
-        '<th style="min-width:90px">搜尋策略</th>',
+        '<th style="min-width:105px">開缺日期</th>',
+        '<th style="min-width:105px">目標日期</th>',
+        '<th style="min-width:90px">狀態</th>',
         '<th class="text-right" style="min-width:115px">操作</th>',
       ].join('');
     }
@@ -646,7 +642,7 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     const tbody = document.getElementById('job-tbody');
     if (!tbody) return;
 
-    const normalized = filterJobRequisitions(reconciliation.internalRows, bridge.getJobFilter());
+    const normalized = filterJobRequisitions(bridge.getJobs(), bridge.getJobFilter());
     if (!normalized.length) {
       tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-gray-400">目前沒有符合篩選條件的職缺</td></tr>';
       window.lucide?.createIcons?.();
@@ -669,31 +665,15 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
         const candidateCount = Number(job.candidateCount ?? job.cands ?? 0);
         const displayStatus = item.displayStatus === 'closed' ? 'cancelled' : item.displayStatus;
         const urgencyDots = '●'.repeat(Math.min(urgency,5)) + '○'.repeat(Math.max(0,5-urgency));
-        const reconciliation = reconciliationLabels[item.reconciliationState] || reconciliationLabels.not_synced;
-        const links = Array.isArray(item.links) ? item.links : [];
-        const externalLinks = links.map(link => {
-          const url = safe104Url(link.url);
-          const label = `${link.title || link.pos || '104 職缺'}`;
-          return `<div class="job-publication-link">
-            ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(label)}">${escapeHtml(label)}</a>` : `<span>${escapeHtml(label)}</span>`}
-            <small>#${escapeHtml(link.externalId)}${link.status === 'open' ? '' : ' · 待確認'}</small>
-            <button type="button" class="job-unlink-button" data-job-unlink-external="${escapeHtml(link.externalId)}" aria-label="解除 ${escapeHtml(label)} 的配對"><i data-lucide="unlink"></i></button>
-          </div>`;
-        }).join('');
-        const primaryExternal = links.find(link => link.status === 'open') || links[0] || null;
-        const profileCount = links.reduce((count, link) => count + getProfileCount(link.externalId), 0);
         html += `<tr>
           <td class="text-gray-500 text-[12px]">${escapeHtml(getSubDept(item.dept))}</td>
           <td><div class="job-title-stack"><strong>${escapeHtml(item.pos)}</strong><small title="${escapeHtml(notes)}">${escapeHtml(notes)}</small></div></td>
           <td class="text-center font-semibold text-brand">${escapeHtml(item.displayOpenSlots)}</td>
           <td class="text-center text-[10px] tracking-tighter text-amber-500">${urgencyDots}</td>
           <td class="text-center">${candidateCount}</td>
-          <td><div class="job-status-rail">
-            <span class="job-status-line${displayStatus === 'open' ? ' is-good' : ''}">內部：${escapeHtml(statusLabels[item.displayStatus] || statusLabels[job.status] || job.status)}</span>
-            <span class="job-status-line ${reconciliation.tone}">${escapeHtml(reconciliation.label)}</span>
-          </div></td>
-          <td><div class="job-publication-links">${externalLinks || '<span class="job-publication-empty">尚未連結 104 職缺</span>'}</div></td>
-          <td>${primaryExternal ? `<button type="button" class="job-table-action is-search" data-job-search-external="${escapeHtml(primaryExternal.externalId)}"><i data-lucide="route"></i>${profileCount} 組</button>` : '<span class="job-publication-empty">—</span>'}</td>
+          <td class="text-gray-500 text-[11px]">${escapeHtml(job.open || job.openDate || '—')}</td>
+          <td class="text-gray-500 text-[11px]">${escapeHtml(job.target || job.targetDate || '—')}</td>
+          <td><span class="${escapeHtml(statusBadgeClasses[displayStatus] || 'badge-gray')}">${escapeHtml(statusLabels[item.displayStatus] || statusLabels[job.status] || job.status)}</span></td>
           <td class="text-right">
             <div class="job-row-actions">
               <button type="button" class="job-table-action" data-job-edit="${escapeHtml(job.id ?? '')}"><i data-lucide="pencil"></i>編輯</button>
@@ -709,15 +689,6 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
         const id = Number(button.dataset.jobEdit);
         const job = bridge.getJobs().find(item => Number(item.id) === id) || null;
         openModal(job ? serializeJobRequisitionPayload(job, { includeId: true }) : null);
-      });
-    });
-    tbody.querySelectorAll('[data-job-search-external]').forEach(button => {
-      button.addEventListener('click', () => window.talentSearchNavigator?.selectJob?.(button.dataset.jobSearchExternal));
-    });
-    tbody.querySelectorAll('[data-job-unlink-external]').forEach(button => {
-      button.addEventListener('click', async () => {
-        if (!window.confirm('確定解除這筆 104 刊登與內部職缺的配對？搜尋方案仍會保留。')) return;
-        try { await persistExternalLink(button.dataset.jobUnlinkExternal, null); } catch (_) {}
       });
     });
     window.lucide?.createIcons?.();
