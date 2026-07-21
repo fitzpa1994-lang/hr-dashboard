@@ -351,9 +351,12 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
 
   function bindReconciliationEvents() {
     const panel = document.getElementById('job-reconciliation-panel');
-    if (!panel || panel.dataset.bound === 'true') return;
-    panel.dataset.bound = 'true';
-    panel.addEventListener('click', async event => {
+    if (!panel) return;
+
+    // Always replace the delegated handler. A restored/cached page can retain the
+    // data-bound marker even when its JS listener is gone, leaving every action in
+    // the 104 reconciliation panel visible but inert.
+    panel.onclick = async event => {
       const syncButton = event.target.closest('[data-job-sync-104]');
       if (syncButton) {
         state.actionError = '';
@@ -386,7 +389,8 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
         }
         try { await persistExternalLink(externalId, Number(select.value)); } catch (_) {}
       }
-    });
+    };
+    panel.dataset.bound = 'true';
   }
 
   function ensureModal() {
