@@ -1007,6 +1007,19 @@
             </div>
             <div id="monthly-report-content" class="text-xs text-gray-400">← 選擇月份以查看報表</div>
           </div>
+
+          <!-- 月度招募漏斗：推薦/面試/到職/離職，跟上個月比較 -->
+          <div class="surface-panel-strong p-6 col-span-2">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i>月度招募漏斗（推薦 / 面試 / 到職 / 離職）</h2>
+              <div class="flex items-center gap-1 bg-gray-100 rounded-md p-0.5" id="funnel-granularity-switch">
+                <button type="button" class="text-xs px-3 py-1 rounded font-medium transition bg-white shadow-sm text-brand" data-funnel-granularity="department" onclick="setFunnelGranularity('department')">依部門</button>
+                <button type="button" class="text-xs px-3 py-1 rounded font-medium transition text-gray-500" data-funnel-granularity="job" onclick="setFunnelGranularity('job')">依職缺</button>
+              </div>
+            </div>
+            <div class="text-[11px] text-gray-400 mb-4" id="funnel-granularity-note"></div>
+            <div id="monthly-funnel-content" class="text-xs text-gray-400">載入中…</div>
+          </div>
         </div>
       </div>
 
@@ -1728,6 +1741,8 @@ async function loadData() {
       : { hasSnapshot: false, source: '104', contractVersion: 2, sourceTotalCount: 0, publishedCount: 0, lastSyncAt: '' };
     monthlyTrend = d.monthlyTrend || [];
     window._monthlyHistory = d.monthlyHistory || [];
+    window._monthlyFunnelByDepartment = d.monthlyFunnelByDepartment || [];
+    window._monthlyFunnelByJob = d.monthlyFunnelByJob || [];
     departmentStats = d.departmentStats || [];
     stats = d.stats || {};
     todayActivity = d.todayActivity || {};
@@ -2777,6 +2792,94 @@ function renderMonthlyReport(ym){
 }
 
 // ============================================================
+// MONTHLY FUNNEL (推薦 / 面試 / 到職 / 離職，跟上個月比較)
+// ============================================================
+let funnelGranularity = 'department';
+
+function setFunnelGranularity(granularity) {
+  funnelGranularity = granularity;
+  renderMonthlyFunnel();
+}
+
+function funnelDelta(curr, prev) {
+  if (prev === null || prev === undefined) return { label: '—', cls: 'text-gray-400' };
+  if (prev === 0) {
+    if (curr === 0) return { label: '持平', cls: 'text-gray-400' };
+    return { label: '新增', cls: 'text-emerald-600' };
+  }
+  const pct = Math.round(((curr - prev) / prev) * 100);
+  if (pct === 0) return { label: '持平', cls: 'text-gray-400' };
+  const arrow = pct > 0 ? '▲' : '▼';
+  const cls = pct > 0 ? 'text-emerald-600' : 'text-red-500';
+  return { label: `${arrow} ${Math.abs(pct)}%`, cls };
+}
+
+function renderMonthlyFunnel() {
+  const el = document.getElementById('monthly-funnel-content');
+  const note = document.getElementById('funnel-granularity-note');
+  if (!el) return;
+
+  document.querySelectorAll('#funnel-granularity-switch [data-funnel-granularity]').forEach(btn => {
+    const active = btn.dataset.funnelGranularity === funnelGranularity;
+    btn.classList.toggle('bg-white', active);
+    btn.classList.toggle('shadow-sm', active);
+    btn.classList.toggle('text-brand', active);
+    btn.classList.toggle('text-gray-500', !active);
+  });
+
+  const isJob = funnelGranularity === 'job';
+  if (note) {
+    note.textContent = isJob
+      ? '依職缺顆粒度僅提供推薦／面試（到職、離職沒有職缺層級的可靠對應資料，避免用模糊比對硬湊數字，暫不提供）'
+      : '部門為大分類（ICC / WBU / 新華 / 新竹 / 安規 / 零件 / 行政），跨部門子單位一併統計';
+  }
+
+  const rows = (isJob ? window._monthlyFunnelByJob : window._monthlyFunnelByDepartment) || [];
+  if (!rows.length) {
+    el.innerHTML = '<div class="text-gray-400 py-4 text-center">尚無資料</div>';
+    return;
+  }
+
+  const groupKey = r => isJob ? `${r.department} · ${r.position_title}` : r.department;
+  const groups = new Map();
+  for (const r of rows) {
+    const key = groupKey(r);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  }
+
+  const metrics = isJob
+    ? [['recommend', '推薦'], ['interview', '面試']]
+    : [['recommend', '推薦'], ['interview', '面試'], ['onboard', '到職'], ['resign', '離職']];
+
+  let html = '<div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr class="border-b border-gray-200 text-gray-500">';
+  html += '<th class="text-left py-2 pr-3 font-medium">分類</th><th class="text-left py-2 pr-3 font-medium">月份</th>';
+  for (const [, label] of metrics) html += `<th class="text-right py-2 px-3 font-medium">${label}</th><th class="text-right py-2 pl-1 pr-3 font-medium">較上月</th>`;
+  html += '</tr></thead><tbody>';
+
+  const sortedGroups = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-Hant'));
+  for (const [key, groupRows] of sortedGroups) {
+    const sorted = [...groupRows].sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
+    sorted.forEach((r, i) => {
+      const prev = i > 0 ? sorted[i - 1] : null;
+      html += `<tr class="border-b border-gray-100 hover:bg-gray-50">`;
+      html += `<td class="py-1.5 pr-3 text-gray-700 font-medium">${i === 0 ? escHtml(key) : ''}</td>`;
+      html += `<td class="py-1.5 pr-3 text-gray-500">${escHtml(r.month)}</td>`;
+      for (const [field] of metrics) {
+        const curr = Number(r[field] || 0);
+        const prevVal = prev ? Number(prev[field] || 0) : null;
+        const delta = funnelDelta(curr, prevVal);
+        html += `<td class="py-1.5 px-3 text-right text-gray-800 tabular-nums">${curr}</td>`;
+        html += `<td class="py-1.5 pl-1 pr-3 text-right ${delta.cls} tabular-nums">${delta.label}</td>`;
+      }
+      html += '</tr>';
+    });
+  }
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ============================================================
 // CHARTS
 // ============================================================
 let charts={};
@@ -2894,6 +2997,7 @@ function showTab(name, btn){
   });
 
   if(name==='analytics') setTimeout(renderCharts, 50); // slight delay to ensure container is visible
+  if(name==='analytics') setTimeout(renderMonthlyFunnel, 50);
   if(name==='schedule') setTimeout(schedGoToday, 30);
   if(name==='talent-search') setTimeout(() => window.talentSearchNavigator?.render(), 0);
   if (location.hash !== '#'+name) history.replaceState(null,'','#'+name);
