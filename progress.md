@@ -276,7 +276,7 @@ python scripts\validate_dashboard_api.py
 - Added pure reconciliation logic and tests for all state combinations, duplicate titles, title changes, local-storage fallback, and non-mutation.
 - Local verification:
   - dashboard static verification passed
-  - dashboard Jest: 11 suites / 92 tests passed
+  - dashboard Jest: 11 suites / 94 tests passed
   - runtime HTTP verification passed
   - 104 sync v2 schema/workflow verifier passed
   - n8n deployment helper mock tests: 7 passed without network access
@@ -287,6 +287,9 @@ python scripts\validate_dashboard_api.py
 - Updated the 104 extension to v1.3.2 / contract v2; it accepts the live 104 direct-`TH` header layout, the verified empty-filter pagination query, and an authoritative zero-job page, while rejecting non-empty or ambiguous filters, table layouts, unknown statuses, duplicate IDs, incomplete pagination, and inconsistent counts without changing the saved snapshot.
 - Sync, link/unlink, and requisition saves now require explicit successful response bodies with matching IDs/counts instead of trusting HTTP 2xx alone.
 - Rollout status:
-  - PostgreSQL source/sync tables and requisition unique index applied; existing 34 requisitions preserved
+  - PostgreSQL source/sync tables and requisition unique index applied; live requisitions preserved (37 rows at final verification)
   - Write workflow, Dashboard API workflow, and dashboard app deployed and verified
-  - remaining: reload Chrome extension `chrome-extension/104-job-sync` v1.3.2 and perform one authenticated live sync/link smoke test
+  - Chrome extension `chrome-extension/104-job-sync` v1.3.2 reloaded and verified against the authenticated live 104 account
+  - authenticated complete sync passed on 2026-07-21: contract v2, 103 total 104 jobs, 49 published/stored, 0 duplicate external IDs, 0 broken links
+  - reversible link smoke passed: 104 #4789153 linked to internal requisition #4, then unlinked back to `NULL`; the internal requisition fields remained unchanged
+  - rollout complete
