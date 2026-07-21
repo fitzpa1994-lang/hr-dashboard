@@ -353,12 +353,9 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     const panel = document.getElementById('job-reconciliation-panel');
     if (!panel) return;
 
-    // Always replace the delegated handler. A restored/cached page can retain the
-    // data-bound marker even when its JS listener is gone, leaving every action in
-    // the 104 reconciliation panel visible but inert.
-    panel.onclick = async event => {
-      const syncButton = event.target.closest('[data-job-sync-104]');
-      if (syncButton) {
+    const syncButton = panel.querySelector('[data-job-sync-104]');
+    if (syncButton) {
+      syncButton.onclick = () => {
         state.actionError = '';
         state.actionMessage = '';
         if (window.talentSearchNavigator?.startManualSync) window.talentSearchNavigator.startManualSync();
@@ -366,20 +363,20 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
           state.actionError = '104 同步模組尚未載入，請重新整理頁面後再試。';
           renderEditableJobs();
         }
-        return;
-      }
+      };
+    }
 
-      const createButton = event.target.closest('[data-job-create-from-104]');
-      if (createButton) {
+    panel.querySelectorAll('[data-job-create-from-104]').forEach(createButton => {
+      createButton.onclick = () => {
         const externalId = createButton.dataset.jobCreateFrom104;
         const { result } = getReconciliation();
         const external = result.unmatchedExternal.find(job => String(job.externalId) === String(externalId));
         if (external) openModal(null, external);
-        return;
-      }
+      };
+    });
 
-      const saveButton = event.target.closest('[data-job-save-link]');
-      if (saveButton) {
+    panel.querySelectorAll('[data-job-save-link]').forEach(saveButton => {
+      saveButton.onclick = async () => {
         const externalId = saveButton.dataset.jobSaveLink;
         const select = saveButton.closest('[data-external-row]')?.querySelector('[data-external-link-select]');
         if (!select?.value) {
@@ -388,9 +385,8 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
           return;
         }
         try { await persistExternalLink(externalId, Number(select.value)); } catch (_) {}
-      }
-    };
-    panel.dataset.bound = 'true';
+      };
+    });
   }
 
   function ensureModal() {
@@ -628,10 +624,10 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
 
   function renderEditableJobs() {
     ensureToolbar();
-    bindReconciliationEvents();
 
     const { result: reconciliation, snapshot } = getReconciliation();
     renderReconciliationPanel(reconciliation, snapshot);
+    bindReconciliationEvents();
 
     const header = document.querySelector('#tab-jobs thead tr');
     if (header) {

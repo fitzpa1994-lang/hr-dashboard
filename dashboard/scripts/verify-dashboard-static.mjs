@@ -117,7 +117,8 @@ expectIncludes(serverJs, 'function healthPayload()', 'deployment health payload'
 expectIncludes(serverJs, "url.pathname === '/api/health'", 'health endpoint');
 expectIncludes(serverJs, "req.method === 'POST' && url.pathname === '/api/login'", 'login endpoint');
 expectIncludes(jobsEditorJs, 'bridge.setRenderJobs(renderEditableJobs)', 'jobs editor render override');
-expectIncludes(jobsEditorJs, 'panel.onclick = async event =>', 'resilient 104 reconciliation action binding');
+expectIncludes(jobsEditorJs, "panel.querySelectorAll('[data-job-create-from-104]').forEach", 'direct 104 create action binding');
+expectIncludes(jobsEditorJs, 'renderReconciliationPanel(reconciliation, snapshot);\n    bindReconciliationEvents();', '104 actions bind after panel render');
 expectIncludes(jobsEditorJs, '/api/job-requisitions', 'jobs editor API usage');
 expectIncludes(jobsEditorJs, '/api/job-requisition-sources/104/', '104 link API usage');
 expectIncludes(jobsEditorJs, 'statusLabels[item.displayStatus] || statusLabels[job.status]', 'derived job status label precedence');
