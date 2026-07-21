@@ -349,13 +349,13 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     }
   }
 
-  function bindReconciliationEvents() {
+  function bindReconciliationEvents(reconciliation) {
     const panel = document.getElementById('job-reconciliation-panel');
     if (!panel) return;
 
     const syncButton = panel.querySelector('[data-job-sync-104]');
     if (syncButton) {
-      syncButton.onclick = () => {
+      syncButton.addEventListener('click', () => {
         state.actionError = '';
         state.actionMessage = '';
         if (window.talentSearchNavigator?.startManualSync) window.talentSearchNavigator.startManualSync();
@@ -363,20 +363,19 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
           state.actionError = '104 同步模組尚未載入，請重新整理頁面後再試。';
           renderEditableJobs();
         }
-      };
+      });
     }
 
     panel.querySelectorAll('[data-job-create-from-104]').forEach(createButton => {
-      createButton.onclick = () => {
-        const externalId = createButton.dataset.jobCreateFrom104;
-        const { result } = getReconciliation();
-        const external = result.unmatchedExternal.find(job => String(job.externalId) === String(externalId));
+      createButton.addEventListener('click', () => {
+        const externalId = createButton.getAttribute('data-job-create-from-104');
+        const external = reconciliation.unmatchedExternal.find(job => String(job.externalId) === String(externalId));
         if (external) openModal(null, external);
-      };
+      });
     });
 
     panel.querySelectorAll('[data-job-save-link]').forEach(saveButton => {
-      saveButton.onclick = async () => {
+      saveButton.addEventListener('click', async () => {
         const externalId = saveButton.dataset.jobSaveLink;
         const select = saveButton.closest('[data-external-row]')?.querySelector('[data-external-link-select]');
         if (!select?.value) {
@@ -385,7 +384,7 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
           return;
         }
         try { await persistExternalLink(externalId, Number(select.value)); } catch (_) {}
-      };
+      });
     });
   }
 
@@ -627,7 +626,7 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
 
     const { result: reconciliation, snapshot } = getReconciliation();
     renderReconciliationPanel(reconciliation, snapshot);
-    bindReconciliationEvents();
+    bindReconciliationEvents(reconciliation);
 
     const header = document.querySelector('#tab-jobs thead tr');
     if (header) {
