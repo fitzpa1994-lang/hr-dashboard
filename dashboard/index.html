@@ -1288,12 +1288,12 @@ function getOutlookOpenUrl(record) {
   return isUsableLink(fallback) ? fallback : '';
 }
 
-function setOutlookAnchor(anchor, record) {
+function setOutlookAnchor(anchor, record, openTitle) {
   if (!anchor) return;
   const url = getOutlookOpenUrl(record);
   if (url) {
     anchor.href = url;
-    anchor.title = '開啟履歷推薦第一封 Outlook 郵件';
+    anchor.title = openTitle || '開啟履歷推薦第一封 Outlook 郵件';
     anchor.classList.remove('opacity-50', 'pointer-events-none', 'disabled');
   } else {
     anchor.href = '#';
@@ -2344,7 +2344,7 @@ function renderSchedule(){
 
   empty.classList.add('hidden');
   tbody.innerHTML = dayItems.map(e=>`
-    <tr class="cursor-pointer" onclick="openDrawer('${e.name}')">
+    <tr class="cursor-pointer" onclick="openDrawer('${jsArg(e.name)}','${jsArg(e.type)}')">
       <td><div class="font-medium text-gray-900">${e.time||'--'}</div><div class="text-xs text-gray-500">${fmtDateWeek(e.date)}</div></td>
       <td><span class="badge ${e.type==='interview' || e.type==='interview-changed' ? 'badge-blue' : e.type==='onboard' ? 'badge-green' : 'badge-red'}">${getScheduleTypeLabel(e.type)}</span></td>
       <td>
@@ -3011,13 +3011,14 @@ window.showJobWorkspace = showJobWorkspace;
 // ============================================================
 // DRAWER
 // ============================================================
-function openDrawer(name){
+function openDrawer(name, type){
   // 總覽頁只用右欄候選人焦點，不再疊一層抽屜（其他分頁仍用抽屜看詳情）
   const overviewTab = document.getElementById('tab-overview');
   if (overviewTab && !overviewTab.classList.contains('hidden')) {
     focusCandidate(name);
     return;
   }
+  if (type === 'resign') { openResignDrawer(name); return; }
   const c=candidatesData.find(x=>x.name===name) || schedEvents.find(x=>x.name===name);
   if(!c)return;
 
@@ -3028,6 +3029,7 @@ function openDrawer(name){
   setOutlookAnchor(emailBtn, c);
 
   const resumeBtn=document.getElementById('dr-resume-btn');
+  resumeBtn.classList.remove('hidden');
   if(c.resumeLink){resumeBtn.href=c.resumeLink; resumeBtn.classList.remove('opacity-50','pointer-events-none');}
   else{resumeBtn.href='#'; resumeBtn.classList.add('opacity-50','pointer-events-none');}
 
@@ -3058,7 +3060,48 @@ function openDrawer(name){
   const cleanNote=(c.note||'').replace(/\s*\[SYS_STAGE:[^\]]+\]/g,'').trim();
   document.getElementById('dr-notes').textContent=cleanNote||'尚無備註';
   document.getElementById('dr-notes-section').style.display=cleanNote?'block':'none';
-  
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+  lucide.createIcons();
+}
+function openResignDrawer(name){
+  const r=resignData.find(x=>x.name===name) || schedEvents.find(x=>x.name===name && x.type==='resign');
+  if(!r)return;
+  const status=r.status||'active';
+  const lastDay=r.lastDay||r.date||'';
+
+  document.getElementById('dr-name').textContent=r.name;
+  document.getElementById('dr-pos').innerHTML=`${r.pos||'--'} <span class="mx-2 text-gray-300">|</span> ${r.dept||'--'} <span class="mx-2 text-gray-300">|</span> <span class="badge ${badgeClassMap[status]||'badge-red'}">${stLabelMap[status]||'離職'}</span>`;
+
+  const emailBtn=document.getElementById('dr-email-btn');
+  setOutlookAnchor(emailBtn, {emailLink:r.emailLink}, '開啟離職通知 Outlook 郵件');
+
+  const resumeBtn=document.getElementById('dr-resume-btn');
+  resumeBtn.classList.add('hidden');
+
+  document.getElementById('dr-info').innerHTML=`
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">部門</span><span class="font-medium text-gray-900">${r.dept||'--'}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">職位</span><span class="font-medium text-gray-900">${r.pos||'--'}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">負責 HR</span><span class="font-medium text-gray-900">${r.hr||'--'}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">預計離職日</span><span class="font-medium text-gray-900">${fmtDate(lastDay)}</span></div>
+    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">狀態</span><span class="font-medium text-gray-900">${stLabelMap[status]||status||'--'}</span></div>
+  `;
+
+  const tlDiv=document.getElementById('dr-timeline');
+  tlDiv.innerHTML = lastDay
+    ? `<div class="relative pb-4 last:pb-0">
+        <div class="absolute -left-[17px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white bg-brand shadow-[0_0_0_1px_#E5E7EB]"></div>
+        <div class="text-[10px] text-gray-400 mb-0.5">${fmtDate(lastDay)}</div>
+        <div class="text-[12px] font-semibold text-gray-800">預計離職</div>
+        <div class="text-[11px] text-gray-500 mt-0.5">${escHtml(r.dept||'')}${r.dept&&r.pos?' · ':''}${escHtml(r.pos||'')}</div>
+      </div>`
+    : '<div class="text-xs text-gray-400">尚無歷程記錄</div>';
+
+  const cleanReason=(r.reason||'').replace(/\s*\[SYS_STAGE:[^\]]+\]/g,'').trim();
+  document.getElementById('dr-notes').textContent=cleanReason||'尚無備註';
+  document.getElementById('dr-notes-section').style.display=cleanReason?'block':'none';
+
   document.getElementById('overlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
   lucide.createIcons();
