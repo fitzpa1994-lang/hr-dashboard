@@ -123,6 +123,9 @@ expectIncludes(jobsEditorJs, 'statusLabels[item.displayStatus] || statusLabels[j
 expectIncludes(jobsEditorJs, 'result.data?.ok !== true', 'explicit requisition/link write success gate');
 expectIncludes(jobsEditorJs, 'validateExternalLinkWriteResponse', '104 link response shape validation');
 expectIncludes(jobsEditorJs, 'validateJobRequisitionWriteResponse', 'requisition response shape validation');
+expectIncludes(jobsEditorJs, 'id="job-editor-104-source"', '104 source selector in requisition modal');
+expectIncludes(jobsEditorJs, 'getSelectableOpen104Jobs', 'open unlinked 104 source filtering');
+expectIncludes(jobsEditorJs, 'await persistExternalLink(pendingExternalJob.externalId, createdId)', '104 source link after requisition create');
 expectIncludes(jobReconciliationJs, 'jobRequisitionId', 'persisted 104 mapping usage');
 expectIncludes(talentSearchNavigatorJs, '/api/job-requisitions/sync-104', '104 snapshot persistence API usage');
 expectIncludes(talentSearchNavigatorJs, 'validateComplete104SyncPayload(event.data)', 'strict extension response validation');

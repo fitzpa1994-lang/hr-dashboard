@@ -88,6 +88,31 @@ export function validateJobRequisitionWriteResponse(result, expectedId = null) {
   return { ok: true, value: requisition };
 }
 
+export function getSelectableOpen104Jobs(externalJobs = []) {
+  if (!Array.isArray(externalJobs)) return [];
+
+  return externalJobs
+    .filter(job => {
+      const externalId = String(job?.externalId ?? '').trim();
+      const linkedId = Number(job?.jobRequisitionId);
+      return /^\d{1,32}$/.test(externalId)
+        && typeof job?.title === 'string'
+        && Boolean(job.title.trim())
+        && job.status === 'open'
+        && !(Number.isInteger(linkedId) && linkedId > 0);
+    })
+    .map(job => ({
+      ...job,
+      externalId: String(job.externalId).trim(),
+      title: job.title.trim(),
+      status: 'open',
+    }))
+    .sort((left, right) => (
+      left.title.localeCompare(right.title, 'zh-TW')
+      || left.externalId.localeCompare(right.externalId)
+    ));
+}
+
 const bridge = typeof window !== 'undefined' ? window.hrDashboardBridge : null;
 
 if (!bridge || typeof window.hrRequestJson !== 'function') {
@@ -162,6 +187,24 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
       isPersisted: metadata.hasSnapshot,
       metadata,
     };
+  }
+
+  function refreshExternal104Selector(overlay, selectedExternalId = '') {
+    const select = overlay.querySelector('#job-editor-104-source');
+    if (!select) return [];
+
+    const jobs = getSelectableOpen104Jobs(getExternalSnapshot().jobs);
+    const selectedId = String(selectedExternalId || '').trim();
+    const options = jobs.map(job => (
+      `<option value="${escapeHtml(job.externalId)}">${escapeHtml(job.title)}（104 #${escapeHtml(job.externalId)}）</option>`
+    ));
+
+    select.innerHTML = jobs.length
+      ? `<option value="">不從 104 選取</option>${options.join('')}`
+      : '<option value="">目前沒有可選的 104 開缺，請先同步 104</option>';
+    select.disabled = jobs.length === 0;
+    if (selectedId && jobs.some(job => job.externalId === selectedId)) select.value = selectedId;
+    return jobs;
   }
 
   function getReconciliation() {
@@ -404,6 +447,13 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
           <button type="button" id="job-editor-close" class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">關閉</button>
         </div>
         <form id="job-editor-form" class="grid grid-cols-2 gap-4 px-5 py-5">
+          <label id="job-editor-104-source-field" class="col-span-2 flex flex-col gap-1.5 rounded-md border border-blue-100 bg-blue-50/50 p-3 text-xs text-gray-600">
+            <span class="font-medium text-brand">從 104 開缺中選取（選填）</span>
+            <select name="external104Job" id="job-editor-104-source" class="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900">
+              <option value="">載入 104 開缺中…</option>
+            </select>
+            <span id="job-editor-104-hint" class="text-[11px] leading-5 text-gray-500">選取後會帶入 104 職稱；正式部門與標準職稱仍由內部規則管理。</span>
+          </label>
           <label class="flex flex-col gap-1 text-xs text-gray-600">
             <span>正式部門</span>
             <input name="department" class="rounded border border-gray-300 px-3 py-2 text-sm text-gray-900" required />
@@ -485,6 +535,28 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     overlay.querySelector('#job-editor-cancel').addEventListener('click', close);
     overlay.addEventListener('click', event => {
       if (event.target === overlay) close();
+    });
+
+    overlay.querySelector('#job-editor-104-source').addEventListener('change', event => {
+      const selectedId = String(event.currentTarget.value || '');
+      const selectedJob = getSelectableOpen104Jobs(getExternalSnapshot().jobs)
+        .find(job => job.externalId === selectedId) || null;
+      const form = overlay.querySelector('#job-editor-form');
+      const hint = overlay.querySelector('#job-editor-104-hint');
+      state.pendingExternalJob = selectedJob;
+
+      if (!selectedJob) {
+        hint.textContent = '選取後會帶入 104 職稱；正式部門與標準職稱仍由內部規則管理。';
+        return;
+      }
+
+      form.elements.positionTitle.value = selectedJob.title;
+      form.elements.status.value = 'open';
+      const currentNotes = String(form.elements.notes.value || '').trim();
+      if (!currentNotes || currentNotes.startsWith('來源：104 #')) {
+        form.elements.notes.value = `來源：104 #${selectedJob.externalId}。`;
+      }
+      hint.textContent = `已選取 104 #${selectedJob.externalId}；請確認正式部門、標準職稱與缺額。`;
     });
 
     overlay.querySelector('#job-editor-form').addEventListener('submit', async event => {
@@ -577,13 +649,21 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     const form = overlay.querySelector('#job-editor-form');
     const title = overlay.querySelector('#job-editor-title');
     const errorNode = overlay.querySelector('#job-editor-error');
+    const sourceField = overlay.querySelector('#job-editor-104-source-field');
+    const sourceSelect = overlay.querySelector('#job-editor-104-source');
+    const sourceHint = overlay.querySelector('#job-editor-104-hint');
 
     form.reset();
     form.querySelectorAll('input, select, textarea').forEach(field => { field.disabled = false; });
     errorNode.textContent = '';
     overlay.querySelector('#job-editor-save').textContent = '儲存';
+    sourceHint.textContent = '選取後會帶入 104 職稱；正式部門與標準職稱仍由內部規則管理。';
+    refreshExternal104Selector(overlay, externalJob?.externalId);
 
     if (job) {
+      state.pendingExternalJob = null;
+      sourceField.classList.add('hidden');
+      sourceSelect.disabled = true;
       title.textContent = '編輯職缺';
       form.elements.department.value = job.dept || job.department || '';
       form.elements.positionTitle.value = job.pos || job.positionTitle || '';
@@ -594,6 +674,7 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
       form.elements.openDate.value = job.open || job.openDate || '';
       form.elements.targetDate.value = job.target || job.targetDate || '';
     } else {
+      sourceField.classList.remove('hidden');
       title.textContent = externalJob ? '將 104 職缺納入管理' : '新增職缺';
       form.elements.status.value = 'open';
       form.elements.urgency.value = '3';
@@ -601,12 +682,13 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
       if (externalJob) {
         form.elements.positionTitle.value = externalJob.title || externalJob.pos || '';
         form.elements.notes.value = `來源：104 #${externalJob.externalId}。請確認正式部門與標準職稱。`;
+        sourceHint.textContent = `已選取 104 #${externalJob.externalId}；請確認正式部門、標準職稱與缺額。`;
       }
     }
 
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
-    setTimeout(() => form.elements.department.focus(), 0);
+    setTimeout(() => (job ? form.elements.department : sourceSelect).focus(), 0);
   }
 
   const GROUP_ORDER = ['WBU', 'ICC', '新華／新竹', '安規', '行政', '其他'];
