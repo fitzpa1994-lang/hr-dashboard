@@ -811,8 +811,16 @@ async function proxyCandidateUpdate(req, res, id) {
 
   const body = await readBody(req);
   const allowedStatuses = ['withdrawn', 'rejected', 'dept_scheduling'];
-  if (!body.status || !allowedStatuses.includes(body.status)) {
-    return sendJson(res, 400, { error: 'Invalid status. Allowed: withdrawn, rejected' });
+  let webhookBody;
+  if (body.department !== undefined) {
+    const department = String(body.department || '').trim();
+    if (!department) return sendJson(res, 400, { error: 'Department is required' });
+    if (department.length > 200) return sendJson(res, 400, { error: 'Department is too long' });
+    webhookBody = { action: 'update_candidate_department', candidateId: id, candidateDepartment: department };
+  } else if (body.status && allowedStatuses.includes(body.status)) {
+    webhookBody = { action: 'update_candidate_status', candidateId: id, candidateStatus: body.status };
+  } else {
+    return sendJson(res, 400, { error: 'Invalid status. Allowed: withdrawn, rejected, dept_scheduling' });
   }
 
   const controller = new AbortController();
@@ -822,7 +830,7 @@ async function proxyCandidateUpdate(req, res, id) {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${N8N_TOKEN}` },
-      body: JSON.stringify({ action: 'update_candidate_status', candidateId: id, candidateStatus: body.status })
+      body: JSON.stringify(webhookBody)
     });
     const text = await upstream.text();
     res.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });

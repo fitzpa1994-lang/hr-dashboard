@@ -24,6 +24,7 @@ const payload = {
   ],
   candidatesData: [
     {
+      id: 301,
       name: '王小明',
       pos: '資深軟體工程師',
       dept: 'IT',
@@ -37,7 +38,8 @@ const payload = {
       resumeLink: '',
       history: [{ date: '2026-05-28', type: 'interview', title: '第2輪面試 - scheduled', note: 'Teams 線上面試', color: 'blue' }]
     },
-    { name: '林美芳', pos: 'HR Specialist', dept: 'HR', date: '2026-05-18', latestDate: '2026-05-18', status: 'onboarded', hr: 'Yen', note: '已完成報到通知。', source: 'LinkedIn', emailLink: '', resumeLink: '', history: [] }
+    { id: 302, name: '林美芳', pos: 'HR Specialist', dept: 'HR', date: '2026-05-18', latestDate: '2026-05-18', status: 'onboarded', hr: 'Yen', note: '已完成報到通知。', source: 'LinkedIn', emailLink: '', resumeLink: '', history: [] },
+    { id: 303, name: '陳小華', pos: '未分類職缺', dept: '', date: '2026-05-15', latestDate: '2026-05-15', status: 'pending_review', hr: '', note: '', source: 'Email', emailLink: '', resumeLink: '', history: [] }
   ],
   jobsData: [
     { id: 1, pos: '資深軟體工程師', dept: 'IT', open: '2026-05-01', target: '2026-06-15', headcount: 2, filled: 0, cands: 4, hired: 0, urgency: 5, status: 'open', note: '' },
@@ -107,6 +109,17 @@ const server = http.createServer(async (req, res) => {
     const item = payload.onboardData.find(o => o.id === id);
     if (item && parsed.status) item.status = parsed.status;
     if (item && parsed.date) item.date = parsed.date;
+    return sendJson(res, 200, { ok: true });
+  }
+  const candidateMatch = url.pathname.match(/^\/api\/candidates\/(\d+)$/);
+  if (req.method === 'PATCH' && candidateMatch) {
+    const id = Number(candidateMatch[1]);
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const parsed = body ? JSON.parse(body) : {};
+    const item = payload.candidatesData.find(c => c.id === id);
+    if (item && parsed.department) item.dept = parsed.department;
+    if (item && parsed.status) item.status = parsed.status;
     return sendJson(res, 200, { ok: true });
   }
   const html = await readFile(path.join(ROOT, 'dashboard', 'index.html'), 'utf8');

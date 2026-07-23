@@ -3013,7 +3013,13 @@ function openDrawer(name, type){
   else{resumeBtn.href='#'; resumeBtn.classList.add('opacity-50','pointer-events-none');}
 
   document.getElementById('dr-info').innerHTML=`
-    <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">部門</span><span class="font-medium text-gray-900">${c.dept||'--'}</span></div>
+    <div class="flex justify-between items-center py-1 border-b border-gray-100 last:border-0">
+      <span class="text-gray-500">部門</span>
+      <span class="flex items-center gap-1.5">
+        <span class="font-medium text-gray-900">${c.dept||'--'}</span>
+        ${c.id?`<button onclick="showDeptEditor(${c.id},this)" class="text-[10px] text-brand hover:underline">✎ 編輯</button>`:''}
+      </span>
+    </div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">職位</span><span class="font-medium text-gray-900">${c.pos||'--'}</span></div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">負責 HR</span><span class="font-medium text-gray-900">${c.hr||'--'}</span></div>
     <div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-500">安排進度</span><span class="font-medium text-gray-900 text-right">${getCandidateProgressText(c)}</span></div>
@@ -3043,6 +3049,35 @@ function openDrawer(name, type){
   document.getElementById('overlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
   lucide.createIcons();
+}
+function showDeptEditor(id, btn){
+  const existing=btn.parentElement.querySelector('input');
+  if(existing){ existing.focus(); return; }
+  const original=candidatesData.find(c=>c.id===id)?.dept||'';
+  const input=document.createElement('input');
+  input.type='text'; input.className='text-[11px] border border-gray-300 rounded px-1.5 py-0.5 w-28';
+  input.value=original;
+  input.onkeydown=function(e){
+    if(e.key==='Enter') input.blur();
+    if(e.key==='Escape'){ input.value=original; input.blur(); }
+  };
+  input.onchange=async function(){
+    const department=input.value.trim();
+    if(!department || department===original){ openDrawer(candidatesData.find(c=>c.id===id)?.name); return; }
+    input.disabled=true;
+    try{
+      const res=await fetch(`/api/candidates/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({department})});
+      if(!res.ok) throw new Error(await res.text());
+      const item=candidatesData.find(c=>c.id===id);
+      if(item){ item.dept=department; renderCandidates(); openDrawer(item.name); }
+    }catch(e){
+      input.disabled=false;
+      alert('更新失敗：'+e.message);
+    }
+  };
+  btn.replaceWith(input);
+  input.focus();
+  input.select();
 }
 function openResignDrawer(name){
   const r=resignData.find(x=>x.name===name) || schedEvents.find(x=>x.name===name && x.type==='resign');
