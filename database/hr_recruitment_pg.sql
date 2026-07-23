@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     job_requisition_id INTEGER   REFERENCES job_requisitions(id) ON DELETE SET NULL,
     source           TEXT        DEFAULT '其他',
     status           TEXT        DEFAULT 'in_progress'
-                     CHECK(status IN ('in_progress','pending_review','approved_to_invite','hired','rejected','withdrawn')),
+                     CHECK(status IN ('in_progress','pending_review','approved_to_invite','hired','rejected','withdrawn','dept_scheduling')),
     notes            TEXT,
     created_at       TIMESTAMPTZ DEFAULT NOW(),
     updated_at       TIMESTAMPTZ DEFAULT NOW()
@@ -224,6 +224,57 @@ CREATE TABLE IF NOT EXISTS resignations (
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Schema upgrades belong to deployment SQL, never to the read-only Dashboard API.
+-- The column migration must run before its index is created below.
+ALTER TABLE candidates
+ADD COLUMN IF NOT EXISTS job_requisition_id INTEGER
+REFERENCES job_requisitions(id) ON DELETE SET NULL;
+
+-- Existing installations created before dept_scheduling/no_show need their
+-- generated CHECK constraints replaced once. Definition guards keep repeated
+-- deployments idempotent without taking a schema lock on every API request.
+DO $$
+DECLARE
+    current_status_constraint TEXT;
+BEGIN
+    SELECT pg_get_constraintdef(oid)
+    INTO current_status_constraint
+    FROM pg_constraint
+    WHERE conname = 'candidates_status_check'
+      AND conrelid = 'candidates'::regclass;
+
+    IF current_status_constraint IS NULL
+       OR current_status_constraint NOT LIKE '%dept_scheduling%' THEN
+        ALTER TABLE candidates
+            DROP CONSTRAINT IF EXISTS candidates_status_check;
+        ALTER TABLE candidates
+            ADD CONSTRAINT candidates_status_check
+            CHECK(status IN ('in_progress','pending_review','approved_to_invite','hired','rejected','withdrawn','dept_scheduling'));
+    END IF;
+END
+$$;
+
+DO $$
+DECLARE
+    current_status_constraint TEXT;
+BEGIN
+    SELECT pg_get_constraintdef(oid)
+    INTO current_status_constraint
+    FROM pg_constraint
+    WHERE conname = 'onboardings_status_check'
+      AND conrelid = 'onboardings'::regclass;
+
+    IF current_status_constraint IS NULL
+       OR current_status_constraint NOT LIKE '%no_show%' THEN
+        ALTER TABLE onboardings
+            DROP CONSTRAINT IF EXISTS onboardings_status_check;
+        ALTER TABLE onboardings
+            ADD CONSTRAINT onboardings_status_check
+            CHECK(status IN ('pending','onboarded','cancelled','no_show'));
+    END IF;
+END
+$$;
 
 -- ============================================================
 -- INDEXES

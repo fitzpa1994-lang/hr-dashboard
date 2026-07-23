@@ -20,14 +20,22 @@ FORBIDDEN_PATTERN_EXCEPTIONS = {
 }
 
 ALLOWED_VALUES = {
-    "candidates.status": {"in_progress", "pending_review", "approved_to_invite", "hired", "rejected", "withdrawn"},
+    "candidates.status": {
+        "in_progress",
+        "pending_review",
+        "approved_to_invite",
+        "hired",
+        "rejected",
+        "withdrawn",
+        "dept_scheduling",
+    },
     "interviews.status": {"scheduled", "completed", "cancelled", "rescheduled"},
     "interviews.result": {"pending", "passed", "failed", "no_show"},
     "offers.status": {"pending", "accepted", "rejected", "withdrawn", "onboarded"},
     "email_logs.action": {"inserted", "updated", "skipped", "error"},
     "job_requisitions.status": {"open", "filled", "on_hold", "cancelled"},
-    "onboardings.status": {"pending", "onboarded", "cancelled"},
-    "resignations.status": {"active", "done", "cancelled"},
+    "onboardings.status": {"pending", "onboarded", "cancelled", "no_show"},
+    "resignations.status": {"pending", "active", "done", "cancelled"},
 }
 
 FIELD_NAMES = ("status", "result", "action")
@@ -124,10 +132,21 @@ def validate_update_literals(path_name, sql, errors):
     for statement in sql.split(";"):
         for key, allowed in ALLOWED_VALUES.items():
             table, field = key.split(".")
-            if not re.search(rf"\bUPDATE\s+{table}\b", statement, re.IGNORECASE):
+            update_match = re.search(rf"\bUPDATE\s+{table}\b", statement, re.IGNORECASE)
+            if not update_match:
                 continue
 
-            for match in re.finditer(rf"\b{field}\s*=\s*'([^']*)'", statement, re.IGNORECASE):
+            update_sql = statement[update_match.end():]
+            set_match = re.search(
+                r"\bSET\b(?P<set_clause>.*?)(?=\b(?:FROM|WHERE|RETURNING)\b|$)",
+                update_sql,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if not set_match:
+                continue
+
+            set_clause = set_match.group("set_clause")
+            for match in re.finditer(rf"\b{field}\s*=\s*'([^']*)'", set_clause, re.IGNORECASE):
                 value = match.group(1)
                 if is_sql_template(value):
                     continue
