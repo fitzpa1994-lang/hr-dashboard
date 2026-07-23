@@ -47,6 +47,19 @@
     --orange: #C2410C;
     --amber: #B45309;
     --shell-border: rgba(255, 255, 255, 0.08);
+
+    /* dataviz: validated categorical palette (fixed order, never cycled/reordered per-render) */
+    --viz-grid: #E7E5E1;
+    --viz-ink: #1C1917;
+    --viz-ink-muted: #9CA3AF;
+    --viz-series-1: #2a78d6; /* blue */
+    --viz-series-2: #1baf7a; /* aqua */
+    --viz-series-3: #eda100; /* yellow */
+    --viz-series-4: #008300; /* green */
+    --viz-series-5: #4a3aa7; /* violet */
+    --viz-series-6: #e34948; /* red */
+    --viz-series-7: #e87ba4; /* magenta */
+    --viz-series-8: #eb6834; /* orange */
   }
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -981,22 +994,10 @@
             <div class="relative h-64"><canvas id="trendChart"></canvas></div>
           </div>
           <div class="surface-panel-strong p-6">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="bar-chart" class="w-4 h-4"></i>各部門招募成效</h2>
+            <h2 class="text-[14px] font-semibold text-gray-800 mb-1 flex items-center gap-2"><i data-lucide="line-chart" class="w-4 h-4"></i>各部門招募成效</h2>
+            <div class="text-[11px] text-gray-400 mb-3">近 6 個月各部門到職人數</div>
             <div class="relative h-64"><canvas id="deptChart"></canvas></div>
           </div>
-          <div class="surface-panel-strong p-6 col-span-2">
-            <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i>HR 面試工作量</h2>
-            <div class="relative h-64"><canvas id="hrWorkChart"></canvas></div>
-          </div>
-          <!-- 月度歷史報表 -->
-          <div class="surface-panel-strong p-6 col-span-2">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4"></i>月度到職 / 離職報表</h2>
-              <input type="month" id="monthly-report-picker" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand" onchange="renderMonthlyReport(this.value)">
-            </div>
-            <div id="monthly-report-content" class="text-xs text-gray-400">← 選擇月份以查看報表</div>
-          </div>
-
           <!-- 月度招募漏斗：推薦/面試/到職/離職，跟上個月比較 -->
           <div class="surface-panel-strong p-6 col-span-2">
             <div class="flex items-center justify-between mb-1">
@@ -1728,7 +1729,6 @@ async function loadData() {
       ? { ...d.external104Sync }
       : { hasSnapshot: false, source: '104', contractVersion: 2, sourceTotalCount: 0, publishedCount: 0, lastSyncAt: '' };
     monthlyTrend = d.monthlyTrend || [];
-    window._monthlyHistory = d.monthlyHistory || [];
     window._monthlyFunnelByDepartment = d.monthlyFunnelByDepartment || [];
     window._monthlyFunnelByJob = d.monthlyFunnelByJob || [];
     departmentStats = d.departmentStats || [];
@@ -2708,40 +2708,6 @@ function renderJobs(){
 
 // ============================================================
 // ============================================================
-// MONTHLY REPORT
-// ============================================================
-function renderMonthlyReport(ym){
-  const el=document.getElementById('monthly-report-content');
-  if(!ym){ el.innerHTML='<span class="text-gray-400">← 選擇月份以查看報表</span>'; return; }
-  const rows=(window._monthlyHistory||[]).filter(r=>r.month===ym);
-  // aggregate (onboard + resign may be separate rows from UNION ALL)
-  let onboarded=0, no_show=0, resigned=0;
-  rows.forEach(r=>{ onboarded+=Number(r.onboarded||0); no_show+=Number(r.no_show||0); resigned+=Number(r.resigned||0); });
-  const total=onboarded+no_show;
-  const noData=total===0&&resigned===0;
-  el.innerHTML=noData
-    ?`<div class="text-gray-400 py-4 text-center">此月無資料</div>`
-    :`<div class="grid grid-cols-4 gap-4 mt-2">
-        <div class="rounded-lg bg-green-50 border border-green-100 p-4 text-center">
-          <div class="text-2xl font-bold text-green-700">${onboarded}</div>
-          <div class="text-[11px] text-green-600 mt-1">確認到職</div>
-        </div>
-        <div class="rounded-lg bg-red-50 border border-red-100 p-4 text-center">
-          <div class="text-2xl font-bold text-red-500">${no_show}</div>
-          <div class="text-[11px] text-red-400 mt-1">放鳥未到</div>
-        </div>
-        <div class="rounded-lg bg-gray-50 border border-gray-200 p-4 text-center">
-          <div class="text-2xl font-bold text-gray-700">${resigned}</div>
-          <div class="text-[11px] text-gray-500 mt-1">離職人數</div>
-        </div>
-        <div class="rounded-lg bg-blue-50 border border-blue-100 p-4 text-center">
-          <div class="text-2xl font-bold text-blue-700">${total>0?Math.round(onboarded/total*100):'-'}${total>0?'%':''}</div>
-          <div class="text-[11px] text-blue-500 mt-1">到職率</div>
-        </div>
-      </div>`;
-}
-
-// ============================================================
 // MONTHLY FUNNEL (推薦 / 面試 / 到職 / 離職，跟上個月比較)
 // ============================================================
 let funnelGranularity = 'department';
@@ -2833,64 +2799,109 @@ function renderMonthlyFunnel() {
 // CHARTS
 // ============================================================
 let charts={};
+
+function vizVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// dataviz: fixed categorical order — validated (CVD-safe, light-surface) via
+// dataviz skill's validate_palette.js; never cycle/reassign per render.
+function vizCategoricalPalette(){
+  return [1,2,3,4,5,6,7,8].map(i => vizVar(`--viz-series-${i}`));
+}
+
+const VIZ_LINE_STYLE = { tension: 0.3, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderWidth: 2, pointBorderColor: '#fff' };
+
+function vizAxisOptions(){
+  const grid = vizVar('--viz-grid');
+  const muted = vizVar('--viz-ink-muted');
+  return {
+    x: { grid: { display: false }, ticks: { color: muted } },
+    y: { beginAtZero: true, border: { display: false }, grid: { color: grid }, ticks: { color: muted, precision: 0 } },
+  };
+}
+
+function vizTooltipOptions(){
+  return {
+    mode: 'index',
+    intersect: false,
+    backgroundColor: 'rgba(15, 39, 66, 0.92)',
+    padding: 10,
+    cornerRadius: 8,
+    boxPadding: 4,
+    usePointStyle: true,
+    titleColor: '#fff',
+    bodyColor: '#fff',
+    itemSort: (a, b) => b.parsed.y - a.parsed.y,
+  };
+}
+
 function renderCharts(){
   Chart.defaults.font.family = "'Inter', 'Noto Sans TC', sans-serif";
-  Chart.defaults.color = '#6B7280';
-  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 39, 66, 0.9)';
+  Chart.defaults.color = vizVar('--viz-ink-muted');
 
-  const trend6=monthlyTrend.slice(-6);
   const renderOrUpdate=(id,config)=>{
     if(charts[id])charts[id].destroy();
     const ctx=document.getElementById(id);
     if(ctx)charts[id]=new Chart(ctx,config);
   };
 
+  const trend6=monthlyTrend.slice(-6);
+  const [blue, , , green] = vizCategoricalPalette();
   renderOrUpdate('trendChart',{
     type:'line',
     data:{
       labels:trend6.map(m=>m.month),
       datasets:[
-        {label:'面試',data:trend6.map(m=>m.interviews),borderColor:'#1E3A5F',backgroundColor:'#1E3A5F',tension:0.3,borderWidth:2,pointRadius:3},
-        {label:'錄取',data:trend6.map(m=>m.offers),borderColor:'#D97706',backgroundColor:'#D97706',tension:0.3,borderWidth:2,pointRadius:3},
-        {label:'到職',data:trend6.map(m=>m.onboarded),borderColor:'#16A34A',backgroundColor:'#16A34A',tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'面試',data:trend6.map(m=>m.interviews),borderColor:blue,backgroundColor:blue,...VIZ_LINE_STYLE},
+        {label:'到職',data:trend6.map(m=>m.onboarded),borderColor:green,backgroundColor:green,...VIZ_LINE_STYLE},
       ]
     },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:6}}}}
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,color:vizVar('--viz-ink')}},tooltip:vizTooltipOptions()},
+      scales:vizAxisOptions(),
+    }
   });
 
-  const deptMap={};
-  for(const c of candidatesData){
-    if(!deptMap[c.dept])deptMap[c.dept]={t:0,h:0};
-    deptMap[c.dept].t++;
-    if(getCandidateStageKey(c)==='onboarded')deptMap[c.dept].h++;
-  }
-  renderOrUpdate('deptChart',{
-    type:'bar',
-    data:{
-      labels:Object.keys(deptMap),
-      datasets:[
-        {label:'總候選人',data:Object.values(deptMap).map(v=>v.t),backgroundColor:'#D9E2EC'},
-        {label:'錄取 / 到職',data:Object.values(deptMap).map(v=>v.h),backgroundColor:'#163A63'},
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:6}}},scales:{x:{grid:{display:false}},y:{border:{display:false}}}}
-  });
+  // 各部門招募成效：fold anything past the validated 8-slot categorical palette
+  // into "其他" rather than generating a 9th hue.
+  const funnelRows = window._monthlyFunnelByDepartment || [];
+  const funnelMonths = [...new Set(funnelRows.map(r=>r.month))].sort().slice(-6);
+  const deptTotals = new Map();
+  for(const r of funnelRows) deptTotals.set(r.department, (deptTotals.get(r.department)||0) + Number(r.onboard||0));
+  const rankedDepts = [...deptTotals.entries()].sort((a,b)=>b[1]-a[1]).map(([dept])=>dept);
+  const MAX_DEPT_SERIES = 8;
+  const cutoff = rankedDepts.length > MAX_DEPT_SERIES ? MAX_DEPT_SERIES - 1 : MAX_DEPT_SERIES;
+  const shownDepts = rankedDepts.slice(0, cutoff).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+  const overflowDepts = new Set(rankedDepts.slice(cutoff));
 
-  const normalizeHrName = name => {
-    const s = String(name || '').trim();
-    const cjk = s.match(/[一-龥㐀-䶿]{2,}/g);
-    if (cjk && cjk.length > 0) return cjk[0];
-    return s.replace(/\s+/g, ' ');
+  const seriesFor = dept => {
+    const byMonth={};
+    funnelRows.filter(r=>r.department===dept).forEach(r=>{ byMonth[r.month]=(byMonth[r.month]||0)+Number(r.onboard||0); });
+    return funnelMonths.map(m=>byMonth[m]||0);
   };
-  const hrMap={};
-  for(const e of schedEvents.filter(e=>e.type==='interview'&&e.hr)) { const k=normalizeHrName(e.hr); hrMap[k]=(hrMap[k]||0)+1; }
-  renderOrUpdate('hrWorkChart',{
-    type:'bar',
-    data:{
-      labels:Object.keys(hrMap),
-      datasets:[{label:'面試安排數',data:Object.values(hrMap),backgroundColor:'#2B5282',borderRadius:2}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{border:{display:false}},y:{grid:{display:false}}}}
+  const deptDatasets = shownDepts.map((dept,i)=>{
+    const color = vizCategoricalPalette()[i];
+    return {label:dept,data:seriesFor(dept),borderColor:color,backgroundColor:color,...VIZ_LINE_STYLE};
+  });
+  if(overflowDepts.size){
+    const byMonth={};
+    funnelRows.filter(r=>overflowDepts.has(r.department)).forEach(r=>{ byMonth[r.month]=(byMonth[r.month]||0)+Number(r.onboard||0); });
+    const grey = vizVar('--viz-ink-muted');
+    deptDatasets.push({label:'其他',data:funnelMonths.map(m=>byMonth[m]||0),borderColor:grey,backgroundColor:grey,borderDash:[4,3],...VIZ_LINE_STYLE});
+  }
+
+  renderOrUpdate('deptChart',{
+    type:'line',
+    data:{ labels:funnelMonths, datasets:deptDatasets },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,color:vizVar('--viz-ink')}},tooltip:vizTooltipOptions()},
+      scales:vizAxisOptions(),
+    }
   });
 }
 

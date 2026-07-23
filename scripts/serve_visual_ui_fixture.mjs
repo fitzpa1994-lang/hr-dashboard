@@ -57,6 +57,22 @@ const payload = {
     { dept: 'IT', candidates: 4, hired: 0, avgDaysToOffer: 18 },
     { dept: 'HR', candidates: 2, hired: 1, avgDaysToOffer: 12 }
   ],
+  monthlyFunnelByDepartment: [
+    { department: 'ICC', month: '2026-03', recommend: 6, interview: 3, onboard: 1, resign: 0 },
+    { department: 'ICC', month: '2026-04', recommend: 9, interview: 5, onboard: 2, resign: 1 },
+    { department: 'ICC', month: '2026-05', recommend: 12, interview: 6, onboard: 0, resign: 0 },
+    { department: 'WBU', month: '2026-03', recommend: 2, interview: 1, onboard: 1, resign: 0 },
+    { department: 'WBU', month: '2026-04', recommend: 3, interview: 2, onboard: 0, resign: 0 },
+    { department: 'WBU', month: '2026-05', recommend: 4, interview: 2, onboard: 1, resign: 0 },
+    { department: '安規', month: '2026-03', recommend: 4, interview: 2, onboard: 0, resign: 1 },
+    { department: '安規', month: '2026-04', recommend: 5, interview: 3, onboard: 1, resign: 0 },
+    { department: '安規', month: '2026-05', recommend: 3, interview: 1, onboard: 0, resign: 1 }
+  ],
+  monthlyFunnelByJob: [
+    { job_requisition_id: 1, department: 'ICC', position_title: '資深軟體工程師', month: '2026-04', recommend: 6, interview: 3 },
+    { job_requisition_id: 1, department: 'ICC', position_title: '資深軟體工程師', month: '2026-05', recommend: 8, interview: 4 },
+    { job_requisition_id: 2, department: '行政', position_title: '行政專員', month: '2026-05', recommend: 2, interview: 2 }
+  ],
   stats: {
     activeCount: 4,
     offerCount: 1,
