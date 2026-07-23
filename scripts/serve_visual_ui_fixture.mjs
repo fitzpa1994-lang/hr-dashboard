@@ -15,8 +15,9 @@ const payload = {
     { type: 'resign', name: '陳志豪', pos: 'RF Engineer', dept: 'RF', date: '2026-05-31', time: '', hr: 'Evan', note: '本週最後工作日', emailLink: '' }
   ],
   onboardData: [
-    { name: '林美芳', dept: 'HR', pos: 'HR Specialist', date: '2026-05-28', hr: 'Yen', status: 'pending', emailLink: '' },
-    { name: '張雅婷', dept: 'IT', pos: 'Data Analyst', date: '2026-05-20', hr: 'Peggy', status: 'onboarded', emailLink: '' }
+    { id: 201, name: '林美芳', dept: 'HR', pos: 'HR Specialist', date: '2026-05-28', hr: 'Yen', status: 'pending', emailLink: '' },
+    { id: 202, name: '張雅婷', dept: 'IT', pos: 'Data Analyst', date: '2026-05-20', hr: 'Peggy', status: 'onboarded', emailLink: '' },
+    { id: 203, name: '吳建霖', dept: 'RF', pos: 'RF Engineer', date: '2026-05-10', hr: 'Evan', status: 'pending', emailLink: '' }
   ],
   resignData: [
     { name: '陳志豪', dept: 'RF', pos: 'RF Engineer', lastDay: '2026-05-31', hr: 'Evan', reason: '個人生涯規劃', status: 'active', emailLink: '' }
@@ -97,6 +98,17 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/login') return sendJson(res, 200, { authenticated: true });
   if (url.pathname === '/api/logout') return sendJson(res, 200, { authenticated: false });
   if (url.pathname === '/api/hr-dashboard') return sendJson(res, 200, payload);
+  const onboardMatch = url.pathname.match(/^\/api\/onboardings\/(\d+)$/);
+  if (req.method === 'PATCH' && onboardMatch) {
+    const id = Number(onboardMatch[1]);
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const parsed = body ? JSON.parse(body) : {};
+    const item = payload.onboardData.find(o => o.id === id);
+    if (item && parsed.status) item.status = parsed.status;
+    if (item && parsed.date) item.date = parsed.date;
+    return sendJson(res, 200, { ok: true });
+  }
   const html = await readFile(path.join(ROOT, 'dashboard', 'index.html'), 'utf8');
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(html);
