@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS job_requisition_sources (
     source_updated_text     TEXT,
     publication_status      TEXT        NOT NULL DEFAULT 'open'
                                         CHECK(publication_status IN ('open','pending_confirmation')),
+    priority_level          SMALLINT    NOT NULL DEFAULT 2,
+    display_order           INTEGER     NOT NULL DEFAULT 0,
     first_seen_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_seen_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_synced_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -120,8 +122,43 @@ CREATE TABLE IF NOT EXISTS job_requisition_sources (
     PRIMARY KEY (source, external_id),
     CHECK (BTRIM(source) <> ''),
     CHECK (BTRIM(external_id) <> ''),
-    CHECK (BTRIM(external_title) <> '')
+    CHECK (BTRIM(external_title) <> ''),
+    CONSTRAINT job_requisition_sources_priority_level_check
+        CHECK (priority_level BETWEEN 1 AND 3),
+    CONSTRAINT job_requisition_sources_display_order_check
+        CHECK (display_order >= 0)
 );
+
+-- Upgrade existing installations without replacing external-job rows.
+ALTER TABLE job_requisition_sources
+    ADD COLUMN IF NOT EXISTS priority_level SMALLINT NOT NULL DEFAULT 2,
+    ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'job_requisition_sources_priority_level_check'
+          AND conrelid = 'job_requisition_sources'::regclass
+    ) THEN
+        ALTER TABLE job_requisition_sources
+            ADD CONSTRAINT job_requisition_sources_priority_level_check
+            CHECK (priority_level BETWEEN 1 AND 3);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'job_requisition_sources_display_order_check'
+          AND conrelid = 'job_requisition_sources'::regclass
+    ) THEN
+        ALTER TABLE job_requisition_sources
+            ADD CONSTRAINT job_requisition_sources_display_order_check
+            CHECK (display_order >= 0);
+    END IF;
+END
+$$;
 
 CREATE INDEX IF NOT EXISTS idx_job_requisition_sources_job_requisition
 ON job_requisition_sources(job_requisition_id);

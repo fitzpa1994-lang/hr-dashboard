@@ -314,6 +314,52 @@ function normalize104JobLinkPayload(body) {
   return { value: body.jobRequisitionId };
 }
 
+function normalize104JobPrioritiesPayload(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { error: 'Request body must be an object' };
+  }
+  if (!Array.isArray(body.jobs)) {
+    return { error: 'jobs must be an array' };
+  }
+  if (body.jobs.length > 500) {
+    return { error: 'jobs must contain at most 500 items' };
+  }
+
+  const seenExternalIds = new Set();
+  const jobs = [];
+  for (let index = 0; index < body.jobs.length; index += 1) {
+    const job = body.jobs[index];
+    if (!job || typeof job !== 'object' || Array.isArray(job)) {
+      return { error: `jobs[${index}] must be an object` };
+    }
+    if (typeof job.externalId !== 'string' || !/^[0-9]{1,32}$/.test(job.externalId)) {
+      return { error: `jobs[${index}].externalId must be a digit string` };
+    }
+    if (seenExternalIds.has(job.externalId)) {
+      return { error: `jobs contains duplicate externalId: ${job.externalId}` };
+    }
+    if (!Number.isInteger(job.priorityLevel) || job.priorityLevel < 1 || job.priorityLevel > 3) {
+      return { error: `jobs[${index}].priorityLevel must be an integer between 1 and 3` };
+    }
+    if (
+      !Number.isInteger(job.displayOrder)
+      || job.displayOrder < 0
+      || job.displayOrder > POSTGRES_INTEGER_MAX
+    ) {
+      return { error: `jobs[${index}].displayOrder must be a PostgreSQL non-negative integer` };
+    }
+
+    seenExternalIds.add(job.externalId);
+    jobs.push({
+      externalId: job.externalId,
+      priorityLevel: job.priorityLevel,
+      displayOrder: job.displayOrder
+    });
+  }
+
+  return { value: jobs };
+}
+
 function getProxyTimeoutMs() {
   const configured = Number(process.env.N8N_PROXY_TIMEOUT_MS || DEFAULT_N8N_PROXY_TIMEOUT_MS);
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_N8N_PROXY_TIMEOUT_MS;
@@ -745,6 +791,20 @@ async function proxy104JobLink(req, res, externalId) {
   });
 }
 
+async function proxy104JobPriorities(req, res) {
+  if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
+  if (!writeEnvReady()) return sendJson(res, 500, { error: '104 job priority API is not configured' });
+
+  const body = await readBody(req, { maxBytes: SYNC_104_REQUEST_BODY_MAX_BYTES });
+  const normalized = normalize104JobPrioritiesPayload(body);
+  if (normalized.error) return sendJson(res, 400, { error: normalized.error });
+
+  return forward104JobWrite(res, {
+    action: 'update_104_job_priorities',
+    jobs: normalized.value
+  });
+}
+
 async function proxyCandidateUpdate(req, res, id) {
   if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
   if (!writeEnvReady()) return sendJson(res, 500, { error: 'Write API is not configured' });
@@ -858,6 +918,10 @@ export const server = http.createServer(async (req, res) => {
 
     if (req.method === 'POST' && url.pathname === '/api/job-requisitions/sync-104') {
       return await proxy104JobSync(req, res);
+    }
+
+    if (req.method === 'PATCH' && url.pathname === '/api/job-requisition-sources/104/priorities') {
+      return await proxy104JobPriorities(req, res);
     }
 
     if (req.method === 'PATCH' && jobSourceMatch) {

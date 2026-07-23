@@ -64,8 +64,37 @@ for (const [index, query] of writeQueries.entries()) {
     "split_part(parameter.value, '=', 1) = 'jobno'",
     "SELECT TO_CHAR(sync_claimed.last_complete_synced_at AT TIME ZONE 'UTC'",
     '104 snapshot provider claim was not applied',
+    "input.action = 'update_104_job_priorities'",
+    'priority_updates_raw AS (',
+    'priority_updates AS (',
+    'priority_request AS (',
+    'priority_updated AS (',
+    'COUNT(DISTINCT external_id)',
+    "priority_level_text ~ '^[1-3]$'",
+    "display_order_text ~ '^(0|[1-9][0-9]{0,9})$'",
+    'WHERE priority_request.is_valid',
+    "'priorityUpdate', json_build_object(",
   ];
   for (const marker of required) expect(query.includes(marker), `${label} missing ${marker}`);
+  for (const marker of [
+    'priority_updates_raw AS (',
+    'priority_updates AS (',
+    'priority_request AS (',
+    'priority_updated AS (',
+    'link_request AS (',
+    'validated_link AS (',
+    'external_linked AS (',
+    'END AS data',
+  ]) {
+    expect(countOccurrences(query, marker) === 1, `${label} must contain exactly one ${marker}`);
+  }
+  expect(query.length > 20_000 && query.length < 26_000, `${label} has an unexpected SQL length: ${query.length}`);
+  const externalIdRegexLines = query.split(/\r?\n/).filter(line => line.includes("external_id ~ '"));
+  expect(externalIdRegexLines.length === 2, `${label} must validate external_id in sync and priority CTEs`);
+  expect(
+    externalIdRegexLines.every(line => line.trimEnd().endsWith("$'")),
+    `${label} contains a truncated external_id regex`,
+  );
   expect(
     !query.includes("COALESCE(NULLIF(BTRIM(job.value->>'status'), ''), 'open')"),
     `${label} must not default a missing job status to open`,
@@ -84,12 +113,18 @@ for (const [index, query] of writeQueries.entries()) {
 
   const upsertStart = query.indexOf('sync_upserted AS (');
   const pendingStart = query.indexOf('sync_pending AS (');
+  const priorityStart = query.indexOf('priority_updates_raw AS (');
   const linkStart = query.indexOf('link_request AS (');
-  expect(upsertStart >= 0 && pendingStart > upsertStart && linkStart > pendingStart, `${label} has invalid CTE ordering`);
+  expect(
+    upsertStart >= 0 && pendingStart > upsertStart && priorityStart > pendingStart && linkStart > priorityStart,
+    `${label} has invalid CTE ordering`,
+  );
   const upsert = query.slice(upsertStart, pendingStart);
   const pending = query.slice(pendingStart, linkStart);
   expect(upsert.includes('CROSS JOIN sync_claimed'), `${label} upsert is not gated by the provider claim`);
   expect(!upsert.includes('input.external_synced_at'), `${label} upsert bypasses the claimed timestamp`);
+  expect(!upsert.includes('priority_level'), `${label} sync must preserve priority_level`);
+  expect(!upsert.includes('display_order'), `${label} sync must preserve display_order`);
   expect(pending.includes('CROSS JOIN sync_claimed'), `${label} pending transition is not gated by the provider claim`);
 }
 
@@ -106,12 +141,22 @@ for (const [index, query] of dashboardQueries.entries()) {
   expect(query.includes("'lastSyncAt'"), `dashboard SQL copy ${index + 1} missing lastSyncAt`);
   expect(countOccurrences(query, "'external104Sync'") === 1, `dashboard SQL copy ${index + 1} must contain one external104Sync section`);
   expect(countOccurrences(query, "'external104Jobs'") === 1, `dashboard SQL copy ${index + 1} must contain one external104Jobs section`);
+  expect(query.includes("'priorityLevel', source_row.priority_level"), `dashboard SQL copy ${index + 1} missing priorityLevel`);
+  expect(query.includes("'displayOrder', source_row.display_order"), `dashboard SQL copy ${index + 1} missing displayOrder`);
+  expect(query.includes('source_row.priority_level ASC'), `dashboard SQL copy ${index + 1} missing priority ordering`);
+  expect(query.includes('source_row.display_order ASC'), `dashboard SQL copy ${index + 1} missing display ordering`);
 }
 
 for (const [name, schema] of [['migration', sourceSchema], ['main schema', mainSchema]]) {
   expect(schema.includes('CREATE TABLE IF NOT EXISTS job_requisition_sources'), `${name} missing external job source table`);
   expect(schema.includes("CHECK (BTRIM(external_id) <> '')"), `${name} missing non-empty external id constraint`);
   expect(schema.includes("CHECK (BTRIM(external_title) <> '')"), `${name} missing non-empty external title constraint`);
+  expect(schema.includes('priority_level          SMALLINT    NOT NULL DEFAULT 2'), `${name} missing priority level`);
+  expect(schema.includes('display_order           INTEGER     NOT NULL DEFAULT 0'), `${name} missing display order`);
+  expect(schema.includes('ADD COLUMN IF NOT EXISTS priority_level'), `${name} missing installed-table priority migration`);
+  expect(schema.includes('ADD COLUMN IF NOT EXISTS display_order'), `${name} missing installed-table order migration`);
+  expect(schema.includes('CHECK (priority_level BETWEEN 1 AND 3)'), `${name} missing priority constraint`);
+  expect(schema.includes('CHECK (display_order >= 0)'), `${name} missing order constraint`);
   expect(schema.includes('CREATE TABLE IF NOT EXISTS job_requisition_source_syncs'), `${name} missing provider sync table`);
   expect(schema.includes('last_complete_synced_at'), `${name} missing complete snapshot timestamp`);
   expect(schema.includes('CHECK (published_count <= source_total_count)'), `${name} missing sync count constraint`);

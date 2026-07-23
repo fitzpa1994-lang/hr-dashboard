@@ -13,6 +13,10 @@ const queries = [workflow.nodes, workflow.activeVersion?.nodes]
   .filter(Array.isArray)
   .map(nodes => nodes.find(node => node.name === nodeName)?.parameters?.query || '');
 
+function countOccurrences(value, needle) {
+  return String(value || '').split(needle).length - 1;
+}
+
 test('root and activeVersion use the same Job Requisition Write SQL', () => {
   assert.equal(queries.length, 2);
   assert.ok(queries[0]);
@@ -64,5 +68,56 @@ test('every accepted 104 job matches the server contract and response uses claim
     }
     assert.ok(!query.includes("TO_CHAR(input.external_synced_at AT TIME ZONE 'UTC'"));
     assert.ok(!query.includes("COALESCE(NULLIF(BTRIM(job.value->>'status'), ''), 'open')"));
+  }
+});
+
+test('104 priority updates are atomic, bounded, and return the stable response contract', () => {
+  for (const query of queries) {
+    for (const marker of [
+      "input.action = 'update_104_job_priorities'",
+      'priority_updates_raw AS (',
+      'priority_updates AS (',
+      'priority_request AS (',
+      'priority_updated AS (',
+      'jsonb_array_length(input.external_jobs) <= 500',
+      'COUNT(DISTINCT external_id)',
+      "priority_level_text ~ '^[1-3]$'",
+      "display_order_text ~ '^(0|[1-9][0-9]{0,9})$'",
+      "source_row.source = '104'",
+      'WHERE priority_request.is_valid',
+      "'priorityUpdate', json_build_object(",
+      "'updated', (SELECT COUNT(*)::INTEGER FROM priority_updated)",
+    ]) {
+      assert.ok(query.includes(marker), `missing priority update marker: ${marker}`);
+    }
+
+    for (const marker of [
+      'priority_updates_raw AS (',
+      'priority_updates AS (',
+      'priority_request AS (',
+      'priority_updated AS (',
+      'link_request AS (',
+      'validated_link AS (',
+      'external_linked AS (',
+      'END AS data',
+    ]) {
+      assert.equal(countOccurrences(query, marker), 1, `${marker} must occur exactly once`);
+    }
+    assert.ok(query.length > 20_000 && query.length < 26_000, `unexpected write SQL length: ${query.length}`);
+    const externalIdRegexLines = query.split('\n').filter(line => line.includes("external_id ~ '"));
+    assert.equal(externalIdRegexLines.length, 2);
+    assert.ok(externalIdRegexLines.every(line => line.trimEnd().endsWith("$'")), 'external id regex must be complete');
+
+    const syncPendingStart = query.indexOf('sync_pending AS (');
+    const priorityStart = query.indexOf('priority_updates_raw AS (');
+    const linkStart = query.indexOf('link_request AS (');
+    assert.ok(syncPendingStart < priorityStart && priorityStart < linkStart, 'priority CTEs must sit between sync and link CTEs');
+
+    const upsert = query.slice(
+      query.indexOf('sync_upserted AS ('),
+      query.indexOf('sync_pending AS ('),
+    );
+    assert.ok(!upsert.includes('priority_level'), '104 sync must preserve saved priority_level');
+    assert.ok(!upsert.includes('display_order'), '104 sync must preserve saved display_order');
   }
 });

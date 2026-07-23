@@ -29,7 +29,7 @@
 
 <!-- Google Fonts & Lucide Icons & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="talent-search-navigator.css?v=4">
+<link rel="stylesheet" href="talent-search-navigator.css?v=5">
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" crossorigin="anonymous"></script>
 
@@ -812,32 +812,22 @@
       <div id="tab-jobs" class="page page-shell hidden">
         <nav class="job-workspace-switch" aria-label="職缺管理檢視">
           <button type="button" class="is-active" data-job-workspace-target="jobs" onclick="showJobWorkspace('jobs')">
-            <i data-lucide="table-properties" aria-hidden="true"></i><span>職缺總覽</span>
+            <i data-lucide="list-ordered" aria-hidden="true"></i><span>優先順序</span>
           </button>
           <button type="button" data-job-workspace-target="talent-search" onclick="showJobWorkspace('talent-search')">
             <i data-lucide="route" aria-hidden="true"></i><span>104 搜尋策略</span>
           </button>
         </nav>
-        <div class="surface-panel-strong flex flex-col">
-          <div class="section-head bg-transparent rounded-t-lg">
-            <button data-job-filter="all" class="px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white" onclick="setJobF('all', this)">全部</button>
-            <button data-job-filter="open" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('open', this)">開缺中</button>
-            <button data-job-filter="filled" class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50" onclick="setJobF('filled', this)">已補滿</button>
-          </div>
-          <div class="overflow-x-auto">
-          <table class="w-full tbl-compact">
-            <thead><tr><th>單位</th><th>職缺名稱</th><th>缺額</th><th>已補數</th><th>開缺日期</th><th>目標日期</th><th>急迫度</th><th>狀態</th></tr></thead>
-            <tbody id="job-tbody"></tbody>
-          </table>
-          </div>
-        </div>
+        <section id="job-priority-board" class="job-priority-board" aria-live="polite">
+          <div class="job-priority-loading">正在載入 104 刊登中職缺…</div>
+        </section>
       </div>
 
       <!-- ===== TAB: 104 搜尋頁面導覽 ===== -->
       <div id="tab-talent-search" class="page page-shell hidden">
         <nav class="job-workspace-switch" aria-label="職缺管理檢視">
           <button type="button" data-job-workspace-target="jobs" onclick="showJobWorkspace('jobs')">
-            <i data-lucide="table-properties" aria-hidden="true"></i><span>職缺總覽</span>
+            <i data-lucide="list-ordered" aria-hidden="true"></i><span>優先順序</span>
           </button>
           <button type="button" class="is-active" data-job-workspace-target="talent-search" onclick="showJobWorkspace('talent-search')">
             <i data-lucide="route" aria-hidden="true"></i><span>104 搜尋策略</span>
@@ -1216,7 +1206,6 @@ window.hrDashboardBridge = {
   getExternal104Jobs: () => external104Jobs,
   getExternal104Sync: () => ({ ...external104Sync }),
   getExternal104LastSyncAt: () => String(external104Sync?.lastSyncAt || ''),
-  getJobFilter: () => jobFilter,
   setRenderJobs: fn => { renderJobs = fn; },
   getRenderJobs: () => renderJobs,
   reloadData: () => loadData(),
@@ -2691,14 +2680,6 @@ function renderCandidates(){
   `).join('');
 }
 
-let jobFilter='all';
-function setJobF(f,btn){
-  jobFilter=f;
-  const btns = btn.parentElement.querySelectorAll('[data-job-filter]');
-  btns.forEach(b => { b.className = 'px-3 py-1.5 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50'; });
-  btn.className = 'px-3 py-1.5 text-xs font-medium rounded border border-brand bg-brand text-white';
-  renderJobs();
-}
 function normalizeJobDept(job) {
   const pos = String(job.pos || '');
   if (/RF測試/.test(pos) || /RF.*工程師/.test(pos) || pos === 'RF測試工程師') {
@@ -2722,37 +2703,7 @@ function getJobSubDept(dept) {
   return String(dept || '').replace(/^[^/／]+[/／]\s*/, '').trim() || dept || '--';
 }
 function renderJobs(){
-  const items=jobFilter==='all'?jobsData:jobsData.filter(j=>j.status===jobFilter);
-  const tbody=document.getElementById('job-tbody');
-  if(!items.length){tbody.innerHTML='<tr><td colspan="8" class="text-center py-8 text-gray-400">目前沒有職缺資料</td></tr>';return;}
-  const GROUP_ORDER=['WBU','ICC','新華／新竹','安規','行政','其他'];
-  const groups={};
-  GROUP_ORDER.forEach(g=>groups[g]=[]);
-  items.forEach(j=>{
-    const g=getJobGroup(j.dept);
-    (groups[g]=groups[g]||[]).push(j);
-  });
-  let html='';
-  GROUP_ORDER.forEach(groupName=>{
-    const list=groups[groupName];
-    if(!list||!list.length)return;
-    html+=`<tr><td colspan="8" style="padding:8px 24px 6px;background:rgba(22,58,99,0.05);border-top:1px solid rgba(22,58,99,0.12);border-bottom:1px solid rgba(22,58,99,0.08)"><span style="font-size:11px;font-weight:700;color:#163a63;letter-spacing:0.06em;text-transform:uppercase">${groupName}</span></td></tr>`;
-    list.forEach(j=>{
-      const subDept=getJobSubDept(j.dept);
-      const urgencyDots='●'.repeat(Math.min(j.urgency||3,5))+'○'.repeat(Math.max(0,5-(j.urgency||3)));
-      html+=`<tr>
-        <td class="text-gray-500 text-[12px]">${subDept}</td>
-        <td class="font-semibold text-gray-900">${j.pos}</td>
-        <td class="text-center">${j.headcount>=999?'數名':j.headcount||'--'}</td>
-        <td class="text-center">${j.filled||0}</td>
-        <td>${j.open||'--'}</td>
-        <td>${j.target||'--'}</td>
-        <td class="text-center text-[10px] tracking-tighter text-amber-500">${urgencyDots}</td>
-        <td>${getBadge(j.status)}</td>
-      </tr>`;
-    });
-  });
-  tbody.innerHTML=html;
+  // jobsEditor.js replaces this bridge renderer with the authoritative 104 priority board.
 }
 
 // ============================================================
@@ -2958,9 +2909,17 @@ function renderGlobalSearch(){
     const hay = [c.name,c.pos,c.dept,c.hr,c.note,c.source].join(' ').toLowerCase();
     if (hay.includes(q)) rows.push({ type: '候選人', title: c.name, sub: `${c.pos||'--'} · ${c.dept||'--'}`, action: `openDrawer('${jsArg(c.name)}')` });
   }
-  for (const j of jobsData) {
-    const hay = [j.pos,j.dept,j.status,j.urgency].join(' ').toLowerCase();
-    if (hay.includes(q)) rows.push({ type: '職缺', title: j.pos, sub: `${j.dept||'--'} · ${j.status||'--'}`, action: `showJobWorkspace('jobs')` });
+  for (const j of external104Jobs.filter(job => String(job?.status || '').toLowerCase() === 'open')) {
+    const externalId = String(j.externalId || '');
+    const title = String(j.title || '').trim();
+    const priorityLevel = [1,2,3].includes(Number(j.priorityLevel)) ? Number(j.priorityLevel) : 2;
+    const hay = [title,externalId,`p${priorityLevel}`,'104','刊登中'].join(' ').toLowerCase();
+    if (title && hay.includes(q)) rows.push({
+      type: '104 職缺',
+      title,
+      sub: `P${priorityLevel} · 104 刊登中`,
+      action: `(window.hrJobsEditor?.focusJob('${jsArg(externalId)}')||showJobWorkspace('jobs'))`,
+    });
   }
 
   box.innerHTML = rows.slice(0, 8).length ? rows.slice(0, 8).map(row => `
@@ -3130,7 +3089,7 @@ if (location.hash) {
   }
 }
 </script>
-<script type="module" src="js/jobsEditor.js?v=16"></script>
-<script type="module" src="js/talentSearchNavigator.js?v=7"></script>
+<script type="module" src="js/jobsEditor.js?v=17"></script>
+<script type="module" src="js/talentSearchNavigator.js?v=8"></script>
 </body>
 </html>

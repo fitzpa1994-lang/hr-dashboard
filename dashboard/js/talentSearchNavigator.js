@@ -466,7 +466,7 @@ function renderDetail() {
   const internal = job.internalJob;
   const internalSummary = internal
     ? `${internal.dept || '--'} · 內部缺額 ${internal.displayOpenSlots} · 候選人 ${internal.candidateCount}`
-    : '尚未連結職缺管理；請先回職缺總覽完成配對';
+    : '104 刊登中 · 搜尋條件會依此職缺獨立保存';
   detail.innerHTML = `
     <div class="talent-nav-detail-head">
       <div class="talent-nav-detail-title">
@@ -475,7 +475,7 @@ function renderDetail() {
         <p>104 職缺 #${escapeHtml(job.externalId || '--')} · ${profiles.length} 組搜尋方案<br>${escapeHtml(internalSummary)}</p>
       </div>
       <div class="talent-nav-detail-actions">
-        <button type="button" class="talent-secondary-button" data-action="open-job-overview"><i data-lucide="table-properties"></i>職缺總覽</button>
+        <button type="button" class="talent-secondary-button" data-action="open-job-overview"><i data-lucide="list-ordered"></i>優先順序</button>
         <button type="button" class="talent-primary-button" data-action="add-profile"><i data-lucide="plus"></i>新增搜尋方案</button>
       </div>
     </div>
@@ -556,6 +556,11 @@ function renderSyncStatus() {
 
 function startManualSync() {
   if (state.syncInProgress) return;
+  if (window.hrJobsEditor?.isSaving?.()) {
+    state.syncError = '職缺優先順序正在儲存，請稍候再同步 104。';
+    renderSyncStatus();
+    return;
+  }
   if (state.extensionDetected && !state.extensionReady) {
     state.syncError = `104 同步掛件不支援契約 v${SYNC_104_CONTRACT_VERSION}，請重新載入目前專案內的掛件。`;
     renderSyncStatus();

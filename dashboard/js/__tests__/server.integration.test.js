@@ -35,6 +35,12 @@ async function startMockN8n() {
     }
     if (req.url.includes('/webhook/hr-dashboard-write')) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
+      if (requests.at(-1).body?.action === 'update_104_job_priorities') {
+        return res.end(JSON.stringify({
+          ok: true,
+          priorityUpdate: { updated: requests.at(-1).body.jobs.length }
+        }));
+      }
       return res.end(JSON.stringify({
         ok: true,
         action: requests.at(-1).body?.action || null,
@@ -261,7 +267,7 @@ describe('dashboard server auth flow', () => {
     expect(await bad.json()).toEqual({ error: 'department is required' });
   });
 
-  test('protects 104 sync and link APIs without a session', async () => {
+  test('protects 104 sync, link, and priority APIs without a session', async () => {
     const sync = await fetch(`${baseUrl}/api/job-requisitions/sync-104`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -288,6 +294,16 @@ describe('dashboard server auth flow', () => {
     });
     expect(link.status).toBe(401);
     expect(await link.json()).toEqual({ error: 'Unauthorized' });
+
+    const priorities = await fetch(`${baseUrl}/api/job-requisition-sources/104/priorities`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobs: [{ externalId: '123456', priorityLevel: 1, displayOrder: 0 }]
+      })
+    });
+    expect(priorities.status).toBe(401);
+    expect(await priorities.json()).toEqual({ error: 'Unauthorized' });
     expect(mock.requests.filter(request => request.url.includes('/webhook/hr-dashboard-write'))).toHaveLength(0);
   });
 
@@ -497,6 +513,72 @@ describe('dashboard server auth flow', () => {
     });
     expect(linkRequests[0].url).toContain('token=test-token');
     expect(linkRequests[1].body.jobRequisitionId).toBeNull();
+  });
+
+  test('validates and forwards a complete 104 priority order', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+    const jobs = [
+      { externalId: '123456', priorityLevel: 1, displayOrder: 0 },
+      { externalId: '123457', priorityLevel: 3, displayOrder: 1 }
+    ];
+
+    const response = await fetch(`${baseUrl}/api/job-requisition-sources/104/priorities`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ jobs })
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, priorityUpdate: { updated: 2 } });
+    expect(mock.requests.find(request => request.body?.action === 'update_104_job_priorities')).toMatchObject({
+      method: 'POST',
+      authorization: 'Bearer test-token',
+      body: { action: 'update_104_job_priorities', jobs }
+    });
+  });
+
+  test('rejects malformed, duplicate, oversized, or out-of-range 104 priority orders', async () => {
+    const login = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'correct-password' })
+    });
+    const cookie = login.headers.get('set-cookie');
+    const valid = { externalId: '123456', priorityLevel: 2, displayOrder: 0 };
+    const invalidPayloads = [
+      {},
+      { jobs: [null] },
+      { jobs: [{ ...valid, externalId: 123456 }] },
+      { jobs: [{ ...valid, externalId: 'abc' }] },
+      { jobs: [{ ...valid, priorityLevel: 0 }] },
+      { jobs: [{ ...valid, priorityLevel: 4 }] },
+      { jobs: [{ ...valid, displayOrder: -1 }] },
+      { jobs: [{ ...valid, displayOrder: 2_147_483_648 }] },
+      { jobs: [valid, { ...valid }] },
+      {
+        jobs: Array.from({ length: 501 }, (_, index) => ({
+          externalId: String(index + 1),
+          priorityLevel: 2,
+          displayOrder: index
+        }))
+      }
+    ];
+
+    for (const payload of invalidPayloads) {
+      const response = await fetch(`${baseUrl}/api/job-requisition-sources/104/priorities`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify(payload)
+      });
+      expect(response.status).toBe(400);
+    }
+
+    expect(mock.requests.filter(request => request.body?.action === 'update_104_job_priorities')).toHaveLength(0);
   });
 
   test('returns 504 when dashboard upstream times out', async () => {
