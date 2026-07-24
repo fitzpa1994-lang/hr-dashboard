@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-21T06:14:50.529Z",
+  "updatedAt": "2026-07-23T02:45:33.138Z",
   "createdAt": "2026-05-21T08:03:05.655Z",
   "id": "x4Olor5YtMfthzWp",
   "name": "HR Dashboard API",
@@ -218,8 +218,8 @@
   "staticData": {},
   "meta": null,
   "pinData": {},
-  "versionId": "d137abd0-a291-4ae2-a87e-5f037d157558",
-  "activeVersionId": "d137abd0-a291-4ae2-a87e-5f037d157558",
+  "versionId": "2af2e2c6-cf7a-4fd5-a0a6-f317a734f7fc",
+  "activeVersionId": "2af2e2c6-cf7a-4fd5-a0a6-f317a734f7fc",
   "triggerCount": 1,
   "shared": [
     {
@@ -249,9 +249,9 @@
     }
   ],
   "activeVersion": {
-    "updatedAt": "2026-07-21T06:14:50.530Z",
-    "createdAt": "2026-07-21T06:14:50.530Z",
-    "versionId": "d137abd0-a291-4ae2-a87e-5f037d157558",
+    "updatedAt": "2026-07-23T02:45:33.140Z",
+    "createdAt": "2026-07-23T02:45:33.140Z",
+    "versionId": "2af2e2c6-cf7a-4fd5-a0a6-f317a734f7fc",
     "workflowId": "x4Olor5YtMfthzWp",
     "nodes": [
       {
@@ -464,18 +464,18 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-07-21T06:14:50.557Z",
-        "id": 571,
+        "createdAt": "2026-07-23T02:45:33.162Z",
+        "id": 598,
         "workflowId": "x4Olor5YtMfthzWp",
-        "versionId": "d137abd0-a291-4ae2-a87e-5f037d157558",
+        "versionId": "2af2e2c6-cf7a-4fd5-a0a6-f317a734f7fc",
         "event": "deactivated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       },
       {
-        "createdAt": "2026-07-21T06:14:50.567Z",
-        "id": 572,
+        "createdAt": "2026-07-23T02:45:33.173Z",
+        "id": 599,
         "workflowId": "x4Olor5YtMfthzWp",
-        "versionId": "d137abd0-a291-4ae2-a87e-5f037d157558",
+        "versionId": "2af2e2c6-cf7a-4fd5-a0a6-f317a734f7fc",
         "event": "activated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       }

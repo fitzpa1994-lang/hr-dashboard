@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-20T07:41:19.809Z",
+  "updatedAt": "2026-07-23T09:02:23.412Z",
   "createdAt": "2026-05-29T07:20:05.307Z",
   "id": "3aaTC9KMPXTZ1tP6",
   "name": "HR Job Requisition Write",
@@ -202,8 +202,8 @@
   "staticData": {},
   "meta": null,
   "pinData": null,
-  "versionId": "902c8b4e-1260-437e-b56f-14d7973b224c",
-  "activeVersionId": "902c8b4e-1260-437e-b56f-14d7973b224c",
+  "versionId": "03da0e67-00ee-4e1c-9018-f0005b45ab7c",
+  "activeVersionId": "03da0e67-00ee-4e1c-9018-f0005b45ab7c",
   "triggerCount": 1,
   "shared": [
     {
@@ -226,9 +226,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-07-20T07:41:19.810Z",
-    "createdAt": "2026-07-20T07:41:19.810Z",
-    "versionId": "902c8b4e-1260-437e-b56f-14d7973b224c",
+    "updatedAt": "2026-07-23T09:02:23.413Z",
+    "createdAt": "2026-07-23T09:02:23.413Z",
+    "versionId": "03da0e67-00ee-4e1c-9018-f0005b45ab7c",
     "workflowId": "3aaTC9KMPXTZ1tP6",
     "nodes": [
       {
@@ -426,18 +426,18 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-07-20T07:41:19.831Z",
-        "id": 513,
+        "createdAt": "2026-07-23T09:02:23.440Z",
+        "id": 600,
         "workflowId": "3aaTC9KMPXTZ1tP6",
-        "versionId": "902c8b4e-1260-437e-b56f-14d7973b224c",
+        "versionId": "03da0e67-00ee-4e1c-9018-f0005b45ab7c",
         "event": "deactivated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       },
       {
-        "createdAt": "2026-07-20T07:41:19.841Z",
-        "id": 514,
+        "createdAt": "2026-07-23T09:02:23.454Z",
+        "id": 601,
         "workflowId": "3aaTC9KMPXTZ1tP6",
-        "versionId": "902c8b4e-1260-437e-b56f-14d7973b224c",
+        "versionId": "03da0e67-00ee-4e1c-9018-f0005b45ab7c",
         "event": "activated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       }

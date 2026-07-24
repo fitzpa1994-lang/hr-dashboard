@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-08T10:16:50.971Z",
+  "updatedAt": "2026-07-22T02:12:16.867Z",
   "createdAt": "2026-05-20T07:04:02.300Z",
   "id": "zEIwksk6hz9Ri8NA",
   "name": "HR Workflow：到職離職信件自動匯入 (純Regex + 分流防呆版)",
@@ -947,8 +947,8 @@
   "staticData": {},
   "meta": null,
   "pinData": {},
-  "versionId": "5317a612-9e19-4e46-be69-743338be2b84",
-  "activeVersionId": "5317a612-9e19-4e46-be69-743338be2b84",
+  "versionId": "1069c9a2-43ff-4981-963f-26ca22faaa99",
+  "activeVersionId": "1069c9a2-43ff-4981-963f-26ca22faaa99",
   "triggerCount": 4,
   "shared": [
     {
@@ -978,9 +978,9 @@
     }
   ],
   "activeVersion": {
-    "updatedAt": "2026-07-08T10:16:50.972Z",
-    "createdAt": "2026-07-08T10:16:50.972Z",
-    "versionId": "5317a612-9e19-4e46-be69-743338be2b84",
+    "updatedAt": "2026-07-22T02:12:16.868Z",
+    "createdAt": "2026-07-22T02:12:16.868Z",
+    "versionId": "1069c9a2-43ff-4981-963f-26ca22faaa99",
     "workflowId": "zEIwksk6hz9Ri8NA",
     "nodes": [
       {
@@ -1921,18 +1921,18 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-07-08T10:16:51.003Z",
-        "id": 374,
+        "createdAt": "2026-07-22T02:12:16.896Z",
+        "id": 583,
         "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "5317a612-9e19-4e46-be69-743338be2b84",
+        "versionId": "1069c9a2-43ff-4981-963f-26ca22faaa99",
         "event": "deactivated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       },
       {
-        "createdAt": "2026-07-08T10:16:51.496Z",
-        "id": 375,
+        "createdAt": "2026-07-22T02:12:17.392Z",
+        "id": 584,
         "workflowId": "zEIwksk6hz9Ri8NA",
-        "versionId": "5317a612-9e19-4e46-be69-743338be2b84",
+        "versionId": "1069c9a2-43ff-4981-963f-26ca22faaa99",
         "event": "activated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       }
