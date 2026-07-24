@@ -198,6 +198,16 @@ run('Job requisition write sync contract tests', 'node', [
   '--test-isolation=none',
   'scripts/__tests__/job_requisition_write_sync_contract.test.mjs'
 ]);
+run('Workflow1 candidate routing contract tests', 'node', [
+  '--test',
+  '--test-isolation=none',
+  'scripts/__tests__/workflow1_candidate_routing_contract.test.mjs'
+]);
+run('104 search capture tests', 'node', [
+  '--test',
+  '--test-isolation=none',
+  'scripts/__tests__/search_capture.test.mjs'
+]);
 run('Live requisition migration syntax check', 'node', ['--check', 'scripts/migrate_live_requisitions.mjs']);
 run('Zeabur env preparation syntax check', 'node', ['--check', 'scripts/prepare_zeabur_env.mjs']);
 run('Dashboard external jobs patch syntax check', 'node', ['--check', 'scripts/patch_dashboard_api_external104_jobs.mjs']);

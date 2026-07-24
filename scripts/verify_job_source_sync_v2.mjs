@@ -88,7 +88,7 @@ for (const [index, query] of writeQueries.entries()) {
   ]) {
     expect(countOccurrences(query, marker) === 1, `${label} must contain exactly one ${marker}`);
   }
-  expect(query.length > 20_000 && query.length < 26_000, `${label} has an unexpected SQL length: ${query.length}`);
+  expect(query.length > 20_000 && query.length < 28_000, `${label} has an unexpected SQL length: ${query.length}`);
   const externalIdRegexLines = query.split(/\r?\n/).filter(line => line.includes("external_id ~ '"));
   expect(externalIdRegexLines.length === 2, `${label} must validate external_id in sync and priority CTEs`);
   expect(

@@ -574,7 +574,7 @@
 
       <div class="sidebar-caption mt-5">分析設定</div>
       <div class="menu-item" data-nav-tab="analytics" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 分析報表</div>
-      <div class="menu-item"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
+      <div class="menu-item" data-nav-tab="settings" onclick="showTab('settings', this)"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
     </div>
     <div class="px-4 py-3 border-t border-white/10">
       <div class="text-white/60 text-[11px]">人資部 · 內部系統</div>
@@ -1037,6 +1037,13 @@
         </div>
       </div>
 
+      <!-- ===== TAB: 系統設定 ===== -->
+      <div id="tab-settings" class="page page-shell hidden">
+        <section id="routing-rules-board" aria-live="polite">
+          <div class="job-priority-loading">正在載入分類規則…</div>
+        </section>
+      </div>
+
     </div>
   </main>
 
@@ -1226,11 +1233,13 @@ let schedEvents = [], onboardData = [], resignData  = [], candidatesData = [], u
 let external104Sync = { hasSnapshot: false, source: '104', contractVersion: 2, sourceTotalCount: 0, publishedCount: 0, lastSyncAt: '' };
 let todayActivity = {}, deptMonthFilter = null;
 let lastGeneratedAt = null;
+let positionRoutingRules = [];
 window.hrDashboardBridge = {
   getJobs: () => jobsData,
   getExternal104Jobs: () => external104Jobs,
   getExternal104Sync: () => ({ ...external104Sync }),
   getExternal104LastSyncAt: () => String(external104Sync?.lastSyncAt || ''),
+  getRoutingRules: () => positionRoutingRules,
   setRenderJobs: fn => { renderJobs = fn; },
   getRenderJobs: () => renderJobs,
   reloadData: () => loadData(),
@@ -1753,6 +1762,7 @@ async function loadData() {
       ? { ...d.external104Sync }
       : { hasSnapshot: false, source: '104', contractVersion: 2, sourceTotalCount: 0, publishedCount: 0, lastSyncAt: '' };
     monthlyTrend = d.monthlyTrend || [];
+    positionRoutingRules = Array.isArray(d.positionRoutingRules) ? d.positionRoutingRules : [];
     window._monthlyFunnelByDepartment = d.monthlyFunnelByDepartment || [];
     window._monthlyFunnelByJob = d.monthlyFunnelByJob || [];
     departmentStats = d.departmentStats || [];
@@ -2990,7 +3000,7 @@ function showTab(name, btn){
   const activeNav = btn || document.querySelector(`[data-nav-tab="${navName}"]`);
   if (activeNav) activeNav.classList.add('active');
 
-  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', 'talent-search':'職缺管理', 'requisitions':'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
+  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', 'talent-search':'職缺管理', 'requisitions':'職缺管理', candidates:'候選人資料', analytics:'分析報表', settings:'系統設定'};
   document.getElementById('page-title').textContent = titleMap[name] || '';
 
   document.querySelectorAll('[data-job-workspace-target]').forEach(button => {
@@ -3004,6 +3014,7 @@ function showTab(name, btn){
   if(name==='schedule') setTimeout(schedGoToday, 30);
   if(name==='talent-search') setTimeout(() => window.talentSearchNavigator?.render(), 0);
   if(name==='requisitions') setTimeout(() => window.hrRequisitionsEditor?.render(), 0);
+  if(name==='settings') setTimeout(() => window.hrRoutingRulesEditor?.render(), 0);
   if (location.hash !== '#'+name) history.replaceState(null,'','#'+name);
 }
 
@@ -3163,7 +3174,7 @@ document.getElementById('global-search').addEventListener('input', renderGlobalS
 loadData();
 if (location.hash) {
   const initial = location.hash.replace('#','');
-  const knownTabs = new Set(['overview', 'schedule', 'candidates', 'jobs', 'talent-search', 'requisitions', 'hr-events', 'analytics']);
+  const knownTabs = new Set(['overview', 'schedule', 'candidates', 'jobs', 'talent-search', 'requisitions', 'hr-events', 'analytics', 'settings']);
   if (knownTabs.has(initial)) {
     if (initial === 'jobs' || initial === 'talent-search' || initial === 'requisitions') showJobWorkspace(initial);
     else showTab(initial);
@@ -3173,5 +3184,6 @@ if (location.hash) {
 <script type="module" src="js/jobsEditor.js?v=17"></script>
 <script type="module" src="js/talentSearchNavigator.js?v=8"></script>
 <script type="module" src="js/requisitionsEditor.js?v=1"></script>
+<script type="module" src="js/routingRulesEditor.js?v=1"></script>
 </body>
 </html>

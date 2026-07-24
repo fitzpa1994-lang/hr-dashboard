@@ -81,6 +81,11 @@ const payload = {
     { job_requisition_id: 1, department: 'ICC', position_title: '資深軟體工程師', month: '2026-05', recommend: 8, interview: 4 },
     { job_requisition_id: 2, department: '行政', position_title: '行政專員', month: '2026-05', recommend: 2, interview: 2 }
   ],
+  positionRoutingRules: [
+    { id: 901, matchType: 'recipient_email', pattern: 'viclee@sporton.com.tw', jobRequisitionId: 3, departmentHint: null, priority: 1, isActive: true, notes: '既有硬寫規則搬過來的（範例）' },
+    { id: 902, matchType: 'department_keyword', pattern: 'SAR', jobRequisitionId: 4, departmentHint: null, priority: 5, isActive: true, notes: 'RF/SAR 用部門關鍵字分流' },
+    { id: 903, matchType: 'position_keyword', pattern: '總務', jobRequisitionId: null, departmentHint: '行政', priority: 10, isActive: false, notes: '示範停用中的規則' }
+  ],
   stats: {
     activeCount: 4,
     offerCount: 1,
@@ -158,6 +163,29 @@ const server = http.createServer(async (req, res) => {
     if (!item) return sendJson(res, 404, { ok: false, error: 'not found' });
     item.jobRequisitionId = parsed.jobRequisitionId ?? null;
     return sendJson(res, 200, { ok: true, external104Job: { ...item } });
+  }
+  const routingRuleMatch = url.pathname.match(/^\/api\/routing-rules(?:\/(\d+))?$/);
+  if ((req.method === 'POST' || req.method === 'PATCH') && routingRuleMatch) {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const parsed = body ? JSON.parse(body) : {};
+    if (req.method === 'PATCH') {
+      const id = Number(routingRuleMatch[1]);
+      const item = payload.positionRoutingRules.find(r => r.id === id);
+      if (!item) return sendJson(res, 404, { ok: false, error: 'not found' });
+      Object.assign(item, {
+        matchType: parsed.matchType, pattern: parsed.pattern, jobRequisitionId: parsed.jobRequisitionId ?? null,
+        departmentHint: parsed.departmentHint ?? null, priority: parsed.priority, isActive: parsed.isActive !== false, notes: parsed.notes || '',
+      });
+      return sendJson(res, 200, { ok: true, routingRule: { ...item } });
+    }
+    const id = Math.max(0, ...payload.positionRoutingRules.map(r => r.id)) + 1;
+    const created = {
+      id, matchType: parsed.matchType, pattern: parsed.pattern, jobRequisitionId: parsed.jobRequisitionId ?? null,
+      departmentHint: parsed.departmentHint ?? null, priority: parsed.priority, isActive: parsed.isActive !== false, notes: parsed.notes || '',
+    };
+    payload.positionRoutingRules.push(created);
+    return sendJson(res, 200, { ok: true, routingRule: created });
   }
   if (url.pathname.startsWith('/js/')) {
     const filePath = path.join(ROOT, 'dashboard', url.pathname);

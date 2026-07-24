@@ -103,7 +103,7 @@ test('104 priority updates are atomic, bounded, and return the stable response c
     ]) {
       assert.equal(countOccurrences(query, marker), 1, `${marker} must occur exactly once`);
     }
-    assert.ok(query.length > 20_000 && query.length < 26_000, `unexpected write SQL length: ${query.length}`);
+    assert.ok(query.length > 20_000 && query.length < 28_000, `unexpected write SQL length: ${query.length}`);
     const externalIdRegexLines = query.split('\n').filter(line => line.includes("external_id ~ '"));
     assert.equal(externalIdRegexLines.length, 2);
     assert.ok(externalIdRegexLines.every(line => line.trimEnd().endsWith("$'")), 'external id regex must be complete');

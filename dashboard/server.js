@@ -230,6 +230,51 @@ function normalizeJobRequisitionPayload(body, { requireId = false } = {}) {
   };
 }
 
+function normalizeRoutingRulePayload(body, { requireId = false } = {}) {
+  const matchType = String(body.matchType || '').trim();
+  const pattern = String(body.pattern || '').trim();
+  const jobRequisitionId = body.jobRequisitionId == null || body.jobRequisitionId === '' ? null : Number(body.jobRequisitionId);
+  const departmentHint = body.departmentHint == null ? '' : String(body.departmentHint).trim();
+  const rawPriority = body.priority == null || body.priority === '' ? 10 : Number(body.priority);
+  const isActive = body.isActive !== false;
+  const notes = body.notes == null ? '' : String(body.notes);
+  const allowedMatchTypes = new Set(['recipient_email', 'position_keyword', 'department_keyword']);
+
+  if (requireId) {
+    const id = Number(body.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return { error: 'id must be a positive integer' };
+    }
+  }
+
+  if (!allowedMatchTypes.has(matchType)) {
+    return { error: 'matchType must be one of recipient_email, position_keyword, department_keyword' };
+  }
+  if (!pattern) return { error: 'pattern is required' };
+  if (jobRequisitionId !== null && (!Number.isInteger(jobRequisitionId) || jobRequisitionId <= 0)) {
+    return { error: 'jobRequisitionId must be a positive integer or null' };
+  }
+  if (jobRequisitionId === null && !departmentHint) {
+    return { error: 'either jobRequisitionId or departmentHint is required' };
+  }
+  if (!Number.isInteger(rawPriority)) {
+    return { error: 'priority must be an integer' };
+  }
+
+  return {
+    value: {
+      ...(requireId ? { id: Number(body.id) } : {}),
+      matchType,
+      pattern,
+      jobRequisitionId,
+      departmentHint: departmentHint || null,
+      priority: rawPriority,
+      isActive,
+      notes
+    }
+  };
+}
+
 function normalize104SyncPayload(body) {
   const envelope = validateComplete104SyncPayload(body);
   if (!envelope.ok) return { error: envelope.error };
@@ -724,6 +769,47 @@ async function proxyJobRequisitionWrite(req, res, action, id = null) {
   }
 }
 
+async function proxyRoutingRuleWrite(req, res, action, id = null) {
+  if (!getSession(req)) return sendJson(res, 401, { error: 'Unauthorized' });
+  if (!writeEnvReady()) return sendJson(res, 500, { error: 'Routing rule write API is not configured' });
+
+  const body = await readBody(req);
+  const normalized = normalizeRoutingRulePayload({ ...body, ...(id ? { id } : {}) }, { requireId: action === 'update_routing_rule' });
+  if (normalized.error) return sendJson(res, 400, { error: normalized.error });
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), getProxyTimeoutMs());
+  try {
+    const upstream = await fetch(buildWebhookUrl(N8N_WRITE_WEBHOOK_URL), {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${N8N_TOKEN}`
+      },
+      body: JSON.stringify({
+        action,
+        routingRule: normalized.value
+      })
+    });
+    const text = await upstream.text();
+    res.writeHead(upstream.status, {
+      'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
+    res.end(text);
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      return sendJson(res, 504, { error: 'Routing rule upstream timed out' });
+    }
+    console.error(error);
+    return sendJson(res, 502, { error: 'Routing rule upstream unavailable' });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function forward104JobWrite(res, payload) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), getProxyTimeoutMs());
@@ -942,6 +1028,15 @@ export const server = http.createServer(async (req, res) => {
 
     if (req.method === 'PATCH' && match?.[1]) {
       return proxyJobRequisitionWrite(req, res, 'update', Number(match[1]));
+    }
+
+    const routingRuleMatch = url.pathname.match(/^\/api\/routing-rules(?:\/(\d+))?$/);
+    if (req.method === 'POST' && url.pathname === '/api/routing-rules') {
+      return proxyRoutingRuleWrite(req, res, 'create_routing_rule');
+    }
+
+    if (req.method === 'PATCH' && routingRuleMatch?.[1]) {
+      return proxyRoutingRuleWrite(req, res, 'update_routing_rule', Number(routingRuleMatch[1]));
     }
 
     const candidateMatch = url.pathname.match(/^\/api\/candidates\/(\d+)$/);
