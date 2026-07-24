@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-22T09:21:49.559Z",
+  "updatedAt": "2026-07-24T07:11:37.989Z",
   "createdAt": "2026-05-15T10:08:31.212Z",
   "id": "pqnpr72wTiOE2m8I",
   "name": "HR Workflow 1：面試信件解析",
@@ -468,8 +468,8 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "c82d7540-6310-4b44-b9ca-07a5f9747aad",
-  "activeVersionId": "c82d7540-6310-4b44-b9ca-07a5f9747aad",
+  "versionId": "8126aa7e-4ffa-45b0-80ba-0ac684d65712",
+  "activeVersionId": "8126aa7e-4ffa-45b0-80ba-0ac684d65712",
   "triggerCount": 1,
   "shared": [
     {
@@ -499,9 +499,9 @@
     }
   ],
   "activeVersion": {
-    "updatedAt": "2026-07-22T09:21:49.561Z",
-    "createdAt": "2026-07-22T09:21:49.561Z",
-    "versionId": "c82d7540-6310-4b44-b9ca-07a5f9747aad",
+    "updatedAt": "2026-07-24T07:11:37.991Z",
+    "createdAt": "2026-07-24T07:11:37.991Z",
+    "versionId": "8126aa7e-4ffa-45b0-80ba-0ac684d65712",
     "workflowId": "pqnpr72wTiOE2m8I",
     "nodes": [
       {
@@ -961,18 +961,18 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-07-22T09:21:49.589Z",
-        "id": 589,
+        "createdAt": "2026-07-24T07:11:38.039Z",
+        "id": 606,
         "workflowId": "pqnpr72wTiOE2m8I",
-        "versionId": "c82d7540-6310-4b44-b9ca-07a5f9747aad",
+        "versionId": "8126aa7e-4ffa-45b0-80ba-0ac684d65712",
         "event": "deactivated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       },
       {
-        "createdAt": "2026-07-22T09:21:49.925Z",
-        "id": 590,
+        "createdAt": "2026-07-24T07:11:38.411Z",
+        "id": 607,
         "workflowId": "pqnpr72wTiOE2m8I",
-        "versionId": "c82d7540-6310-4b44-b9ca-07a5f9747aad",
+        "versionId": "8126aa7e-4ffa-45b0-80ba-0ac684d65712",
         "event": "activated",
         "userId": "8daad596-e268-45a9-8bb8-f1065a906fc6"
       }
