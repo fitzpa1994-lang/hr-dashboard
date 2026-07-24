@@ -13,6 +13,7 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     formId: null,
     form: { department: '', positionTitle: '', headcount: 1, status: 'open', urgency: 3, notes: '' },
     linkSelection: {},
+    showCancelled: false,
   };
 
   const STATUS_META = {
@@ -264,7 +265,12 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
     if (!container) return;
 
     const reconciliation = getReconciliation();
-    const requisitionOptions = reconciliation.internalRows.map(row => ({ id: row.id, dept: row.dept || '--', pos: row.pos || '--' }));
+    const cancelledRows = reconciliation.internalRows.filter(row => row.status === 'cancelled');
+    const visibleRows = state.showCancelled ? reconciliation.internalRows : reconciliation.internalRows.filter(row => row.status !== 'cancelled');
+    // Never suggest linking a live 104 posting to a cancelled/retired internal requisition.
+    const requisitionOptions = reconciliation.internalRows
+      .filter(row => row.status !== 'cancelled')
+      .map(row => ({ id: row.id, dept: row.dept || '--', pos: row.pos || '--' }));
     const openExternal = reconciliation.unmatchedExternal.filter(job => job.status === 'open');
 
     container.innerHTML = `
@@ -279,10 +285,13 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
         ${state.error ? `<div class="mb-4 rounded border border-red-200 bg-red-50 text-red-600 text-xs px-3 py-2">${escapeHtml(state.error)}</div>` : ''}
         ${state.message && !state.error ? `<div class="mb-4 rounded border border-green-200 bg-green-50 text-green-700 text-xs px-3 py-2">${escapeHtml(state.message)}</div>` : ''}
         ${renderForm()}
+        <label class="flex items-center gap-1.5 text-[11px] text-gray-500 mb-2 cursor-pointer w-fit">
+          <input type="checkbox" data-action="toggle-cancelled"${state.showCancelled ? ' checked' : ''}> 顯示已取消的職缺（${cancelledRows.length} 筆）
+        </label>
         <div class="overflow-x-auto">
           <table class="w-full tbl-compact">
             <thead><tr><th>部門</th><th>職稱</th><th>錄取/名額</th><th>狀態</th><th>對帳狀態</th><th>已連結104職缺</th><th>建議連結</th><th></th></tr></thead>
-            <tbody>${reconciliation.internalRows.length ? reconciliation.internalRows.map(renderInternalRow).join('') : '<tr><td colspan="8" class="text-center py-6 text-gray-400">尚無職缺，點右上角新增</td></tr>'}</tbody>
+            <tbody>${visibleRows.length ? visibleRows.map(renderInternalRow).join('') : '<tr><td colspan="8" class="text-center py-6 text-gray-400">尚無職缺，點右上角新增</td></tr>'}</tbody>
           </table>
         </div>
       </div>
@@ -324,7 +333,9 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
 
   requisitionsTab?.addEventListener('change', event => {
     const select = event.target.closest('[data-action="select-link-target"]');
-    if (select) state.linkSelection[select.getAttribute('data-external-id')] = select.value;
+    if (select) { state.linkSelection[select.getAttribute('data-external-id')] = select.value; return; }
+    const toggle = event.target.closest('[data-action="toggle-cancelled"]');
+    if (toggle) { state.showCancelled = toggle.checked; render(); }
   });
 
   requisitionsTab?.addEventListener('submit', event => {
