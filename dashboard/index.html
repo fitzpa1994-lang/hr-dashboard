@@ -830,6 +830,9 @@
           <button type="button" data-job-workspace-target="talent-search" onclick="showJobWorkspace('talent-search')">
             <i data-lucide="route" aria-hidden="true"></i><span>104 搜尋策略</span>
           </button>
+          <button type="button" data-job-workspace-target="requisitions" onclick="showJobWorkspace('requisitions')">
+            <i data-lucide="clipboard-list" aria-hidden="true"></i><span>職缺總覽</span>
+          </button>
         </nav>
         <section id="job-priority-board" class="job-priority-board" aria-live="polite">
           <div class="job-priority-loading">正在載入 104 刊登中職缺…</div>
@@ -844,6 +847,9 @@
           </button>
           <button type="button" class="is-active" data-job-workspace-target="talent-search" onclick="showJobWorkspace('talent-search')">
             <i data-lucide="route" aria-hidden="true"></i><span>104 搜尋策略</span>
+          </button>
+          <button type="button" data-job-workspace-target="requisitions" onclick="showJobWorkspace('requisitions')">
+            <i data-lucide="clipboard-list" aria-hidden="true"></i><span>職缺總覽</span>
           </button>
         </nav>
         <section class="talent-nav-intro" aria-labelledby="talent-nav-heading">
@@ -960,6 +966,24 @@
         </div>
 
         <div id="talent-copy-toast" class="talent-copy-toast" role="status" aria-live="polite"></div>
+      </div>
+
+      <!-- ===== TAB: 職缺總覽 ===== -->
+      <div id="tab-requisitions" class="page page-shell hidden">
+        <nav class="job-workspace-switch" aria-label="職缺管理檢視">
+          <button type="button" data-job-workspace-target="jobs" onclick="showJobWorkspace('jobs')">
+            <i data-lucide="list-ordered" aria-hidden="true"></i><span>優先順序</span>
+          </button>
+          <button type="button" data-job-workspace-target="talent-search" onclick="showJobWorkspace('talent-search')">
+            <i data-lucide="route" aria-hidden="true"></i><span>104 搜尋策略</span>
+          </button>
+          <button type="button" class="is-active" data-job-workspace-target="requisitions" onclick="showJobWorkspace('requisitions')">
+            <i data-lucide="clipboard-list" aria-hidden="true"></i><span>職缺總覽</span>
+          </button>
+        </nav>
+        <section id="requisitions-board" aria-live="polite">
+          <div class="job-priority-loading">正在載入職缺資料…</div>
+        </section>
       </div>
 
       <!-- ===== TAB: 候選人資料 ===== -->
@@ -2961,11 +2985,12 @@ function showTab(name, btn){
   
   document.getElementById('tab-'+name).classList.remove('hidden');
   document.getElementById('tab-'+name).classList.add('block');
-  const navName = name === 'talent-search' ? 'jobs' : name;
+  const jobWorkspaceSubviews = ['talent-search', 'requisitions'];
+  const navName = jobWorkspaceSubviews.includes(name) ? 'jobs' : name;
   const activeNav = btn || document.querySelector(`[data-nav-tab="${navName}"]`);
   if (activeNav) activeNav.classList.add('active');
-  
-  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', 'talent-search':'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
+
+  const titleMap = {overview:'招募總覽', schedule:'面試排程', 'hr-events':'到職／離職作業', jobs:'職缺管理', 'talent-search':'職缺管理', 'requisitions':'職缺管理', candidates:'候選人資料', analytics:'分析報表'};
   document.getElementById('page-title').textContent = titleMap[name] || '';
 
   document.querySelectorAll('[data-job-workspace-target]').forEach(button => {
@@ -2978,11 +3003,12 @@ function showTab(name, btn){
   if(name==='analytics') setTimeout(renderMonthlyFunnel, 50);
   if(name==='schedule') setTimeout(schedGoToday, 30);
   if(name==='talent-search') setTimeout(() => window.talentSearchNavigator?.render(), 0);
+  if(name==='requisitions') setTimeout(() => window.hrRequisitionsEditor?.render(), 0);
   if (location.hash !== '#'+name) history.replaceState(null,'','#'+name);
 }
 
 function showJobWorkspace(name = 'jobs') {
-  const target = name === 'talent-search' ? 'talent-search' : 'jobs';
+  const target = ['jobs', 'talent-search', 'requisitions'].includes(name) ? name : 'jobs';
   showTab(target);
 }
 window.showJobWorkspace = showJobWorkspace;
@@ -3137,14 +3163,15 @@ document.getElementById('global-search').addEventListener('input', renderGlobalS
 loadData();
 if (location.hash) {
   const initial = location.hash.replace('#','');
-  const knownTabs = new Set(['overview', 'schedule', 'candidates', 'jobs', 'talent-search', 'hr-events', 'analytics']);
+  const knownTabs = new Set(['overview', 'schedule', 'candidates', 'jobs', 'talent-search', 'requisitions', 'hr-events', 'analytics']);
   if (knownTabs.has(initial)) {
-    if (initial === 'jobs' || initial === 'talent-search') showJobWorkspace(initial);
+    if (initial === 'jobs' || initial === 'talent-search' || initial === 'requisitions') showJobWorkspace(initial);
     else showTab(initial);
   }
 }
 </script>
 <script type="module" src="js/jobsEditor.js?v=17"></script>
 <script type="module" src="js/talentSearchNavigator.js?v=8"></script>
+<script type="module" src="js/requisitionsEditor.js?v=1"></script>
 </body>
 </html>

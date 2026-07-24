@@ -43,13 +43,18 @@ const payload = {
   ],
   jobsData: [
     { id: 1, pos: '資深軟體工程師', dept: 'IT', open: '2026-05-01', target: '2026-06-15', headcount: 2, filled: 0, cands: 4, hired: 0, urgency: 5, status: 'open', note: '' },
-    { id: 2, pos: '行政專員', dept: '行政 / 人資部', open: '2026-05-03', target: '2026-06-20', headcount: 0, filled: 1, cands: 2, hired: 1, urgency: 2, status: 'filled', note: '已補滿，等待 104 下架確認。' }
+    { id: 2, pos: '行政專員', dept: '行政 / 人資部', open: '2026-05-03', target: '2026-06-20', headcount: 0, filled: 1, cands: 2, hired: 1, urgency: 2, status: 'filled', note: '已補滿，等待 104 下架確認。' },
+    { id: 3, pos: '測試工程師', dept: 'WBU / RF工程一部', open: '2026-06-01', target: '2026-07-15', headcount: 2, filled: 0, cands: 0, hired: 0, urgency: 4, status: 'open', note: '' },
+    { id: 4, pos: '測試工程師', dept: 'WBU / SAR工程部', open: '2026-06-01', target: '2026-07-15', headcount: 2, filled: 1, cands: 1, hired: 1, urgency: 4, status: 'open', note: '' },
+    { id: 5, pos: '資深後端工程師', dept: 'ICC / 工程部', open: '2026-06-10', target: '2026-07-20', headcount: 1, filled: 0, cands: 0, hired: 0, urgency: 3, status: 'open', note: '' }
   ],
-  external104Sync: { hasSnapshot: true, source: '104', contractVersion: 2, sourceTotalCount: 3, publishedCount: 3, lastSyncAt: '2026-07-20T03:30:00Z' },
+  external104Sync: { hasSnapshot: true, source: '104', contractVersion: 2, sourceTotalCount: 5, publishedCount: 5, lastSyncAt: '2026-07-20T03:30:00Z' },
   external104Jobs: [
     { externalId: '123456', jobRequisitionId: 1, title: '資深軟體工程師（台北）', url: 'https://vip.104.com.tw/job/jobmaster?jobno=123456', updatedDate: '07/20', status: 'open', firstSeenAt: '2026-07-20T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' },
     { externalId: '654321', jobRequisitionId: null, title: 'RF 測試工程師', url: 'https://vip.104.com.tw/job/jobmaster?jobno=654321', updatedDate: '07/19', status: 'open', firstSeenAt: '2026-07-20T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' },
-    { externalId: '777777', jobRequisitionId: 2, title: '行政專員', url: 'https://vip.104.com.tw/job/jobmaster?jobno=777777', updatedDate: '07/18', status: 'open', firstSeenAt: '2026-07-20T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' }
+    { externalId: '777777', jobRequisitionId: 2, title: '行政專員', url: 'https://vip.104.com.tw/job/jobmaster?jobno=777777', updatedDate: '07/18', status: 'open', firstSeenAt: '2026-07-20T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' },
+    { externalId: '888888', jobRequisitionId: null, title: 'RF/SAR測試工程師（新北）', url: 'https://vip.104.com.tw/job/jobmaster?jobno=888888', updatedDate: '07/17', status: 'open', firstSeenAt: '2026-07-17T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' },
+    { externalId: '999999', jobRequisitionId: null, title: '資深後端工程師', url: 'https://vip.104.com.tw/job/jobmaster?jobno=999999', updatedDate: '07/16', status: 'open', firstSeenAt: '2026-07-16T02:00:00Z', lastSeenAt: '2026-07-20T03:30:00Z', lastSyncedAt: '2026-07-20T03:30:00Z' }
   ],
   monthlyTrend: [
     { month: '2026-03', interviews: 8, offers: 2, onboarded: 1 },
@@ -121,6 +126,51 @@ const server = http.createServer(async (req, res) => {
     if (item && parsed.department) item.dept = parsed.department;
     if (item && parsed.status) item.status = parsed.status;
     return sendJson(res, 200, { ok: true });
+  }
+  const requisitionMatch = url.pathname.match(/^\/api\/job-requisitions(?:\/(\d+))?$/);
+  if ((req.method === 'POST' || req.method === 'PATCH') && requisitionMatch) {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const parsed = body ? JSON.parse(body) : {};
+    if (req.method === 'PATCH') {
+      const id = Number(requisitionMatch[1]);
+      const item = payload.jobsData.find(j => j.id === id);
+      if (!item) return sendJson(res, 404, { ok: false, error: 'not found' });
+      item.dept = parsed.department;
+      item.pos = parsed.positionTitle;
+      item.headcount = parsed.headcount;
+      item.status = parsed.status;
+      item.urgency = parsed.urgency;
+      item.note = parsed.notes || '';
+      return sendJson(res, 200, { ok: true, requisition: { id, department: item.dept, positionTitle: item.pos, headcount: item.headcount, status: item.status, urgency: item.urgency, notes: item.note } });
+    }
+    const id = Math.max(0, ...payload.jobsData.map(j => j.id)) + 1;
+    payload.jobsData.push({ id, pos: parsed.positionTitle, dept: parsed.department, headcount: parsed.headcount, filled: 0, cands: 0, hired: 0, urgency: parsed.urgency, status: parsed.status, note: parsed.notes || '' });
+    return sendJson(res, 200, { ok: true, requisition: { id, department: parsed.department, positionTitle: parsed.positionTitle, headcount: parsed.headcount, status: parsed.status, urgency: parsed.urgency, notes: parsed.notes || '' } });
+  }
+  const job104LinkMatch = url.pathname.match(/^\/api\/job-requisition-sources\/104\/(\d+)$/);
+  if (req.method === 'PATCH' && job104LinkMatch) {
+    const externalId = job104LinkMatch[1];
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const parsed = body ? JSON.parse(body) : {};
+    const item = payload.external104Jobs.find(j => j.externalId === externalId);
+    if (!item) return sendJson(res, 404, { ok: false, error: 'not found' });
+    item.jobRequisitionId = parsed.jobRequisitionId ?? null;
+    return sendJson(res, 200, { ok: true, external104Job: { ...item } });
+  }
+  if (url.pathname.startsWith('/js/')) {
+    const filePath = path.join(ROOT, 'dashboard', url.pathname);
+    try {
+      const content = await readFile(filePath, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(content);
+      return;
+    } catch (_) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+      return;
+    }
   }
   const html = await readFile(path.join(ROOT, 'dashboard', 'index.html'), 'utf8');
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
