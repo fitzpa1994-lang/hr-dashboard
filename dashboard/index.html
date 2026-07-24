@@ -524,6 +524,373 @@
     color: var(--navy);
     border-bottom-color: var(--navy);
   }
+  /* 月度招募儀表板 */
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .analytics-span-full { grid-column: 1 / -1; }
+  .monthly-funnel-dashboard {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .funnel-dashboard-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .funnel-dashboard-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .funnel-dashboard-title svg { width: 17px; height: 17px; color: var(--navy); }
+  .funnel-reporting-period {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .funnel-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .funnel-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .funnel-control-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--faint);
+    letter-spacing: 0.03em;
+  }
+  .funnel-segmented {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--paper);
+  }
+  .funnel-segmented button {
+    min-height: 30px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .funnel-segmented button:hover { color: var(--navy); }
+  .funnel-segmented button.is-active {
+    background: var(--panel);
+    color: var(--navy);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .funnel-segmented button:focus-visible,
+  .funnel-filter-select:focus-visible,
+  .funnel-detail-toggle:focus-visible {
+    outline: 2px solid var(--navy);
+    outline-offset: 2px;
+  }
+  .funnel-filter-select {
+    width: min(240px, 30vw);
+    min-width: 170px;
+    height: 34px;
+    padding: 0 30px 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--ink);
+    font-size: 11px;
+  }
+  .funnel-dashboard-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 18px 20px 20px;
+    background: #FBFAF8;
+  }
+  .funnel-granularity-note {
+    margin-top: -10px;
+    color: var(--faint);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .funnel-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .funnel-kpi-card {
+    position: relative;
+    min-width: 0;
+    padding: 14px 14px 13px;
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--metric-color);
+    border-radius: 8px;
+    background: var(--panel);
+  }
+  .metric-recommend { --metric-color: #2563EB; --metric-tint: #EFF6FF; }
+  .metric-interview { --metric-color: #7C3AED; --metric-tint: #F5F3FF; }
+  .metric-onboard { --metric-color: #15803D; --metric-tint: #F0FDF4; }
+  .metric-resign { --metric-color: #B91C1C; --metric-tint: #FEF2F2; }
+  .funnel-kpi-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .funnel-kpi-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .funnel-kpi-label svg { width: 14px; height: 14px; color: var(--metric-color); }
+  .funnel-kpi-month { color: var(--faint); font-size: 10px; }
+  .funnel-kpi-main {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 9px;
+  }
+  .funnel-kpi-value {
+    color: var(--ink);
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+  .funnel-kpi-value span {
+    margin-left: 3px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .funnel-kpi-delta {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 7px;
+    margin-top: 7px;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .funnel-kpi-delta strong { font-size: 11px; font-variant-numeric: tabular-nums; }
+  .tone-positive { color: #047857 !important; }
+  .tone-negative { color: #B91C1C !important; }
+  .tone-neutral { color: var(--faint) !important; }
+  .funnel-sparkline { width: 116px; max-width: 46%; height: 38px; flex-shrink: 1; }
+  .funnel-sparkline-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 92px;
+    max-width: 42%;
+    height: 38px;
+    border-bottom: 1px dashed var(--line);
+    color: var(--faint);
+    font-size: 9px;
+  }
+  .funnel-section {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+  }
+  .funnel-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px 8px;
+  }
+  .funnel-section-head h3 { color: var(--ink); font-size: 13px; font-weight: 700; }
+  .funnel-section-head p { color: var(--faint); font-size: 10px; }
+  .funnel-trend-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    border-top: 1px solid var(--line-soft);
+    background: var(--line-soft);
+  }
+  .funnel-trend-card {
+    min-width: 0;
+    padding: 14px 16px 12px;
+    background: var(--panel);
+  }
+  .funnel-trend-card:nth-child(-n+2) { border-bottom: 0; }
+  .funnel-trend-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+    color: var(--ink);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .funnel-trend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    background: var(--metric-color);
+  }
+  .funnel-chart-canvas-wrap {
+    position: relative;
+    height: 184px;
+  }
+  .funnel-chart-canvas-wrap.is-unavailable::after {
+    content: '此維度沒有可靠資料';
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--faint);
+    font-size: 11px;
+  }
+  .funnel-empty-state {
+    grid-column: 1 / -1;
+    padding: 34px 16px;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    color: var(--faint);
+    text-align: center;
+    background: var(--panel);
+  }
+  .funnel-empty-state.compact { padding: 24px 16px; border: 0; }
+  .funnel-conversion-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+    gap: 20px;
+    padding: 10px 16px 16px;
+  }
+  .funnel-stage-flow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20px minmax(0, 0.78fr) 20px minmax(0, 0.56fr);
+    align-items: center;
+    gap: 5px;
+  }
+  .funnel-stage {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "icon label" "icon value";
+    align-items: center;
+    gap: 1px 9px;
+    min-width: 0;
+    padding: 13px 12px;
+    border-left: 3px solid var(--metric-color);
+    border-radius: 6px;
+    background: var(--metric-tint);
+  }
+  .funnel-stage-icon {
+    grid-area: icon;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    color: var(--metric-color);
+    background: var(--panel);
+  }
+  .funnel-stage-icon svg { width: 15px; height: 15px; }
+  .funnel-stage-label { grid-area: label; color: var(--muted); font-size: 10px; }
+  .funnel-stage strong {
+    grid-area: value;
+    color: var(--ink);
+    font-size: 20px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .funnel-stage strong small { margin-left: 3px; color: var(--muted); font-size: 9px; font-weight: 500; }
+  .funnel-stage-arrow { width: 16px; height: 16px; color: var(--faint); }
+  .funnel-rate-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid var(--line-soft);
+    border-radius: 7px;
+  }
+  .funnel-rate-list > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px;
+    text-align: center;
+  }
+  .funnel-rate-list > div + div { border-left: 1px solid var(--line-soft); }
+  .funnel-rate-list dt { color: var(--muted); font-size: 9px; line-height: 1.25; }
+  .funnel-rate-list dd {
+    color: var(--ink);
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .funnel-details {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+  }
+  .funnel-detail-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 16px;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+  .funnel-detail-toggle::-webkit-details-marker { display: none; }
+  .funnel-detail-toggle svg { width: 15px; height: 15px; color: var(--muted); transition: transform 0.15s ease; }
+  .funnel-details[open] .funnel-detail-toggle svg { transform: rotate(180deg); }
+  .funnel-detail-caption {
+    margin-left: auto;
+    color: var(--faint);
+    font-size: 10px;
+    font-weight: 400;
+  }
+  .funnel-detail-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border-top: 1px solid var(--line-soft);
+  }
+  .funnel-detail-table th,
+  .funnel-detail-table td {
+    padding: 9px 8px;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--muted);
+    font-size: 10px;
+    text-align: right;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+  .funnel-detail-table thead th { color: var(--faint); font-weight: 600; background: #FBFAF8; }
+  .funnel-detail-table th:first-child { width: 13%; text-align: left; }
+  .funnel-detail-table tbody th { color: var(--ink); font-weight: 600; text-align: left; }
+  .funnel-detail-table tbody tr.is-latest { background: #F8FAFC; }
+  .funnel-detail-table tbody tr:last-child th,
+  .funnel-detail-table tbody tr:last-child td { border-bottom: 0; }
+  .funnel-detail-empty { padding: 24px !important; text-align: center !important; color: var(--faint) !important; }
   /* ===== Responsive（置於樣式表末端，確保覆蓋基礎規則） ===== */
   .ghost-button { white-space: nowrap; }
   .dept-table td:first-child { white-space: nowrap; }
@@ -546,6 +913,84 @@
     .ops-item + .ops-item { border-left: 0; }
     .ops-item:nth-child(even) { border-left: 1px solid var(--line-soft); }
     .ops-item:nth-child(n+3) { border-top: 1px solid var(--line-soft); }
+    .funnel-dashboard-head { flex-direction: column; }
+    .funnel-toolbar { width: 100%; justify-content: flex-start; }
+    .funnel-filter-select { width: min(280px, 45vw); }
+    .funnel-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .funnel-conversion-content { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 767px) {
+    .dashboard-sidebar { width: 54px; }
+    .dashboard-sidebar > div:first-child {
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .dashboard-sidebar > div:first-child > div:last-child,
+    .dashboard-sidebar > div:last-child,
+    .sidebar-caption { display: none; }
+    .dashboard-sidebar > .p-3 { padding: 8px; }
+    .dashboard-sidebar .menu-item {
+      justify-content: center;
+      gap: 0;
+      min-height: 38px;
+      padding: 8px;
+      font-size: 0;
+    }
+    .dashboard-sidebar .menu-item svg { width: 18px; height: 18px; flex: 0 0 auto; }
+    .dashboard-sidebar .brand-mark { margin-right: 0; }
+    .dashboard-topbar {
+      height: 56px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .dashboard-topbar > div:last-child { display: none; }
+    .dashboard-topbar #page-title { font-size: 17px; }
+    .dashboard-content { padding: 12px 10px 20px; }
+    .analytics-grid { grid-template-columns: minmax(0, 1fr); }
+    .analytics-span-full { grid-column: auto; }
+    .funnel-dashboard-head { padding: 16px; }
+    .funnel-dashboard-body { padding: 14px; gap: 14px; }
+    .funnel-toolbar { align-items: stretch; }
+    .funnel-control-group { flex: 1 1 100%; }
+    .funnel-segmented { align-self: flex-start; }
+    .funnel-filter-select { width: 100%; min-width: 0; }
+    .funnel-kpi-grid,
+    .funnel-trend-grid { grid-template-columns: minmax(0, 1fr); }
+    .funnel-kpi-main { min-height: 66px; }
+    .funnel-chart-canvas-wrap { height: 176px; }
+    .funnel-stage-flow {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+    .funnel-stage-arrow { justify-self: center; transform: rotate(90deg); }
+    .funnel-rate-list { grid-template-columns: minmax(0, 1fr); }
+    .funnel-rate-list > div { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; }
+    .funnel-rate-list > div + div { border-left: 0; border-top: 1px solid var(--line-soft); }
+    .funnel-detail-caption { display: none; }
+    .funnel-detail-table thead { display: none; }
+    .funnel-detail-table,
+    .funnel-detail-table tbody,
+    .funnel-detail-table tr,
+    .funnel-detail-table th,
+    .funnel-detail-table td { display: block; width: 100%; }
+    .funnel-detail-table tr { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .funnel-detail-table th,
+    .funnel-detail-table td {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 5px 0;
+      border-bottom: 0;
+      text-align: right;
+    }
+    .funnel-detail-table th::before,
+    .funnel-detail-table td::before {
+      content: attr(data-label);
+      color: var(--faint);
+      font-weight: 500;
+      text-align: left;
+    }
   }
 </style>
 </head>
@@ -564,17 +1009,17 @@
     </div>
     <div class="p-3 flex-1 overflow-y-auto">
       <div class="sidebar-caption">日常作業</div>
-      <div class="menu-item active" data-nav-tab="overview" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> 招募總覽</div>
-      <div class="menu-item" data-nav-tab="schedule" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
-      <div class="menu-item" data-nav-tab="candidates" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人資料</div>
-      <div class="menu-item" data-nav-tab="jobs" onclick="showJobWorkspace('jobs')"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
+      <div class="menu-item active" data-nav-tab="overview" title="招募總覽" aria-label="招募總覽" onclick="showTab('overview', this)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> 招募總覽</div>
+      <div class="menu-item" data-nav-tab="schedule" title="面試排程" aria-label="面試排程" onclick="showTab('schedule', this)"><i data-lucide="calendar-clock" class="w-4 h-4"></i> 面試排程</div>
+      <div class="menu-item" data-nav-tab="candidates" title="候選人資料" aria-label="候選人資料" onclick="showTab('candidates', this)"><i data-lucide="users" class="w-4 h-4"></i> 候選人資料</div>
+      <div class="menu-item" data-nav-tab="jobs" title="職缺管理" aria-label="職缺管理" onclick="showJobWorkspace('jobs')"><i data-lucide="briefcase" class="w-4 h-4"></i> 職缺管理</div>
 
       <div class="sidebar-caption mt-5">流程作業</div>
-      <div class="menu-item" data-nav-tab="hr-events" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 到職／離職作業</div>
+      <div class="menu-item" data-nav-tab="hr-events" title="到職／離職作業" aria-label="到職／離職作業" onclick="showTab('hr-events', this)"><i data-lucide="arrow-right-left" class="w-4 h-4"></i> 到職／離職作業</div>
 
       <div class="sidebar-caption mt-5">分析設定</div>
-      <div class="menu-item" data-nav-tab="analytics" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 分析報表</div>
-      <div class="menu-item" data-nav-tab="settings" onclick="showTab('settings', this)"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
+      <div class="menu-item" data-nav-tab="analytics" title="分析報表" aria-label="分析報表" onclick="showTab('analytics', this)"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> 分析報表</div>
+      <div class="menu-item" data-nav-tab="settings" title="系統設定" aria-label="系統設定" onclick="showTab('settings', this)"><i data-lucide="settings" class="w-4 h-4"></i> 系統設定</div>
     </div>
     <div class="px-4 py-3 border-t border-white/10">
       <div class="text-white/60 text-[11px]">人資部 · 內部系統</div>
@@ -1012,7 +1457,7 @@
 
       <!-- ===== TAB: 分析報表 ===== -->
       <div id="tab-analytics" class="page page-shell hidden">
-        <div class="grid grid-cols-2 gap-5">
+        <div class="analytics-grid">
           <div class="surface-panel-strong p-6">
             <h2 class="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="line-chart" class="w-4 h-4"></i>近月招募 / 到職趨勢</h2>
             <div class="relative h-64"><canvas id="trendChart"></canvas></div>
@@ -1022,18 +1467,112 @@
             <div class="text-[11px] text-gray-400 mb-3">近 6 個月各部門到職人數</div>
             <div class="relative h-64"><canvas id="deptChart"></canvas></div>
           </div>
-          <!-- 月度招募漏斗：推薦/面試/到職/離職，跟上個月比較 -->
-          <div class="surface-panel-strong p-6 col-span-2">
-            <div class="flex items-center justify-between mb-1">
-              <h2 class="text-[14px] font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i>月度招募漏斗（推薦 / 面試 / 到職 / 離職）</h2>
-              <div class="flex items-center gap-1 bg-gray-100 rounded-md p-0.5" id="funnel-granularity-switch">
-                <button type="button" class="text-xs px-3 py-1 rounded font-medium transition bg-white shadow-sm text-brand" data-funnel-granularity="department" onclick="setFunnelGranularity('department')">依部門</button>
-                <button type="button" class="text-xs px-3 py-1 rounded font-medium transition text-gray-500" data-funnel-granularity="job" onclick="setFunnelGranularity('job')">依職缺</button>
+          <section id="monthly-funnel-dashboard" class="surface-panel-strong monthly-funnel-dashboard analytics-span-full" aria-labelledby="monthly-funnel-title">
+            <header class="funnel-dashboard-head">
+              <div>
+                <h2 id="monthly-funnel-title" class="funnel-dashboard-title"><i data-lucide="chart-no-axes-combined" aria-hidden="true"></i>月度招募成效</h2>
+                <p id="funnel-reporting-period" class="funnel-reporting-period">載入月份中…</p>
               </div>
+              <div class="funnel-toolbar" aria-label="月度招募成效篩選">
+                <div class="funnel-control-group">
+                  <span class="funnel-control-label">檢視方式</span>
+                  <div class="funnel-segmented" id="funnel-granularity-switch">
+                    <button type="button" class="is-active" data-funnel-granularity="department" aria-pressed="true">依部門</button>
+                    <button type="button" data-funnel-granularity="job" aria-pressed="false">依職缺</button>
+                  </div>
+                </div>
+                <label class="funnel-control-group">
+                  <span class="funnel-control-label" id="funnel-dimension-label">部門</span>
+                  <select id="funnel-dimension-filter" class="funnel-filter-select">
+                    <option value="all">全部部門</option>
+                  </select>
+                </label>
+                <div class="funnel-control-group">
+                  <span class="funnel-control-label">趨勢期間</span>
+                  <div class="funnel-segmented">
+                    <button type="button" class="is-active" data-funnel-range="6" aria-pressed="true">近 6 個月</button>
+                    <button type="button" data-funnel-range="12" aria-pressed="false">近 12 個月</button>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <div class="funnel-dashboard-body">
+              <p id="funnel-granularity-note" class="funnel-granularity-note" aria-live="polite"></p>
+
+              <section aria-label="本月 KPI 摘要">
+                <div id="funnel-kpi-grid" class="funnel-kpi-grid" aria-live="polite">
+                  <div class="funnel-empty-state">載入月度數據中…</div>
+                </div>
+              </section>
+
+              <section class="funnel-section" aria-labelledby="funnel-trend-heading">
+                <div class="funnel-section-head">
+                  <h3 id="funnel-trend-heading">月度趨勢</h3>
+                  <p>深色長條為最新月份</p>
+                </div>
+                <div id="funnel-trend-empty" class="funnel-empty-state" hidden>目前沒有趨勢資料</div>
+                <div id="funnel-trend-grid" class="funnel-trend-grid">
+                  <article class="funnel-trend-card metric-recommend">
+                    <h4 class="funnel-trend-title"><span class="funnel-trend-dot"></span>推薦數量月度趨勢</h4>
+                    <div class="funnel-chart-canvas-wrap">
+                      <canvas id="funnel-trend-recommend" tabindex="0" role="img" aria-describedby="funnel-trend-summary-recommend"></canvas>
+                    </div>
+                    <p id="funnel-trend-summary-recommend" class="sr-only"></p>
+                  </article>
+                  <article class="funnel-trend-card metric-interview">
+                    <h4 class="funnel-trend-title"><span class="funnel-trend-dot"></span>面試數量月度趨勢</h4>
+                    <div class="funnel-chart-canvas-wrap">
+                      <canvas id="funnel-trend-interview" tabindex="0" role="img" aria-describedby="funnel-trend-summary-interview"></canvas>
+                    </div>
+                    <p id="funnel-trend-summary-interview" class="sr-only"></p>
+                  </article>
+                  <article class="funnel-trend-card metric-onboard">
+                    <h4 class="funnel-trend-title"><span class="funnel-trend-dot"></span>到職數量月度趨勢</h4>
+                    <div class="funnel-chart-canvas-wrap">
+                      <canvas id="funnel-trend-onboard" tabindex="0" role="img" aria-describedby="funnel-trend-summary-onboard"></canvas>
+                    </div>
+                    <p id="funnel-trend-summary-onboard" class="sr-only"></p>
+                  </article>
+                  <article class="funnel-trend-card metric-resign">
+                    <h4 class="funnel-trend-title"><span class="funnel-trend-dot"></span>離職數量月度趨勢</h4>
+                    <div class="funnel-chart-canvas-wrap">
+                      <canvas id="funnel-trend-resign" tabindex="0" role="img" aria-describedby="funnel-trend-summary-resign"></canvas>
+                    </div>
+                    <p id="funnel-trend-summary-resign" class="sr-only"></p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="funnel-section" aria-labelledby="funnel-conversion-heading">
+                <div class="funnel-section-head">
+                  <h3 id="funnel-conversion-heading">本月招募漏斗</h3>
+                  <p>推薦 → 面試 → 到職</p>
+                </div>
+                <div id="funnel-conversion-content" class="funnel-conversion-content" aria-live="polite"></div>
+              </section>
+
+              <details class="funnel-details">
+                <summary class="funnel-detail-toggle">
+                  <i data-lucide="chevron-down" aria-hidden="true"></i>
+                  查看每月詳細數據
+                  <span id="funnel-detail-caption" class="funnel-detail-caption"></span>
+                </summary>
+                <table class="funnel-detail-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">月份</th>
+                      <th scope="col">推薦</th><th scope="col">較上月</th>
+                      <th scope="col">面試</th><th scope="col">較上月</th>
+                      <th scope="col">到職</th><th scope="col">較上月</th>
+                      <th scope="col">離職</th><th scope="col">較上月</th>
+                    </tr>
+                  </thead>
+                  <tbody id="funnel-detail-body"></tbody>
+                </table>
+              </details>
             </div>
-            <div class="text-[11px] text-gray-400 mb-4" id="funnel-granularity-note"></div>
-            <div id="monthly-funnel-content" class="text-xs text-gray-400">載入中…</div>
-          </div>
+          </section>
         </div>
       </div>
 
@@ -2750,95 +3289,6 @@ function renderJobs(){
 }
 
 // ============================================================
-// ============================================================
-// MONTHLY FUNNEL (推薦 / 面試 / 到職 / 離職，跟上個月比較)
-// ============================================================
-let funnelGranularity = 'department';
-
-function setFunnelGranularity(granularity) {
-  funnelGranularity = granularity;
-  renderMonthlyFunnel();
-}
-
-function funnelDelta(curr, prev) {
-  if (prev === null || prev === undefined) return { label: '—', cls: 'text-gray-400' };
-  if (prev === 0) {
-    if (curr === 0) return { label: '持平', cls: 'text-gray-400' };
-    return { label: '新增', cls: 'text-emerald-600' };
-  }
-  const pct = Math.round(((curr - prev) / prev) * 100);
-  if (pct === 0) return { label: '持平', cls: 'text-gray-400' };
-  const arrow = pct > 0 ? '▲' : '▼';
-  const cls = pct > 0 ? 'text-emerald-600' : 'text-red-500';
-  return { label: `${arrow} ${Math.abs(pct)}%`, cls };
-}
-
-function renderMonthlyFunnel() {
-  const el = document.getElementById('monthly-funnel-content');
-  const note = document.getElementById('funnel-granularity-note');
-  if (!el) return;
-
-  document.querySelectorAll('#funnel-granularity-switch [data-funnel-granularity]').forEach(btn => {
-    const active = btn.dataset.funnelGranularity === funnelGranularity;
-    btn.classList.toggle('bg-white', active);
-    btn.classList.toggle('shadow-sm', active);
-    btn.classList.toggle('text-brand', active);
-    btn.classList.toggle('text-gray-500', !active);
-  });
-
-  const isJob = funnelGranularity === 'job';
-  if (note) {
-    note.textContent = isJob
-      ? '依職缺顆粒度僅提供推薦／面試（到職、離職沒有職缺層級的可靠對應資料，避免用模糊比對硬湊數字，暫不提供）'
-      : '部門為大分類（ICC / WBU / 新華 / 新竹 / 安規 / 零件 / 行政），跨部門子單位一併統計';
-  }
-
-  const rows = (isJob ? window._monthlyFunnelByJob : window._monthlyFunnelByDepartment) || [];
-  if (!rows.length) {
-    el.innerHTML = '<div class="text-gray-400 py-4 text-center">尚無資料</div>';
-    return;
-  }
-
-  const groupKey = r => isJob ? `${r.department} · ${r.position_title}` : r.department;
-  const groups = new Map();
-  for (const r of rows) {
-    const key = groupKey(r);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(r);
-  }
-
-  const metrics = isJob
-    ? [['recommend', '推薦'], ['interview', '面試']]
-    : [['recommend', '推薦'], ['interview', '面試'], ['onboard', '到職'], ['resign', '離職']];
-
-  let html = '<div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr class="border-b border-gray-200 text-gray-500">';
-  html += '<th class="text-left py-2 pr-3 font-medium">分類</th><th class="text-left py-2 pr-3 font-medium">月份</th>';
-  for (const [, label] of metrics) html += `<th class="text-right py-2 px-3 font-medium">${label}</th><th class="text-right py-2 pl-1 pr-3 font-medium">較上月</th>`;
-  html += '</tr></thead><tbody>';
-
-  const sortedGroups = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-Hant'));
-  for (const [key, groupRows] of sortedGroups) {
-    const sorted = [...groupRows].sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
-    sorted.forEach((r, i) => {
-      const prev = i > 0 ? sorted[i - 1] : null;
-      html += `<tr class="border-b border-gray-100 hover:bg-gray-50">`;
-      html += `<td class="py-1.5 pr-3 text-gray-700 font-medium">${i === 0 ? escHtml(key) : ''}</td>`;
-      html += `<td class="py-1.5 pr-3 text-gray-500">${escHtml(r.month)}</td>`;
-      for (const [field] of metrics) {
-        const curr = Number(r[field] || 0);
-        const prevVal = prev ? Number(prev[field] || 0) : null;
-        const delta = funnelDelta(curr, prevVal);
-        html += `<td class="py-1.5 px-3 text-right text-gray-800 tabular-nums">${curr}</td>`;
-        html += `<td class="py-1.5 pl-1 pr-3 text-right ${delta.cls} tabular-nums">${delta.label}</td>`;
-      }
-      html += '</tr>';
-    });
-  }
-  html += '</tbody></table></div>';
-  el.innerHTML = html;
-}
-
-// ============================================================
 // CHARTS
 // ============================================================
 let charts={};
@@ -3010,7 +3460,7 @@ function showTab(name, btn){
   });
 
   if(name==='analytics') setTimeout(renderCharts, 50); // slight delay to ensure container is visible
-  if(name==='analytics') setTimeout(renderMonthlyFunnel, 50);
+  if(name==='analytics') setTimeout(() => window.renderMonthlyFunnel?.(), 50);
   if(name==='schedule') setTimeout(schedGoToday, 30);
   if(name==='talent-search') setTimeout(() => window.talentSearchNavigator?.render(), 0);
   if(name==='requisitions') setTimeout(() => window.hrRequisitionsEditor?.render(), 0);
@@ -3185,5 +3635,6 @@ if (location.hash) {
 <script type="module" src="js/talentSearchNavigator.js?v=8"></script>
 <script type="module" src="js/requisitionsEditor.js?v=1"></script>
 <script type="module" src="js/routingRulesEditor.js?v=1"></script>
+<script type="module" src="js/monthlyFunnelDashboard.js?v=1"></script>
 </body>
 </html>

@@ -11,6 +11,8 @@ const jobsEditorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'jobsEditor.j
 const jobReconciliationJs = fs.readFileSync(path.join(dashboardDir, 'js', 'jobReconciliation.js'), 'utf8');
 const sync104ContractJs = fs.readFileSync(path.join(dashboardDir, 'js', 'sync104Contract.js'), 'utf8');
 const talentSearchNavigatorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'talentSearchNavigator.js'), 'utf8');
+const monthlyFunnelDashboardJs = fs.readFileSync(path.join(dashboardDir, 'js', 'monthlyFunnelDashboard.js'), 'utf8');
+const monthlyFunnelUtilsJs = fs.readFileSync(path.join(dashboardDir, 'js', 'monthlyFunnelUtils.js'), 'utf8');
 
 const errors = [];
 
@@ -57,6 +59,8 @@ for (const [label, source] of [
   ['job reconciliation', jobReconciliationJs],
   ['104 sync contract', sync104ContractJs],
   ['talent search navigator', talentSearchNavigatorJs],
+  ['monthly funnel dashboard', monthlyFunnelDashboardJs],
+  ['monthly funnel utilities', monthlyFunnelUtilsJs],
 ]) {
   try {
     parse(source, { sourceType: 'module' });
@@ -92,6 +96,12 @@ expectIncludes(indexHtml, 'getExternal104Sync: () => ({ ...external104Sync })', 
 expectIncludes(indexHtml, 'external104Sync = d.external104Sync', '104 sync metadata load');
 expectIncludes(indexHtml, 'js/jobsEditor.js', 'jobs editor module include');
 expectIncludes(indexHtml, 'id="tab-talent-search"', '104 talent search page');
+expectIncludes(indexHtml, 'id="monthly-funnel-dashboard"', 'monthly funnel dashboard');
+expectIncludes(indexHtml, 'id="funnel-kpi-grid"', 'monthly funnel KPI grid');
+expectIncludes(indexHtml, 'id="funnel-trend-grid"', 'monthly funnel small multiples');
+expectIncludes(indexHtml, 'id="funnel-conversion-content"', 'monthly funnel conversion summary');
+expectIncludes(indexHtml, '查看每月詳細數據', 'collapsed monthly funnel details');
+expectIncludes(indexHtml, 'js/monthlyFunnelDashboard.js', 'monthly funnel dashboard module include');
 expectNotIncludes(indexHtml, 'id="job-reconciliation-panel"', 'manual 104 pairing panel removed');
 expectIncludes(indexHtml, 'data-job-workspace-target="talent-search"', 'unified jobs workspace switch');
 expectIncludes(indexHtml, 'data-nav-tab="hr-events"', 'semantic sidebar tab target');
