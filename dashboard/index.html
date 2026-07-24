@@ -8,6 +8,7 @@
 
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="js/reportingMonthUtils.js?v=1"></script>
 <script>
   tailwind.config = {
     theme: {
@@ -2304,6 +2305,7 @@ async function loadData() {
     positionRoutingRules = Array.isArray(d.positionRoutingRules) ? d.positionRoutingRules : [];
     window._monthlyFunnelByDepartment = d.monthlyFunnelByDepartment || [];
     window._monthlyFunnelByJob = d.monthlyFunnelByJob || [];
+    window._monthlyFunnelCurrentMonth = TODAY.substring(0, 7);
     departmentStats = d.departmentStats || [];
     stats = d.stats || {};
     todayActivity = d.todayActivity || {};
@@ -2364,7 +2366,11 @@ function renderAll() {
 // ============================================================
 let _overviewMonthlyChartInst = null;
 function renderOverviewMonthlyChart() {
-  const months = (monthlyTrend || []).slice(-6);
+  const months = window.hrReportingMonthUtils.aggregateDepartmentFunnelTrend(
+    window._monthlyFunnelByDepartment,
+    TODAY,
+    6
+  );
   const ctx = document.getElementById('overview-monthly-chart');
   if (!ctx) return;
   if (_overviewMonthlyChartInst) { _overviewMonthlyChartInst.destroy(); _overviewMonthlyChartInst = null; }
@@ -2374,8 +2380,8 @@ function renderOverviewMonthlyChart() {
     data: {
       labels: months.map(m => { const p = String(m.month||'').split('-'); return p[1] ? p[1]+'月' : m.month; }),
       datasets: [
-        { label: '面試', data: months.map(m => m.interviews||0), backgroundColor: '#2B5282', borderRadius: 4 },
-        { label: '到職', data: months.map(m => m.onboarded||0), backgroundColor: '#38A169', borderRadius: 4 }
+        { label: '面試', data: months.map(m => m.interview), backgroundColor: '#2B5282', borderRadius: 4 },
+        { label: '到職', data: months.map(m => m.onboard), backgroundColor: '#38A169', borderRadius: 4 }
       ]
     },
     options: {
@@ -3339,15 +3345,19 @@ function renderCharts(){
     if(ctx)charts[id]=new Chart(ctx,config);
   };
 
-  const trend6=monthlyTrend.slice(-6);
+  const trend6=window.hrReportingMonthUtils.aggregateDepartmentFunnelTrend(
+    window._monthlyFunnelByDepartment,
+    TODAY,
+    6
+  );
   const [blue, , , green] = vizCategoricalPalette();
   renderOrUpdate('trendChart',{
     type:'line',
     data:{
       labels:trend6.map(m=>m.month),
       datasets:[
-        {label:'面試',data:trend6.map(m=>m.interviews),borderColor:blue,backgroundColor:blue,...VIZ_LINE_STYLE},
-        {label:'到職',data:trend6.map(m=>m.onboarded),borderColor:green,backgroundColor:green,...VIZ_LINE_STYLE},
+        {label:'面試',data:trend6.map(m=>m.interview),borderColor:blue,backgroundColor:blue,...VIZ_LINE_STYLE},
+        {label:'到職',data:trend6.map(m=>m.onboard),borderColor:green,backgroundColor:green,...VIZ_LINE_STYLE},
       ]
     },
     options:{
@@ -3361,9 +3371,10 @@ function renderCharts(){
   // 各部門招募成效：fold anything past the validated 8-slot categorical palette
   // into "其他" rather than generating a 9th hue.
   const funnelRows = window._monthlyFunnelByDepartment || [];
-  const funnelMonths = [...new Set(funnelRows.map(r=>r.month))].sort().slice(-6);
+  const funnelMonths = window.hrReportingMonthUtils.buildReportingMonthWindow(TODAY, 6);
+  const reportingFunnelRows = window.hrReportingMonthUtils.filterRowsToReportingWindow(funnelRows, TODAY, 6);
   const deptTotals = new Map();
-  for(const r of funnelRows) deptTotals.set(r.department, (deptTotals.get(r.department)||0) + Number(r.onboard||0));
+  for(const r of reportingFunnelRows) deptTotals.set(r.department, (deptTotals.get(r.department)||0) + Number(r.onboard||0));
   const rankedDepts = [...deptTotals.entries()].sort((a,b)=>b[1]-a[1]).map(([dept])=>dept);
   const MAX_DEPT_SERIES = 8;
   const cutoff = rankedDepts.length > MAX_DEPT_SERIES ? MAX_DEPT_SERIES - 1 : MAX_DEPT_SERIES;
@@ -3372,7 +3383,7 @@ function renderCharts(){
 
   const seriesFor = dept => {
     const byMonth={};
-    funnelRows.filter(r=>r.department===dept).forEach(r=>{ byMonth[r.month]=(byMonth[r.month]||0)+Number(r.onboard||0); });
+    reportingFunnelRows.filter(r=>r.department===dept).forEach(r=>{ byMonth[r.month]=(byMonth[r.month]||0)+Number(r.onboard||0); });
     return funnelMonths.map(m=>byMonth[m]||0);
   };
   const deptDatasets = shownDepts.map((dept,i)=>{
@@ -3381,7 +3392,7 @@ function renderCharts(){
   });
   if(overflowDepts.size){
     const byMonth={};
-    funnelRows.filter(r=>overflowDepts.has(r.department)).forEach(r=>{ byMonth[r.month]=(byMonth[r.month]||0)+Number(r.onboard||0); });
+    reportingFunnelRows.filter(r=>overflowDepts.has(r.department)).forEach(r=>{ byMonth[r.month]=(byMonth[r.month]||0)+Number(r.onboard||0); });
     const grey = vizVar('--viz-ink-muted');
     deptDatasets.push({label:'其他',data:funnelMonths.map(m=>byMonth[m]||0),borderColor:grey,backgroundColor:grey,borderDash:[4,3],...VIZ_LINE_STYLE});
   }

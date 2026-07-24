@@ -108,10 +108,19 @@ export function buildMonthWindow(latestMonth, count) {
   return Array.from({ length: size }, (_, index) => shiftMonth(latestMonth, index - size + 1));
 }
 
+export function getMonthKey(dateValue) {
+  const match = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(String(dateValue || ''));
+  if (!match) return '';
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return '';
+  return `${match[1]}-${match[2]}`;
+}
+
 export function aggregateMonthlyFunnel(rows, {
   granularity = 'department',
   selectedKey = 'all',
   range = 6,
+  currentMonth = '',
 } = {}) {
   const source = (Array.isArray(rows) ? rows : []).filter(row => (
     selectedKey === 'all' || getFunnelRowKey(row, granularity) === selectedKey
@@ -120,8 +129,8 @@ export function aggregateMonthlyFunnel(rows, {
     .map(row => String(row?.month || ''))
     .filter(month => /^\d{4}-\d{2}$/.test(month))
     .sort();
-  const latestMonth = sourceMonths.at(-1) || '';
-  const months = buildMonthWindow(latestMonth, range);
+  const reportingMonth = getMonthKey(currentMonth) || sourceMonths.at(-1) || '';
+  const months = buildMonthWindow(reportingMonth, range);
 
   const availability = Object.fromEntries(
     METRIC_FIELDS.map(field => [
@@ -152,7 +161,13 @@ export function aggregateMonthlyFunnel(rows, {
     return result;
   });
 
-  return { latestMonth, series, availability };
+  return {
+    reportingMonth,
+    // Compatibility alias for callers using the original aggregate model.
+    latestMonth: reportingMonth,
+    series,
+    availability,
+  };
 }
 
 export function formatMonthLabel(month, includeYear = false) {

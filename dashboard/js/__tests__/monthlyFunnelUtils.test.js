@@ -7,6 +7,7 @@ import {
   formatConversionRate,
   formatDeltaPeople,
   formatDeltaPercentage,
+  getMonthKey,
   listFunnelFilters,
 } from '../monthlyFunnelUtils.js';
 
@@ -58,7 +59,8 @@ describe('aggregateMonthlyFunnel', () => {
   ];
 
   test('builds a continuous month window and aggregates all departments', () => {
-    const model = aggregateMonthlyFunnel(rows, { range: 6 });
+    const model = aggregateMonthlyFunnel(rows, { range: 6, currentMonth: '2026-07' });
+    expect(model.reportingMonth).toBe('2026-07');
     expect(model.latestMonth).toBe('2026-07');
     expect(model.series.map(row => row.month)).toEqual([
       '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07',
@@ -81,6 +83,7 @@ describe('aggregateMonthlyFunnel', () => {
     const departmentModel = aggregateMonthlyFunnel(rows, {
       selectedKey: 'department:ICC',
       range: 6,
+      currentMonth: '2026-07',
     });
     expect(departmentModel.series.at(-1).recommend).toBe(7);
 
@@ -93,7 +96,12 @@ describe('aggregateMonthlyFunnel', () => {
         recommend: 4,
         interview: 2,
       },
-    ], { granularity: 'job', selectedKey: 'job:9', range: 6 });
+    ], {
+      granularity: 'job',
+      selectedKey: 'job:9',
+      range: 6,
+      currentMonth: '2026-07',
+    });
     expect(jobModel.availability).toMatchObject({ recommend: true, interview: true, onboard: false, resign: false });
     expect(jobModel.series.at(-1)).toMatchObject({ recommend: 4, interview: 2, onboard: null, resign: null });
   });
@@ -104,6 +112,100 @@ describe('aggregateMonthlyFunnel', () => {
       { value: 'department:WBU', label: 'WBU' },
     ]);
   });
+
+  test('anchors KPI and trends to API today and excludes future scheduled data', () => {
+    const model = aggregateMonthlyFunnel([
+      ...rows,
+      {
+        department: 'ICC',
+        month: '2026-08',
+        recommend: 0,
+        interview: 0,
+        onboard: 0,
+        resign: 4,
+      },
+    ], { range: 6, currentMonth: '2026-07-24' });
+
+    expect(model.reportingMonth).toBe('2026-07');
+    expect(model.series.map(row => row.month)).toEqual([
+      '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07',
+    ]);
+    expect(model.series.at(-1)).toMatchObject({
+      recommend: 11,
+      interview: 5,
+      onboard: 2,
+      resign: 3,
+    });
+    expect(model.series.some(row => row.month === '2026-08')).toBe(false);
+  });
+
+  test('keeps the current-month anchor after filtering to a department with future data', () => {
+    const model = aggregateMonthlyFunnel([
+      {
+        department: 'Future Team',
+        month: '2026-08',
+        recommend: 3,
+        interview: 1,
+        onboard: null,
+        resign: null,
+      },
+    ], {
+      selectedKey: 'department:Future Team',
+      range: 6,
+      currentMonth: '2026-07',
+    });
+
+    expect(model.reportingMonth).toBe('2026-07');
+    expect(model.series.at(-1)).toMatchObject({
+      month: '2026-07',
+      recommend: 0,
+      interview: 0,
+      onboard: null,
+      resign: null,
+    });
+    expect(model.availability).toMatchObject({
+      recommend: true,
+      interview: true,
+      onboard: false,
+      resign: false,
+    });
+  });
+
+  test('keeps the API current month when switching to a job dimension', () => {
+    const model = aggregateMonthlyFunnel([
+      {
+        job_requisition_id: 12,
+        department: 'ICC',
+        position_title: '工程師',
+        month: '2026-06',
+        recommend: 5,
+        interview: 2,
+      },
+      {
+        job_requisition_id: 12,
+        department: 'ICC',
+        position_title: '工程師',
+        month: '2026-08',
+        recommend: 9,
+        interview: 4,
+      },
+    ], {
+      granularity: 'job',
+      selectedKey: 'job:12',
+      range: 6,
+      currentMonth: '2026-07',
+    });
+
+    expect(model.series.at(-2)).toMatchObject({ month: '2026-06', recommend: 5, interview: 2 });
+    expect(model.series.at(-1)).toMatchObject({
+      month: '2026-07',
+      recommend: 0,
+      interview: 0,
+      onboard: null,
+      resign: null,
+    });
+    expect(model.series.some(row => row.month === '2026-08')).toBe(false);
+  });
 });
 
 test('buildMonthWindow supports twelve months across years', () => {
@@ -111,4 +213,16 @@ test('buildMonthWindow supports twelve months across years', () => {
     '2025-03', '2025-04', '2025-05', '2025-06', '2025-07', '2025-08',
     '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02',
   ]);
+});
+
+describe('getMonthKey', () => {
+  test.each([
+    ['2026-07-24', '2026-07'],
+    ['2026-07', '2026-07'],
+    ['2026-00-01', ''],
+    ['2026-13-01', ''],
+    ['', ''],
+  ])('normalizes %s to %s', (value, expected) => {
+    expect(getMonthKey(value)).toBe(expected);
+  });
 });

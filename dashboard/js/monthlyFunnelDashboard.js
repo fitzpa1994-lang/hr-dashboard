@@ -45,6 +45,7 @@ function currentModel() {
     granularity: state.granularity,
     selectedKey: state.selectedKey,
     range: state.range,
+    currentMonth: window._monthlyFunnelCurrentMonth || '',
   });
 }
 
@@ -120,14 +121,14 @@ function renderHeading(model) {
   const period = document.getElementById('funnel-reporting-period');
   const note = document.getElementById('funnel-granularity-note');
   if (period) {
-    period.textContent = model.latestMonth
-      ? `${formatMonthLabel(model.latestMonth, true)} · ${selectedLabel()}`
+    period.textContent = model.reportingMonth
+      ? `${formatMonthLabel(model.reportingMonth, true)} · ${selectedLabel()}`
       : '尚無可用月份';
   }
   if (note) {
     note.textContent = state.granularity === 'job'
-      ? '職缺維度的正式資料只涵蓋推薦與面試；到職、離職不以名稱模糊比對推估。'
-      : `顯示最近 ${state.range} 個月；本月以所選範圍內最新月份計算。`;
+      ? '未綁定職缺者不列入；職缺維度的正式資料只涵蓋推薦與面試，到職、離職不以名稱模糊比對推估。'
+      : `顯示最近 ${state.range} 個月；本月以系統日期所在月份計算。`;
   }
 }
 
@@ -153,7 +154,7 @@ function renderKpis(model) {
       <article class="funnel-kpi-card metric-${metric.key}" aria-label="${metric.label}">
         <div class="funnel-kpi-head">
           <span class="funnel-kpi-label"><i data-lucide="${metric.icon}" aria-hidden="true"></i>${metric.label}</span>
-          <span class="funnel-kpi-month">${escapeHtml(formatMonthLabel(model.latestMonth))}</span>
+          <span class="funnel-kpi-month">${escapeHtml(formatMonthLabel(model.reportingMonth))}</span>
         </div>
         <div class="funnel-kpi-main">
           <div>

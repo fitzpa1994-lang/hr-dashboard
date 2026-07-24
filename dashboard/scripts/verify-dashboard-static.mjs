@@ -13,6 +13,7 @@ const sync104ContractJs = fs.readFileSync(path.join(dashboardDir, 'js', 'sync104
 const talentSearchNavigatorJs = fs.readFileSync(path.join(dashboardDir, 'js', 'talentSearchNavigator.js'), 'utf8');
 const monthlyFunnelDashboardJs = fs.readFileSync(path.join(dashboardDir, 'js', 'monthlyFunnelDashboard.js'), 'utf8');
 const monthlyFunnelUtilsJs = fs.readFileSync(path.join(dashboardDir, 'js', 'monthlyFunnelUtils.js'), 'utf8');
+const reportingMonthUtilsJs = fs.readFileSync(path.join(dashboardDir, 'js', 'reportingMonthUtils.js'), 'utf8');
 
 const errors = [];
 
@@ -69,6 +70,12 @@ for (const [label, source] of [
   }
 }
 
+try {
+  parse(reportingMonthUtilsJs, { sourceType: 'script' });
+} catch (error) {
+  errors.push(`reporting month utilities script parse failed: ${error.message}`);
+}
+
 expectNotIncludes(indexHtml, '示意版', 'demo label');
 expectIncludes(indexHtml, 'id="last-updated"', 'last updated indicator');
 expectIncludes(indexHtml, 'id="refresh-btn"', 'manual refresh button');
@@ -102,6 +109,21 @@ expectIncludes(indexHtml, 'id="funnel-trend-grid"', 'monthly funnel small multip
 expectIncludes(indexHtml, 'id="funnel-conversion-content"', 'monthly funnel conversion summary');
 expectIncludes(indexHtml, '查看每月詳細數據', 'collapsed monthly funnel details');
 expectIncludes(indexHtml, 'js/monthlyFunnelDashboard.js', 'monthly funnel dashboard module include');
+expectIncludes(indexHtml, 'js/reportingMonthUtils.js', 'shared reporting month utilities include');
+expectIncludes(indexHtml, 'window._monthlyFunnelCurrentMonth = TODAY.substring(0, 7)', 'API today monthly funnel anchor');
+expectIncludes(monthlyFunnelDashboardJs, "currentMonth: window._monthlyFunnelCurrentMonth || ''", 'monthly funnel current month wiring');
+expectCount(
+  indexHtml,
+  /aggregateDepartmentFunnelTrend\(\s*window\._monthlyFunnelByDepartment,\s*TODAY,\s*6\s*\)/g,
+  2,
+  'overview and analytics trends use authoritative department funnel data'
+);
+expectIncludes(indexHtml, 'buildReportingMonthWindow(TODAY, 6)', 'department chart uses API today window');
+expectIncludes(indexHtml, 'filterRowsToReportingWindow(funnelRows, TODAY, 6)', 'department results exclude future months');
+expectNotIncludes(indexHtml, 'monthlyTrend.slice(-6)', 'unanchored analytics trend slicing');
+expectNotIncludes(indexHtml, '(monthlyTrend || []).slice(-6)', 'unanchored overview trend slicing');
+expectNotIncludes(indexHtml, 'alignRowsToReportingWindow(monthlyTrend', 'legacy monthly trend chart source');
+expectIncludes(monthlyFunnelDashboardJs, '未綁定職缺者不列入', 'job dimension binding scope note');
 expectNotIncludes(indexHtml, 'id="job-reconciliation-panel"', 'manual 104 pairing panel removed');
 expectIncludes(indexHtml, 'data-job-workspace-target="talent-search"', 'unified jobs workspace switch');
 expectIncludes(indexHtml, 'data-nav-tab="hr-events"', 'semantic sidebar tab target');
