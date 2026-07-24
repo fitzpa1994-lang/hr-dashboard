@@ -123,7 +123,11 @@ if (!bridge || typeof window.hrRequestJson !== 'function') {
   }
 
   function renderTargetFields(f) {
-    const requisitions = [...(bridge.getJobs?.() || [])].sort((a, b) => String(a.dept).localeCompare(String(b.dept), 'zh-Hant'));
+    // Never let a rule target a cancelled/retired requisition (same class of
+    // mistake as linking a live 104 posting to an already-cancelled one).
+    const requisitions = [...(bridge.getJobs?.() || [])]
+      .filter(j => j.status !== 'cancelled')
+      .sort((a, b) => String(a.dept).localeCompare(String(b.dept), 'zh-Hant'));
     const options = ['<option value="">選擇職缺…</option>']
       .concat(requisitions.map(j => `<option value="${escapeHtml(j.id)}"${String(j.id) === String(f.jobRequisitionId) ? ' selected' : ''}>${escapeHtml(j.dept || '--')} / ${escapeHtml(j.pos || '--')}</option>`));
     return `

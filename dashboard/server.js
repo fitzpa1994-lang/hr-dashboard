@@ -251,15 +251,18 @@ function normalizeRoutingRulePayload(body, { requireId = false } = {}) {
     return { error: 'matchType must be one of recipient_email, position_keyword, department_keyword' };
   }
   if (!pattern) return { error: 'pattern is required' };
-  if (jobRequisitionId !== null && (!Number.isInteger(jobRequisitionId) || jobRequisitionId <= 0)) {
+  if (pattern.length > 500) return { error: 'pattern is too long' };
+  if (jobRequisitionId !== null && (!Number.isInteger(jobRequisitionId) || jobRequisitionId <= 0 || jobRequisitionId > POSTGRES_INTEGER_MAX)) {
     return { error: 'jobRequisitionId must be a positive integer or null' };
   }
+  if (departmentHint.length > 200) return { error: 'departmentHint is too long' };
   if (jobRequisitionId === null && !departmentHint) {
     return { error: 'either jobRequisitionId or departmentHint is required' };
   }
-  if (!Number.isInteger(rawPriority)) {
-    return { error: 'priority must be an integer' };
+  if (!Number.isInteger(rawPriority) || rawPriority < -32768 || rawPriority > 32767) {
+    return { error: 'priority must be an integer between -32768 and 32767' };
   }
+  if (notes.length > 2000) return { error: 'notes is too long' };
 
   return {
     value: {
