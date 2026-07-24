@@ -81,10 +81,11 @@ test('resolution priority ladder is present, in order, and gated as documented',
 
 test('pri 4 hardcoded safety net keeps its exact four entries', () => {
   // These four raw-text -> requisition-id overrides are the fragile "magic
-  // number" fallback Phase 2 is meant to replace. Until replaced, they must
-  // not silently change — verified as of 2026-07-24 against live production
-  // data that ids 17/23/27 still point at MIS工程師/SAR測試工程師/軟體工程師(AI開發)
-  // respectively (RF has no entry here; that gap is intentional/known).
+  // number" fallback position_routing_rules is meant to replace. Until the
+  // old branch is removed (a deliberate later step), they must not silently
+  // change — verified as of 2026-07-24 against live production data that ids
+  // 17/23/27 still point at MIS工程師/SAR測試工程師/軟體工程師(AI開發) respectively
+  // (RF has no entry here; that gap is intentional/known).
   for (const query of candidateQueries) {
     for (const marker of [
       "U&'MIS\\7DB2\\7BA1\\5DE5\\7A0B\\5E2B' || '%' AND j.id = 17",
@@ -94,7 +95,38 @@ test('pri 4 hardcoded safety net keeps its exact four entries', () => {
     ]) {
       assert.ok(query.includes(marker), `missing pri-4 safety net entry: ${marker}`);
     }
-    assert.equal(query.split('4 AS pri').length - 1, 1, 'pri-4 branch must appear exactly once');
+    // 2, not 1: the old hardcoded branch plus the new additive
+    // routing_rule_keyword_match branch (see next test), both tied at pri 4.
+    assert.equal(query.split('4 AS pri').length - 1, 2, 'pri-4 must have exactly the old branch plus the new additive routing_rule_keyword_match branch');
+  }
+});
+
+test('position_routing_rules is consulted as an additive pri-0/pri-4 layer, old branches untouched', () => {
+  // 2026-07-24: Workflow1 was wired to also consult position_routing_rules,
+  // strictly additively — the old JS array and SQL literals above are left
+  // in place on purpose. Because the migrated table rows are identical to
+  // those old hardcoded values, a tie at the same pri number always resolves
+  // to the same job_requisition_id either way, so today's routing outcomes
+  // are unchanged. Removing the old branches is a deliberate later step.
+  for (const query of candidateQueries) {
+    assert.ok(query.includes('CREATE TABLE IF NOT EXISTS position_routing_rules'), 'bootstrap must create the table if missing');
+
+    assert.ok(query.includes('routing_rule_recipient_match AS ('), 'missing routing_rule_recipient_match CTE');
+    assert.ok(query.includes("AND rr.match_type = 'recipient_email'"));
+    assert.ok(query.includes('routing_rule_recipient_match'), 'CTE must be referenced by a pri-0 branch');
+
+    assert.ok(query.includes('routing_rule_keyword_match AS ('), 'missing routing_rule_keyword_match CTE');
+    assert.ok(query.includes("AND rr.match_type = 'position_keyword'"));
+    assert.ok(query.includes("c.raw_position LIKE '%' || rr.pattern || '%'"));
+
+    // Both new CTEs require rr.is_active and a non-null job_requisition_id —
+    // a rule with only a department_hint (like the migrated yenchen row) must
+    // never surface here as a hard override.
+    assert.equal(query.split('rr.is_active').length - 1, 2, 'both new CTEs must gate on rr.is_active');
+    assert.equal(query.split('rr.job_requisition_id IS NOT NULL').length - 1, 2, 'both new CTEs must require a non-null job_requisition_id');
+
+    // 2, not 1: old hardcoded pri-0 branch plus the new additive branch.
+    assert.equal(query.split('0 AS pri').length - 1, 2, 'pri-0 must have exactly the old branch plus the new additive routing_rule_recipient_match branch');
   }
 });
 
@@ -121,6 +153,6 @@ test('recipient routing rules keep their current three hardcoded overrides', () 
 
 test('candidate query stays within its expected size envelope', () => {
   for (const query of candidateQueries) {
-    assert.ok(query.length > 9_000 && query.length < 13_000, `unexpected candidate-write SQL length: ${query.length}`);
+    assert.ok(query.length > 9_000 && query.length < 15_000, `unexpected candidate-write SQL length: ${query.length}`);
   }
 });
